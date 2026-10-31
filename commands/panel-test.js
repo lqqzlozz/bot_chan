@@ -9,6 +9,6 @@ module.exports = {
       return i.reply({content:'このテストは指定サーバーの所有者専用です。',flags:MessageFlags.Ephemeral});
     }
     if (i.channel?.name !== 'bot-config') return i.reply({content:'#bot-config で実行してください。',flags:MessageFlags.Ephemeral});
-    return i.reply({...preview.render('home', isGI(i.guildId)?'on':'pending'),flags:MessageFlags.IsComponentsV2});
+    return i.reply({...preview.render('home', isGI(i.guildId)||require('../utils/store').get(i.guildId).panelTestGenshin===true?'on':require('../utils/store').get(i.guildId).panelTestGenshin===false?'off':'pending'),flags:MessageFlags.IsComponentsV2});
   }
 };

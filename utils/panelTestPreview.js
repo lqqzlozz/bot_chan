@@ -286,7 +286,7 @@ async function handle(i){
    data.panelTestGenshin=prev;data.genshin=prevReal;
    return i.reply({content:'設定を保存できませんでした。',flags:MessageFlags.Ephemeral});
   }
-  await require('./registerCommands').syncGuild(i.guild).catch(e=>console.error('原神コマンド同期:',e.message));
+  await require('./registerCommands').syncGuild(i.client,i.guildId).catch(e=>console.error('原神コマンド同期:',e.message));
   await i.update(render('home',id==='gen_on'?'on':'off',i.guildId));
   return true;
  }
@@ -297,7 +297,7 @@ async function handle(i){
    data.panelTestGenshin=prev;data.genshin=prevReal;
    return i.reply({content:'設定を保存できませんでした。',flags:MessageFlags.Ephemeral});
   }
-  await require('./registerCommands').syncGuild(i.guild).catch(e=>console.error('原神コマンド同期:',e.message));
+  await require('./registerCommands').syncGuild(i.client,i.guildId).catch(e=>console.error('原神コマンド同期:',e.message));
   await i.update(render('home','on',i.guildId));
   return true;
  }

@@ -78,7 +78,12 @@ function render(page='home',mode='pending',guildId=null) {
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**VCランキング**\n状態：'+(st.get(guildId).rkOff?'OFF':'ON')+'\n投稿先：'+(st.get(guildId).vc?'<#'+st.get(guildId).vc+'>':'未設定')+'\n\n-# 投稿先はVC参加通知と共通です。'));
    container.addActionRowComponents(row(button('ranking_on','ON',ButtonStyle.Success),button('ranking_off','OFF',ButtonStyle.Danger)));
   }else if(page==='bump'){
-   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**Bump通知**\nリマインドの通知先と通知方法を設定します。\n\n-# 本番では設定を変更できます。'));
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**Bump通知**\n通知先：'+(st.get(guildId).bump?.ch?'<#'+st.get(guildId).bump.ch+'>':'未設定')+'\n@here：'+(st.get(guildId).bump?.here?'ON':'OFF')+'\n\n-# 通知先の設定では案内メッセージも投稿されます。'));
+   container.addActionRowComponents(row(new ChannelSelectMenuBuilder().setCustomId(ROOT+'bump_channel').setPlaceholder('Bump通知先を選択').addChannelTypes(ChannelType.GuildText)));
+   container.addActionRowComponents(row(button('bump_here_on','@here ON',ButtonStyle.Success),button('bump_here_off','@here OFF',ButtonStyle.Secondary)));
+  }else if(page==='enable'){
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('テストパネルに原神設定のメニューを表示します。\n-# この操作だけでは実際の原神機能を有効化しません。'));
+   container.addActionRowComponents(row(button('enable_genshin','原神設定を表示',ButtonStyle.Success)));
   }else if(page==='contact'){
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('不具合報告・デバッグの相談・機能のご要望などを制作者に送信できます。\n-# サーバー名と送信者のDiscord IDも送られます。'));
    container.addActionRowComponents(row(button('contact_write','お問い合わせを作成',ButtonStyle.Primary)));
@@ -109,7 +114,30 @@ async function handle(i){
   await i.reply({content:'このテストは指定サーバーの所有者専用です。',flags:MessageFlags.Ephemeral});return true;
  }
  const id=i.customId.slice(ROOT.length);
- const mode=isGI(i.guildId)?'on':'pending';
+ const testMode=st.get(i.guildId).panelTestGenshin;
+ const mode=isGI(i.guildId)||testMode===true?'on':testMode===false?'off':'pending';
+ if(id==='bump_channel'){
+  const cid=i.values?.[0],ch=cid&&await i.guild.channels.fetch(cid).catch(()=>null);
+  const me=i.guild.members.me||await i.guild.members.fetchMe();
+  if(!ch?.isTextBased()||ch.id===i.channelId||!ch.permissionsFor(me)?.has([PermissionFlagsBits.ViewChannel,PermissionFlagsBits.SendMessages,PermissionFlagsBits.EmbedLinks,PermissionFlagsBits.ReadMessageHistory])){
+   return i.reply({content:'Botが投稿できる通常のテキストチャンネルを選択してください。',flags:MessageFlags.Ephemeral});
+  }
+  try{
+   await require('./bump').configure(ch,st.get(i.guildId).bump?.here||false);
+   await i.update(render('bump',mode,i.guildId));
+  }catch(e){await i.reply({content:'Bump設定を変更できませんでした：'+e.message,flags:MessageFlags.Ephemeral});}
+  return true;
+ }
+ if(id==='bump_here_on'||id==='bump_here_off'){
+  const d=st.get(i.guildId),cid=d.bump?.ch;
+  const ch=cid&&await i.guild.channels.fetch(cid).catch(()=>null);
+  if(!ch)return i.reply({content:'先にBump通知先を指定してください。',flags:MessageFlags.Ephemeral});
+  try{
+   await require('./bump').configure(ch,id==='bump_here_on');
+   await i.update(render('bump',mode,i.guildId));
+  }catch(e){await i.reply({content:'Bump設定を変更できませんでした：'+e.message,flags:MessageFlags.Ephemeral});}
+  return true;
+ }
  if(id==='contact_write'){
   const modal=new ModalBuilder().setCustomId(ROOT+'contact_submit').setTitle('制作者へのお問い合わせ');
   modal.addComponents(row(new TextInputBuilder().setCustomId('message').setLabel('お問い合わせ内容').setStyle(TextInputStyle.Paragraph).setRequired(true).setMaxLength(1500)));
@@ -194,7 +222,24 @@ async function handle(i){
   return true;
  }
  if(id==='gen_on'||id==='gen_off'){
-  await i.reply({content:'現在のテストでは原神の登録状態を変更しません。',flags:MessageFlags.Ephemeral});return true;
+  const data=st.get(i.guildId),prev=data.panelTestGenshin;
+  data.panelTestGenshin=id==='gen_on';
+  if(!await st.save(i.guild)){
+   data.panelTestGenshin=prev;
+   return i.reply({content:'設定を保存できませんでした。',flags:MessageFlags.Ephemeral});
+  }
+  await i.update(render('home',id==='gen_on'?'on':'off',i.guildId));
+  return true;
+ }
+ if(id==='enable_genshin'){
+  const data=st.get(i.guildId),prev=data.panelTestGenshin;
+  data.panelTestGenshin=true;
+  if(!await st.save(i.guild)){
+   data.panelTestGenshin=prev;
+   return i.reply({content:'設定を保存できませんでした。',flags:MessageFlags.Ephemeral});
+  }
+  await i.update(render('home','on',i.guildId));
+  return true;
  }
  let page='home';
  if(id==='pick'||id==='sub')page=i.values?.[0]||'home';

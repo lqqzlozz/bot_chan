@@ -140,4 +140,33 @@ async function tick(client) {
   }
 }
 
-module.exports = { set, on, tick, isBump, place, schedule };
+async function configure(ch, here = false) {
+  const guild = ch.guild;
+  const me = guild.members.me || await guild.members.fetchMe();
+  const P = PermissionFlagsBits;
+  if (!ch.permissionsFor(me)?.has([P.ViewChannel,P.SendMessages,P.EmbedLinks,P.ReadMessageHistory]))
+    throw new Error('Botにチャンネルの閲覧・送信・埋め込み・履歴閲覧権限が必要です。');
+  if (here && !ch.permissionsFor(me)?.has(P.MentionEveryone))
+    throw new Error('@here通知にはメンション権限が必要です。');
+  return serial(guild.id,async()=>{
+    const d=st.get(guild.id),previous=d.bump;
+    if(previous?.ch && previous.ch!==ch.id && previous.msg){
+      const old=await guild.channels.fetch(previous.ch).catch(()=>null);
+      await old?.messages.delete(previous.msg).catch(()=>null);
+    }
+    const b=d.bump={ch:ch.id,msg:previous?.ch===ch.id?previous.msg:null,at:previous?.ch===ch.id?previous.at:null,
+      by:previous?.ch===ch.id?previous.by:null,rem:false,here};
+    const messages=await ch.messages.fetch({limit:100}).catch(()=>null);
+    const last=messages && [...messages.values()].find(isBump);
+    if(last){b.at=last.createdTimestamp;b.by=who(last);}
+    if(b.at && Date.now()/1000<Math.floor(b.at/1000)+WAIT){
+      await put(ch,b,countMsg(b.at,b.by),false,true);
+    }else{
+      b.rem=true;
+      await put(ch,b,{embeds:[box(b.at?'bumpできるよ！ DISBOARDの \`/bump\` を実行してね':'まだbumpの記録がないよ。 DISBOARDの \`/bump\` を実行してね')]},false,true);
+    }
+    if(!await st.save(guild))throw new Error('Bump設定を保存できませんでした。');
+    return b;
+  });
+}
+module.exports = { set, on, tick, isBump, place, schedule, configure };

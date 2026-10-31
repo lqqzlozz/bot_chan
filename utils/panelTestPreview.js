@@ -81,6 +81,16 @@ function render(page='home',mode='pending',guildId=null) {
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**Bump通知**\n通知先：'+(st.get(guildId).bump?.ch?'<#'+st.get(guildId).bump.ch+'>':'未設定')+'\n@here：'+(st.get(guildId).bump?.here?'ON':'OFF')+'\n\n-# 通知先の設定では案内メッセージも投稿されます。'));
    container.addActionRowComponents(row(new ChannelSelectMenuBuilder().setCustomId(ROOT+'bump_channel').setPlaceholder('Bump通知先を選択').addChannelTypes(ChannelType.GuildText)));
    container.addActionRowComponents(row(button('bump_here_on','@here ON',ButtonStyle.Success),button('bump_here_off','@here OFF',ButtonStyle.Secondary)));
+  }else if(['uid','build','gift','gnews'].includes(page)){
+   const d=st.get(guildId);
+   const entries={uid:d.introP,build:{ch:Object.keys(d.buildPanels||{})[0]},gift:d.giftP,gnews:d.gnews};
+   const current=entries[page];
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('現在の設置先：'+(current?.ch?'<#'+current.ch+'>':'未設定')+(page==='uid'?'\n付与ロール：'+(d.introP?.role?'<@&'+d.introP.role+'>':'なし（UID登録のみ）'):'')+(page==='gnews'?'\n通知ロール：'+(d.gnews?.role?'<@&'+d.gnews.role+'>':'なし'):'')+'\n\n-# 設置先を選択すると、実際にパネルまたは通知設定を保存します。'));
+   container.addActionRowComponents(row(new ChannelSelectMenuBuilder().setCustomId(ROOT+'gi_channel_'+page).setPlaceholder('設置先チャンネルを選択').addChannelTypes(ChannelType.GuildText)));
+   if(page==='uid'||page==='gnews'){
+    container.addActionRowComponents(row(new RoleSelectMenuBuilder().setCustomId(ROOT+'gi_role_'+page).setPlaceholder('任意のロールを選択').setMinValues(0).setMaxValues(1)));
+    container.addActionRowComponents(row(button('gi_norole_'+page,'ロールなし')));
+   }
   }else if(page==='enable'){
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('テストパネルに原神設定のメニューを表示します。\n-# この操作だけでは実際の原神機能を有効化しません。'));
    container.addActionRowComponents(row(button('enable_genshin','原神設定を表示',ButtonStyle.Success)));
@@ -122,6 +132,46 @@ async function handle(i){
  const id=i.customId.slice(ROOT.length);
  const testMode=st.get(i.guildId).panelTestGenshin;
  const mode=isGI(i.guildId)||testMode===true?'on':testMode===false?'off':'pending';
+ if(id.startsWith('gi_channel_')){
+  const kind=id.slice('gi_channel_'.length);
+  if(!['uid','build','gift','gnews'].includes(kind))return false;
+  const cid=i.values?.[0],ch=cid&&await i.guild.channels.fetch(cid).catch(()=>null);
+  const me=i.guild.members.me||await i.guild.members.fetchMe();
+  if(!ch?.isTextBased()||ch.id===i.channelId||!ch.permissionsFor(me)?.has([PermissionFlagsBits.ViewChannel,PermissionFlagsBits.SendMessages,PermissionFlagsBits.EmbedLinks,PermissionFlagsBits.ReadMessageHistory])){
+   return i.reply({content:'Botが投稿できるテキストチャンネルを選んでください。',flags:MessageFlags.Ephemeral});
+  }
+  const d=st.get(i.guildId);
+  if(kind==='gnews'){
+   const old=d.gnews;
+   d.gnews={ch:cid,role:old?.role||null,seen:old?.ch===cid?old.seen||[]:[],posts:old?.ch===cid?old.posts||{}:{}};
+   if(!await st.save(i.guild)){d.gnews=old;return i.reply({content:'設定を保存できませんでした。',flags:MessageFlags.Ephemeral});}
+  }else{
+   try{
+    if(kind==='uid')await require('./intro').place(ch,d.introP?.role||null);
+    if(kind==='build')await require('./buildPanel').place(ch,true);
+    if(kind==='gift')await require('./gift').place(ch);
+    if(!await st.save(i.guild))throw Error('設定を保存できませんでした');
+   }catch(e){return i.reply({content:'設置に失敗しました：'+e.message,flags:MessageFlags.Ephemeral});}
+  }
+  await i.update(render(kind,mode,i.guildId));
+  return true;
+ }
+ if(id.startsWith('gi_role_')||id.startsWith('gi_norole_')){
+  const kind=id.startsWith('gi_role_')?id.slice(8):id.slice(10);
+  if(!['uid','gnews'].includes(kind))return false;
+  const d=st.get(i.guildId),role=id.startsWith('gi_norole_')?null:i.values?.[0]||null;
+  if(kind==='uid'){
+   if(!d.introP?.ch)return i.reply({content:'先にUID登録パネルの設置先を選択してください。',flags:MessageFlags.Ephemeral});
+   const ch=await i.guild.channels.fetch(d.introP.ch).catch(()=>null);
+   if(!ch)return i.reply({content:'設置先が見つかりません。',flags:MessageFlags.Ephemeral});
+   await require('./intro').place(ch,role);
+  }else{
+   if(!d.gnews?.ch)return i.reply({content:'先にお知らせの通知先を選択してください。',flags:MessageFlags.Ephemeral});
+   d.gnews.role=role;
+  }
+  if(!await st.save(i.guild))return i.reply({content:'保存に失敗しました。',flags:MessageFlags.Ephemeral});
+  await i.update(render(kind,mode,i.guildId));return true;
+ }
  if(id==='bump_channel'){
   const cid=i.values?.[0],ch=cid&&await i.guild.channels.fetch(cid).catch(()=>null);
   const me=i.guild.members.me||await i.guild.members.fetchMe();

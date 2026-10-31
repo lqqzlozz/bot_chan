@@ -92,7 +92,7 @@ function render(page='home',mode='pending',guildId=null) {
     container.addActionRowComponents(row(button('gi_norole_'+page,'ロールなし')));
    }
   }else if(page==='enable'){
-   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('テストパネルに原神設定のメニューを表示します。\n-# この操作だけでは実際の原神機能を有効化しません。'));
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('このサーバーで原神機能を有効化します。\n-# 設定は保存されます。'));
    container.addActionRowComponents(row(button('enable_genshin','原神設定を表示',ButtonStyle.Success)));
   }else if(page==='contact'){
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('不具合報告・デバッグの相談・機能のご要望などを制作者に送信できます。\n-# サーバー名と送信者のDiscord IDも送られます。'));
@@ -279,22 +279,25 @@ async function handle(i){
   return true;
  }
  if(id==='gen_on'||id==='gen_off'){
-  const data=st.get(i.guildId),prev=data.panelTestGenshin;
+  const data=st.get(i.guildId),prev=data.panelTestGenshin,prevReal=data.genshin;
   data.panelTestGenshin=id==='gen_on';
+  data.genshin=id==='gen_on';
   if(!await st.save(i.guild)){
-   data.panelTestGenshin=prev;
+   data.panelTestGenshin=prev;data.genshin=prevReal;
    return i.reply({content:'設定を保存できませんでした。',flags:MessageFlags.Ephemeral});
   }
+  await require('./registerCommands').syncGuild(i.guild).catch(e=>console.error('原神コマンド同期:',e.message));
   await i.update(render('home',id==='gen_on'?'on':'off',i.guildId));
   return true;
  }
  if(id==='enable_genshin'){
-  const data=st.get(i.guildId),prev=data.panelTestGenshin;
-  data.panelTestGenshin=true;
+  const data=st.get(i.guildId),prev=data.panelTestGenshin,prevReal=data.genshin;
+  data.panelTestGenshin=true;data.genshin=true;
   if(!await st.save(i.guild)){
-   data.panelTestGenshin=prev;
+   data.panelTestGenshin=prev;data.genshin=prevReal;
    return i.reply({content:'設定を保存できませんでした。',flags:MessageFlags.Ephemeral});
   }
+  await require('./registerCommands').syncGuild(i.guild).catch(e=>console.error('原神コマンド同期:',e.message));
   await i.update(render('home','on',i.guildId));
   return true;
  }

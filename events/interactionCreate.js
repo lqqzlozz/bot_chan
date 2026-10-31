@@ -24,7 +24,7 @@ module.exports = {
       return;
     }
 
-    if ((interaction.isButton() || interaction.isStringSelectMenu()) && interaction.customId?.startsWith('pt_')) {
+    if ((interaction.isButton() || interaction.isStringSelectMenu() || interaction.isChannelSelectMenu() || interaction.isRoleSelectMenu() || interaction.isModalSubmit()) && interaction.customId?.startsWith('pt_')) {
       try { await require('../utils/panelTestPreview').handle(interaction); }
       catch (error) {
         console.error('パネルプレビューエラー:', error);

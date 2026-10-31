@@ -7,18 +7,18 @@ const COLOR = '#1D9E75';
 const busy = new Map();
 
 // 案内（ボタン付き）
-function panel(roleId) {
+function panel(roleId = null) {
   const e = new EmbedBuilder()
     .setColor(COLOR)
     .setDescription('加入された方は、UIDのご提示をお願いします！\nご提示が済んだらすべてのチャンネルの閲覧が可能になります✨️');
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`intro_open_${roleId}`).setLabel('ギルドにUIDを登録する').setStyle(ButtonStyle.Success)
+    new ButtonBuilder().setCustomId(`intro_open_${roleId || 'none'}`).setLabel('ギルドにUIDを登録する').setStyle(ButtonStyle.Success)
   );
   return { embeds: [e], components: [row] };
 }
 
 // 案内を置く（前のは消す）
-async function place(ch, roleId) {
+async function place(ch, roleId = null) {
   const d = st.get(ch.guildId);
   if (d.introP?.msg) await ch.messages.delete(d.introP.msg).catch(() => null);
   const m = await ch.send({ ...panel(roleId), flags: MessageFlags.SuppressNotifications });
@@ -116,7 +116,8 @@ async function submit(i) {
   d.intro[i.user.id] = { ch: i.channelId, msg: m.id, uid };
   st.saveLater(i.guild, 3000);
 
-  const role = await i.guild.roles.fetch(roleId).catch(() => null);
+  // A role is optional: UID registration must succeed without any role assignment.
+  const role = roleId && roleId !== 'none' ? await i.guild.roles.fetch(roleId).catch(() => null) : null;
   const ok = role ? await i.member.roles.add(role).then(() => true).catch(() => false) : true;
   if (!ok) await oops(i, 'ロールが付けられなかったので、管理者に連絡してね。');
 

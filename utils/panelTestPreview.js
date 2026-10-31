@@ -115,7 +115,7 @@ function render(page='home',mode='pending',guildId=null) {
   }else container.addTextDisplayComponents(new TextDisplayBuilder().setContent(screen[page][1]));
   const next=page==='notifications'?[['vc','🔊 VC参加通知','参加通知を送るチャンネル'],['ranking','🏆 VCランキング','ランキングのON/OFF・投稿先'],['bump','🔔 Bump通知','通知先・リマインド設定']]:
     page==='members'?[['inactive','未活動メンバー管理','活動状況と対象者の管理']]:
-    page==='genshin'?[['uid','UID登録','登録先と任意の付与ロール'],['build','ビルドカード','パネルの表示先'],['gift','ギフトコード','表示先'],['gnews','原神のお知らせ','表示先と通知ロール']]:
+    page==='genshin'?[['gnews','原神のお知らせ','表示先と通知ロール'],['uid','UID登録','登録先と任意の付与ロール'],['build','ビルドカード','パネルの表示先'],['gift','ギフトコード','表示先']]:
     page==='announce'?[['annchannel','投稿先','チャンネルを選ぶ'],['annroles','ロール設定','通知ロールを選ぶ'],['anncontent','本文・画像','本文と画像を用意'],['annsticky','常駐設定','ON/OFF']]:
     page==='inactive'?[['inmonths','判定期間','1〜12か月'],['inrole','対象ロール','管理対象を指定'],['inexclude','除外ロール','対象外にするロール'],['inon','有効化・停止','7日間の確認猶予']]:
     page==='analytics'?[['analyticsmembers','メンバー分析','人数・加入・退出'],['analyticsvc','VC分析','通話回数・時間']]:[];

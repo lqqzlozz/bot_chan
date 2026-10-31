@@ -92,6 +92,12 @@ function render(page='home',mode='pending',guildId=null) {
    const current=excluded?settings.exclude||d.inactive?.exclude:settings.role||d.inactive?.role;
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('現在：'+(current?'<@&'+current+'>':'未設定')+'\n-# '+(excluded?'除外ロールは未設定にも戻せます。':'対象ロールを指定してください。')));
    container.addActionRowComponents(row(new RoleSelectMenuBuilder().setCustomId(ROOT+(excluded?'inactive_exclude':'inactive_role')).setPlaceholder(excluded?'除外ロールを選択（選択なしも可）':'対象ロールを選択').setMinValues(excluded?0:1).setMaxValues(1)));
+  }else if(page==='analyticsmembers'){
+   const d=st.get(guildId);
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('現在のメンバー数は、サーバー分析の正式版で表示します。\n-# 保存済みの日次記録がない過去期間は集計できません。'));
+  }else if(page==='analyticsvc'){
+   const v=st.get(guildId).vcr?.cur;
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**今週のVC集計**\n通話回数：'+(v?.calls||0)+'回\n累計通話時間：'+Math.round((v?.total||0)/360)/10+'時間\n\n-# Botが記録したデータのみ表示しています。'));
   }else if(page==='inmonths'){
    const d=st.get(guildId);
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('現在：**'+(d.inactiveMonths||d.inactive?.months||3)+'か月**\n-# 月数の変更では自動キックは有効になりません。'));
@@ -177,6 +183,7 @@ async function handle(i){
  }
  if(id==='months'){
   const months=Number(i.values?.[0]),d=st.get(i.guildId);
+  if(d.inactive?.enabled)return i.reply({content:'未活動メンバー管理を停止してから判定期間を変更してください。',flags:MessageFlags.Ephemeral});
   if(!Number.isInteger(months)||months<1||months>12)return i.reply({content:'1〜12か月を選んでください。',flags:MessageFlags.Ephemeral});
   const old=d.inactiveMonths,oldNested=d.inactive?.months;
   d.inactiveMonths=months;

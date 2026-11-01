@@ -22,7 +22,7 @@ module.exports = {
     if (!vcChannel || newState.channelId === newState.guild.afkChannelId || vr.humans(vcChannel).size !== 1) return;
 
     const notifyChannelId = st.get(newState.guild.id).vc;
-    if (!notifyChannelId) return;
+    if (!notifyChannelId || st.get(newState.guild.id).vcOff) return;
 
     const notifyChannel = newState.guild.channels.cache.get(notifyChannelId);
     if (!notifyChannel) return;

@@ -11,7 +11,7 @@ function compact(d){
  const v={};
  for(const [key] of fields){
   const x=d[key];
-  if(key==='inactive')v[key]=x?{enabled:x.enabled,months:x.months,role:x.role,exclude:x.exclude,log:x.log}:null;
+  if(key==='inactive')v[key]=x?{enabled:x.enabled,months:x.months,role:x.role,exclude:x.exclude,log:x.log,approvalChannelId:x.approvalChannelId}:null;
   else if(key==='gnews')v[key]=x?{ch:x.ch,role:x.role}:null;
   else if(key==='introP')v[key]=x?{ch:x.ch,role:x.role}:null;
   else if(key==='giftP')v[key]=x?{ch:x.ch}:null;
@@ -21,13 +21,13 @@ function compact(d){
  }
  return v;
 }
-const names={ch:'チャンネル',role:'ロール',exclude:'除外ロール',enabled:'有効化',months:'判定期間',log:'ログ送信先',here:'@here通知',channelId:'受信先',seen:'既読',posts:'投稿履歴'};
+const names={ch:'チャンネル',role:'ロール',exclude:'除外ロール',enabled:'有効化',months:'判定期間',log:'ログ送信先',approvalChannelId:'確認通知先',here:'@here通知',channelId:'受信先',seen:'既読',posts:'投稿履歴'};
 function format(key,value){
  if(value===null||value===undefined||value==='')return '未設定';
  if(key==='rkOff'||key==='vcOff')return value?'OFF':'ON';
  if(typeof value==='boolean')return value?'ON':'OFF';
  if(key==='months'||key==='inactiveMonths')return value+'か月';
- if(['ch','vc','log','channelId'].includes(key)&&/^\\d{15,22}$/.test(String(value)))return '<#'+value+'>';
+ if(['ch','vc','log','channelId','approvalChannelId'].includes(key)&&/^\\d{15,22}$/.test(String(value)))return '<#'+value+'>';
  if(['role','exclude'].includes(key)&&/^\\d{15,22}$/.test(String(value)))return '<@&'+value+'>';
  if(Array.isArray(value))return value.length?value.map(v=>/^\\d{15,22}$/.test(String(v))?'<#'+v+'>':String(v)).join('、'):'なし';
  return String(value);

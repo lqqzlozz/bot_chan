@@ -81,9 +81,9 @@ function render(page='home',mode='pending',guildId=null) {
   }else if(page==='official'){
    const settings=st.get(guildId).officialFeed;
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-    '**公式お知らせ**\\n-# メインサーバーの #log で公開された投稿を受信\\n\\n受信先：'+(settings?.channelId?'<#'+settings.channelId+'>':'未設定')+
-    '\\n状態：'+(settings?.enabled?'ON':'OFF')+
-    '\\n\\n-# 既存フォローは重複作成しません。フォロー先のウェブフック管理権限が必要です。'
+    '**公式お知らせ**\n-# メインサーバーの #log で公開された投稿を受信\n\n受信先：'+(settings?.channelId?'<#'+settings.channelId+'>':'未設定')+
+    '\n状態：'+(settings?.enabled?'ON':'OFF')+
+    '\\n\n-# 既存フォローは重複作成しません。フォロー先のウェブフック管理権限が必要です。'
    ));
    container.addActionRowComponents(row(new ChannelSelectMenuBuilder().setCustomId(ROOT+'official_channel').setPlaceholder('既存チャンネルから受信先を選択').addChannelTypes(ChannelType.GuildText)));
    container.addActionRowComponents(row(button('official_on','受信 ON',ButtonStyle.Success),button('official_off','受信 OFF')));
@@ -253,7 +253,7 @@ async function handle(i){
   if(next.enabled&&!next.channelId)return i.reply({content:'先に受信先チャンネルを選択してください。',flags:MessageFlags.Ephemeral});
   await i.deferUpdate();
   try{
-   if(next.enabled)await feed.follow(i.client,i.guild,next.channelId);
+   if(next.enabled){const result=await feed.follow(i.client,i.guild,next.channelId);if(result.already&&result.channelId)next.channelId=result.channelId;}
    data.officialFeed=next;
    if(!await st.save(i.guild))throw Error('設定を保存できませんでした');
    await i.editReply(render('official',mode,i.guildId));

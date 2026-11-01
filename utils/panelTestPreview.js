@@ -169,7 +169,7 @@ function render(page='home',mode='pending',guildId=null,auditPage=0,graph=false)
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('不具合報告・デバッグの相談・機能のご要望などを制作者へ送信します。\n-# BOT管理用の #bot-config に非公開スレッドを作成し、管理者に通知します。'));
    container.addActionRowComponents(row(button('contact_write','お問い合わせを作成',ButtonStyle.Primary)));
   }else if(page==='reset'){
-   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**テストサーバー限定**\\n保存した設定・UID情報・分析履歴を削除します。既存の投稿や外部サービスの連携は削除しません。実行後は元に戻せません。\\n\\n-# 未活動メンバー管理を停止した上で、所有者が確認文を入力する必要があります。'));
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**テストサーバー限定**\n保存した設定・UID情報・分析履歴を削除します。既存の投稿や外部サービスの連携は削除しません。実行後は元に戻せません。\n\n-# 未活動メンバー管理を停止した上で、所有者が確認文を入力する必要があります。'));
    container.addActionRowComponents(row(button('reset_start','初期化する',ButtonStyle.Danger)));
   }else if(page==='inrole'||page==='inexclude'){
    const d=st.get(guildId),settings=d.inactiveSettings||{},excluded=page==='inexclude';

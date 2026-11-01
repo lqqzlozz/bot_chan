@@ -6,7 +6,7 @@ async function convertAll(client){
   if(!record?.messageId||!record.channelId)continue;
   try{
    const ch=await guild.channels.fetch(record.channelId).catch(()=>null);
-   if(!ch?.messages)return;
+   if(!ch?.messages)continue;
    const msg=await ch.messages.fetch(record.messageId).catch(()=>null);
    if(msg&&msg.author.id===client.user.id&&!msg.embeds?.length)
     await deliver(ch,record.messageId);

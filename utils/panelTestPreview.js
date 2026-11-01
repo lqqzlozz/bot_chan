@@ -1,6 +1,8 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags,
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, EmbedBuilder, AttachmentBuilder, LabelBuilder, FileUploadBuilder,
   StringSelectMenuBuilder, ChannelSelectMenuBuilder, RoleSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ChannelType, PermissionFlagsBits, ContainerBuilder, TextDisplayBuilder } = require('discord.js');
 const ROOT='pt_';
+const announcements=new Map();
+function draft(gid){const x=announcements.get(gid);if(x&&Date.now()-x.updated<3600000)return x;const d={ch:null,roles:[],sticky:false,updated:Date.now()};announcements.set(gid,d);return d;}
 const testGuild='1341988738074542111';
 const { isGI } = require('./gi');
 const st = require('./store');
@@ -66,7 +68,30 @@ function render(page='home',mode='pending',guildId=null) {
   container.addActionRowComponents(row(select('pick','機能を選択してください',choices(mode))));
 
  }else{
-  if(page==='notifications'){
+  if(page==='announce'){
+   const a=draft(guildId);
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
+    '**投稿先**\n'+(a.ch?'<#'+a.ch+'>':'未設定')+
+    '\n\n**付与・解除ロール**\n'+(a.roles.length?a.roles.map(x=>'<@&'+x+'>').join('、'):'なし')+
+    '\n\n**常駐**\n'+(a.sticky?'ON':'OFF')+
+    '\n\n-# 投稿先とロールを選び、本文・画像を入力して投稿します。'
+   ));
+  }else if(page==='annchannel'){
+   const a=draft(guildId);
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('投稿先：'+(a.ch?'<#'+a.ch+'>':'未設定')));
+   container.addActionRowComponents(row(new ChannelSelectMenuBuilder().setCustomId(ROOT+'ann_pick_channel').setPlaceholder('投稿先を選択').addChannelTypes(ChannelType.GuildText)));
+  }else if(page==='annroles'){
+   const a=draft(guildId);
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('選択中：'+(a.roles.length?a.roles.map(x=>'<@&'+x+'>').join('、'):'なし')));
+   container.addActionRowComponents(row(new RoleSelectMenuBuilder().setCustomId(ROOT+'ann_pick_roles').setPlaceholder('ロールを選択（最大5つ・なしも可）').setMinValues(0).setMaxValues(5)));
+  }else if(page==='annsticky'){
+   const a=draft(guildId);
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('常駐：'+(a.sticky?'ON':'OFF')));
+   container.addActionRowComponents(row(button('ann_sticky_on','ON',ButtonStyle.Success),button('ann_sticky_off','OFF')));
+  }else if(page==='anncontent'){
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('本文と画像を入力して、そのまま投稿できます。'));
+   container.addActionRowComponents(row(button('ann_open_modal','本文・画像を入力して投稿',ButtonStyle.Primary)));
+  }else if(page==='notifications'){
    const d=guildId ? st.get(guildId) : {};
    const target=d.vc ? '<#'+d.vc+'>' : '未設定';
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**VC参加通知**\n-# 通知先：'+target+'\n\n**VCランキング**\n-# 集計とランキング投稿の管理\n\n**Bump通知**\n-# リマインドと通知先の管理'));
@@ -95,7 +120,7 @@ function render(page='home',mode='pending',guildId=null) {
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('このサーバーで原神機能を有効化します。\n-# 設定は保存されます。'));
    container.addActionRowComponents(row(button('enable_genshin','原神設定を表示',ButtonStyle.Success)));
   }else if(page==='contact'){
-   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('不具合報告・デバッグの相談・機能のご要望などを制作者へ送信します。\n-# 内容は管理用の非公開スレッドに保存されます。'));
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('不具合報告・デバッグの相談・機能のご要望などを制作者へ送信します。\n-# お問い合わせ専用の非公開チャンネルに、案件ごとの非公開スレッドを作成します。'));
    container.addActionRowComponents(row(button('contact_write','お問い合わせを作成',ButtonStyle.Primary)));
   }else if(page==='inrole'||page==='inexclude'){
    const d=st.get(guildId),settings=d.inactiveSettings||{},excluded=page==='inexclude';
@@ -141,6 +166,61 @@ async function handle(i){
  const id=i.customId.slice(ROOT.length);
  const testMode=st.get(i.guildId).panelTestGenshin;
  const mode=isGI(i.guildId)||testMode===true?'on':testMode===false?'off':'pending';
+ if(id==='ann_pick_channel'){
+  const cid=i.values?.[0],ch=cid&&await i.guild.channels.fetch(cid).catch(()=>null);
+  const me=i.guild.members.me||await i.guild.members.fetchMe();
+  if(!ch?.isTextBased()||ch.id===i.channelId||!ch.permissionsFor(me)?.has([PermissionFlagsBits.ViewChannel,PermissionFlagsBits.SendMessages,PermissionFlagsBits.EmbedLinks,PermissionFlagsBits.AttachFiles]))
+   return i.reply({content:'BOTが投稿できるテキストチャンネルを選択してください。',flags:MessageFlags.Ephemeral});
+  const a=draft(i.guildId);a.ch=cid;a.updated=Date.now();
+  return i.update(render('annchannel',mode,i.guildId));
+ }
+ if(id==='ann_pick_roles'){
+  const a=draft(i.guildId);a.roles=i.values||[];a.updated=Date.now();
+  return i.update(render('annroles',mode,i.guildId));
+ }
+ if(id==='ann_sticky_on'||id==='ann_sticky_off'){
+  const a=draft(i.guildId);a.sticky=id==='ann_sticky_on';a.updated=Date.now();
+  return i.update(render('annsticky',mode,i.guildId));
+ }
+ if(id==='ann_open_modal'){
+  const a=draft(i.guildId);
+  if(!a.ch)return i.reply({content:'先に投稿先を選択してください。',flags:MessageFlags.Ephemeral});
+  const modal=new ModalBuilder().setCustomId(ROOT+'ann_submit').setTitle('アナウンスを投稿');
+  modal.addLabelComponents(
+   new LabelBuilder().setLabel('アナウンス本文').setTextInputComponent(new TextInputBuilder().setCustomId('body').setStyle(TextInputStyle.Paragraph).setMaxLength(4000).setRequired(true)),
+   new LabelBuilder().setLabel('画像（任意・最大10枚）').setFileUploadComponent(new FileUploadBuilder().setCustomId('images').setRequired(false).setMaxValues(10))
+  );
+  await i.showModal(modal);return true;
+ }
+ if(id==='ann_submit'){
+  const a=draft(i.guildId),ch=a.ch&&await i.guild.channels.fetch(a.ch).catch(()=>null);
+  if(!ch?.send)return i.reply({content:'投稿先が見つかりません。もう一度選んでください。',flags:MessageFlags.Ephemeral});
+  const body=i.fields.getTextInputValue('body').trim();
+  if(!body)return i.reply({content:'本文を入力してください。',flags:MessageFlags.Ephemeral});
+  await i.deferReply({flags:MessageFlags.Ephemeral});
+  try{
+   const raw=[...(i.fields.getUploadedFiles('images')?.values()||[])];
+   if(raw.some(x=>!x.contentType?.startsWith('image/')))throw Error('画像ファイルのみ指定できます。');
+   const files=[];
+   for(const [n,file] of raw.entries()){
+    const res=await fetch(file.url);
+    if(!res.ok)throw Error('画像の取得に失敗しました');
+    const ext=(file.name.split('.').pop()||'png').replace(/[^a-zA-Z0-9]/g,'').slice(0,8)||'png';
+    files.push(new AttachmentBuilder(Buffer.from(await res.arrayBuffer()),{name:'announcement-'+n+'.'+ext}));
+   }
+   const embeds=[new EmbedBuilder().setColor('#5865F2').setDescription(body)];
+   if(files.length)embeds[0].setImage('attachment://'+files[0].name);
+   for(const file of files.slice(1))embeds.push(new EmbedBuilder().setColor('#5865F2').setImage('attachment://'+file.name));
+   const sent=await ch.send({embeds,files,components:require('./annRows').annRows(i.guild,a.roles),allowedMentions:{parse:[]}});
+   if(a.sticky){
+    st.get(i.guildId).sticky[ch.id]={messageId:sent.id,text:body,roles:[...a.roles]};
+    if(!await st.save(i.guild))throw Error('投稿できましたが常駐設定の保存に失敗しました');
+   }
+   announcements.delete(i.guildId);
+   await i.editReply('アナウンスを投稿しました：'+sent.url);
+  }catch(e){console.error('アナウンス投稿エラー:',e);await i.editReply('投稿できませんでした：'+e.message);}
+  return true;
+ }
  if(id.startsWith('gi_channel_')){
   const kind=id.slice('gi_channel_'.length);
   if(!['uid','build','gift','gnews'].includes(kind))return false;
@@ -215,12 +295,24 @@ async function handle(i){
   await i.deferReply({flags:MessageFlags.Ephemeral});
   try{
    const hub=i.client.guilds.cache.get(testGuild);
-   const channel=hub&&st.findCh(hub);
-   const me=hub&&(hub.members.me||await hub.members.fetchMe());
+   if(!hub)throw Error('受付先サーバーが見つかりません');
+   const me=hub.members.me||await hub.members.fetchMe();
+   const name='bot-inquiries';
+   let channel=hub.channels.cache.find(c=>c.name===name&&c.type===ChannelType.GuildText);
+   if(!channel){
+    if(!me.permissions.has(PermissionFlagsBits.ManageChannels))throw Error('受付チャンネルの作成権限がありません');
+    channel=await hub.channels.create({
+     name,type:ChannelType.GuildText,topic:'BOTへのお問い合わせ受付（管理者のみ）',
+     permissionOverwrites:[
+      {id:hub.roles.everyone.id,deny:[PermissionFlagsBits.ViewChannel]},
+      {id:me.id,allow:[PermissionFlagsBits.ViewChannel,PermissionFlagsBits.SendMessages,PermissionFlagsBits.ReadMessageHistory,PermissionFlagsBits.CreatePrivateThreads,PermissionFlagsBits.SendMessagesInThreads,PermissionFlagsBits.ManageThreads]}
+     ],reason:'問い合わせを #bot-config と分離するため'
+    });
+   }
    const required=[PermissionFlagsBits.ViewChannel,PermissionFlagsBits.CreatePrivateThreads,PermissionFlagsBits.SendMessagesInThreads];
-   if(!channel||!channel.permissionsFor(me)?.has(required))throw Error('非公開スレッドの作成権限がありません');
+   if(!channel.permissionsFor(me)?.has(required))throw Error('非公開スレッドの作成権限がありません');
    const thread=await channel.threads.create({name:'お問い合わせ-'+new Date().toISOString().slice(0,10)+'-'+i.user.username.slice(0,30),type:ChannelType.PrivateThread,invitable:false,reason:'管理パネルからのお問い合わせ'});
-   await thread.send({content:'**BOTへのお問い合わせ**\n送信元サーバー：'+i.guild.name+' ('+i.guildId+')\n送信者：'+i.user.username+' ('+i.user.id+')\n\n'+msg,allowedMentions:{parse:[]}});
+   await thread.send({content:'**BOTへのお問い合わせ**\n**送信元サーバー**：'+i.guild.name+' ('+i.guildId+')\n**サーバー所有者**：<@'+i.guild.ownerId+'>\n**お問い合わせ送信者**：<@'+i.user.id+'>\n\n**内容**\n'+msg,allowedMentions:{parse:[]}});
    await i.editReply('お問い合わせを送信しました。');
   }catch(e){
    console.error('非公開お問い合わせスレッド作成失敗:',e);

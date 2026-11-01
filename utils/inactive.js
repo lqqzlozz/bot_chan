@@ -48,7 +48,7 @@ function buttons(gid, uid, token, confirm = false) {
 
 function warning(guild, member, u) {
   return {
-    embeds: [new EmbedBuilder().setColor('#BA7517').setTitle(`${guild.name}：参加意思の確認`).setDescription(`${u.warningMonths || 3}か月間、発言・VC参加を確認できていません。\n**参加を続ける**：キック予定を解除し、押した日から${u.warningMonths || 3}か月を数え直します。\n**退出する**：確認画面を出し、確定後にキックします。\n発言・VC参加でもキック予定は解除されます。\n操作も活動もない場合、<t:${Math.floor((u.warningAt + GRACE) / 1000)}:F>以降にキックします。\nボタンの選択結果はサーバーの管理者用ログに記録されます。\nBotが閲覧できない場所での活動は確認できません。`).addFields(u.warningRole ? [{ name: "指定ロール", value: `<@&${u.warningRole}> を持っている場合は警告時に外します。「参加を続ける」で、元々持っていなくても付与します。` }] : [])],
+    embeds: [new EmbedBuilder().setColor('#BA7517').setTitle(`${guild.name}：参加意思の確認`).setDescription(`${u.warningMonths || 3}か月間、発言・VC参加を確認できていません。\n**参加を続ける**：管理者への確認予定を取り消し、押した日から${u.warningMonths || 3}か月を数え直します。\n**退出する**：確認画面を出し、確定後にキックします。\n発言・VC参加でも管理者への確認予定は取り消されます。\n操作も活動もない場合、<t:${Math.floor((u.warningAt + GRACE) / 1000)}:F>以降にサーバー管理者へ確認を依頼します。管理者の承認なしに自動でキックされることはありません。\nボタンの選択結果はサーバーの管理者用ログに記録されます。\nBotが閲覧できない場所での活動は確認できません。`).addFields(u.warningRole ? [{ name: "指定ロール", value: `<@&${u.warningRole}> を持っている場合は警告時に外します。「参加を続ける」で、元々持っていなくても付与します。` }] : [])],
     components: buttons(guild.id, member.id, u.warningToken), allowedMentions: { parse: [] },
   };
 }

@@ -312,7 +312,7 @@ async function handle(i){
    });
    const owner=hub.ownerId;
    if(owner!==me.id)await thread.members.add(owner);
-   const header='**BOTへのお問い合わせ**\\n**送信元サーバー**：'+i.guild.name+' ('+i.guildId+')\\n**サーバー所有者**：<@'+i.guild.ownerId+'>\\n**お問い合わせ送信者**：<@'+i.user.id+'>\\n\\n**内容**\\n'+msg;
+   const header='**BOTへのお問い合わせ**\n**送信元サーバー**：'+i.guild.name+' ('+i.guildId+')\n**サーバー所有者**：<@'+i.guild.ownerId+'>\n**お問い合わせ送信者**：<@'+i.user.id+'>\n\n**内容**\n'+msg;
    await thread.send({content:header,allowedMentions:{parse:[]}});
    // The receiving guild owner is added as a private-thread member and explicitly notified there.
    await thread.send({content:'<@'+owner+'> 新しいお問い合わせです。',allowedMentions:{users:[owner]}});

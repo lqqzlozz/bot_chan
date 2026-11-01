@@ -75,6 +75,11 @@ function render(page='home',mode='pending',guildId=null) {
   new TextDisplayBuilder().setContent(page==='home'?'## ⚙️ BOT 管理パネル':'## '+screen[page][0])
  );
  if(page==='home'){
+  const feedSettings=guildId&&st.get(guildId).officialFeed;
+  if(guildId&&guildId!==testGuild&&!feedSettings?.channelId){
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### 📢 初期設定：お知らせの受信先\\n公式お知らせを受信するチャンネルを最初に指定してください。'));
+   container.addActionRowComponents(row(new ChannelSelectMenuBuilder().setCustomId(ROOT+'official_channel').setPlaceholder('お知らせを受信するチャンネルを選択').addChannelTypes(ChannelType.GuildText)));
+  }
   const notice=guildId&&st.get(guildId).broadcastNotice;
   if(notice?.body){
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### 📢 BOTからのお知らせ\n'+notice.body));
@@ -97,7 +102,7 @@ function render(page='home',mode='pending',guildId=null) {
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
     '**公式お知らせ**\n-# メインサーバーの #log で公開された投稿を受信\n\n受信先：'+(settings?.channelId?'<#'+settings.channelId+'>':'未設定')+
     '\n状態：'+(settings?.enabled?'ON':'OFF')+
-    '\\n\n-# 既存フォローは重複作成しません。フォロー先のウェブフック管理権限が必要です。'
+    '\n\n-# 既存フォローは重複作成しません。フォロー先のウェブフック管理権限が必要です。'
    ));
    container.addActionRowComponents(row(new ChannelSelectMenuBuilder().setCustomId(ROOT+'official_channel').setPlaceholder('既存チャンネルから受信先を選択').addChannelTypes(ChannelType.GuildText)));
    container.addActionRowComponents(row(button('official_on','受信 ON',ButtonStyle.Success),button('official_off','受信 OFF')));
@@ -311,7 +316,7 @@ async function handle(i){
    else if(old?.channelId&&old.enabled)await feed.unfollow(i.client,i.guild,old.channelId);
    data.officialFeed=next;
    if(!await st.save(i.guild))throw Error('設定を保存できませんでした');
-   await i.editReply(render('official',mode,i.guildId));
+   await i.editReply(render('home',mode,i.guildId));
   }catch(e){
    data.officialFeed=old;
    await i.followUp({content:'公式お知らせの設定に失敗しました：'+e.message,flags:MessageFlags.Ephemeral});

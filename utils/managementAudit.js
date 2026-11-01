@@ -2,6 +2,7 @@ const st=require('./store');
 const {MessageFlags,PermissionFlagsBits,ActionRowBuilder,ButtonBuilder,ButtonStyle,ContainerBuilder,TextDisplayBuilder,SeparatorBuilder}=require('discord.js');
 // Record only intentional configuration values; exclude UID, member history, message bodies.
 const fields=[
+ ['alarms','アラーム'],['alarmChannelId','アラーム通知先'],['sticky','常駐アナウンス'],
  ['vc','VC通知先'],['vcOff','VC参加通知'],['rkOff','VCランキング'],['bump','Bump通知'],
  ['gnews','原神のお知らせ'],['introP','UID登録'],['buildPanels','ビルドカード'],
  ['giftP','ギフトコード'],['genshin','原神機能'],['inactiveMonths','未活動判定期間'],
@@ -11,7 +12,9 @@ function compact(d){
  const v={};
  for(const [key] of fields){
   const x=d[key];
-  if(key==='inactive')v[key]=x?{enabled:x.enabled,months:x.months,role:x.role,exclude:x.exclude,log:x.log,approvalChannelId:x.approvalChannelId}:null;
+  if(key==='alarms')v[key]=(x||[]).map(a=>({time:a.time,ch:a.ch,msg:a.msg?.slice(0,80)}));
+  else if(key==='sticky')v[key]=Object.keys(x||{}).sort();
+  else if(key==='inactive')v[key]=x?{enabled:x.enabled,months:x.months,role:x.role,exclude:x.exclude,log:x.log,approvalChannelId:x.approvalChannelId}:null;
   else if(key==='gnews')v[key]=x?{ch:x.ch,role:x.role}:null;
   else if(key==='introP')v[key]=x?{ch:x.ch,role:x.role}:null;
   else if(key==='giftP')v[key]=x?{ch:x.ch}:null;
@@ -27,7 +30,7 @@ function format(key,value){
  if(key==='rkOff'||key==='vcOff')return value?'OFF':'ON';
  if(typeof value==='boolean')return value?'ON':'OFF';
  if(key==='months'||key==='inactiveMonths')return value+'か月';
- if(['ch','vc','log','channelId','approvalChannelId'].includes(key)&&/^\\d{15,22}$/.test(String(value)))return '<#'+value+'>';
+ if(['ch','vc','log','channelId','approvalChannelId','alarmChannelId'].includes(key)&&/^\\d{15,22}$/.test(String(value)))return '<#'+value+'>';
  if(['role','exclude'].includes(key)&&/^\\d{15,22}$/.test(String(value)))return '<@&'+value+'>';
  if(Array.isArray(value))return value.length?value.map(v=>/^\\d{15,22}$/.test(String(v))?'<#'+v+'>':String(v)).join('、'):'なし';
  return String(value);

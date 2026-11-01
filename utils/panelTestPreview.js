@@ -40,6 +40,8 @@ const screen={
  annchannel:['投稿先','アナウンスの投稿先を選択します。'],
  annroles:['ロール設定','通知・付与するロールを選択します。'],
  anncontent:['本文・画像','本文を入力し、必要に応じて画像を添付します。'],
+ alarm:['⏰ アラーム','毎日の通知を登録・解除します。'],
+ stickylist:['📌 常駐アナウンスの解除','登録済みの常駐投稿を解除します。'],
  annsticky:['常駐設定','投稿を常駐させるか選択します。'],
  inmonths:['判定期間','1〜12か月から活動がない期間を選択します。'],
  inrole:['対象ロール','活動状況を確認する対象ロールを設定します。'],
@@ -54,8 +56,8 @@ const screen={
 };
 function choices(mode,guildId){
  return [
-  ['announce','📢 アナウンスを作る','本文・画像を設定して投稿'],
-  ['notifications','🛎️ 通知設定','VC参加通知・ランキング・Bump通知'],
+  ['announce','📢 アナウンスを作る','本文・画像・常駐の管理'],
+  ['notifications','🛎️ 通知設定','VC通知・Bump・アラーム'],
   ['analytics','📊 サーバー分析','メンバー数とVC活動の推移'],
   ['inactive','👥 非アクティブメンバー管理','判定期間・対象ロールなどを管理'],
   ['other','⚙️ その他の設定','原神・BOTお知らせ・初期化'],
@@ -63,7 +65,7 @@ function choices(mode,guildId){
  ];
 }
 function back(page){
- return ['genshin','enable','official','broadcast','reset'].includes(page)?'other':['vc','ranking','bump'].includes(page)?'notifications':(['uid','build','gift','gnews'].includes(page)?'genshin':(['annchannel','annroles','anncontent','annsticky'].includes(page)?'announce':(['inmonths','inrole','inexclude','inchannel','inon'].includes(page)?'inactive':(['analyticsmembers','analyticsvc'].includes(page)?'analytics':['official','broadcast'].includes(page)?'home':'home'))));
+ return ['alarm','vc','ranking','bump'].includes(page)?'notifications':['stickylist','annsticky'].includes(page)?'announce':['genshin','enable','official','broadcast','reset'].includes(page)?'other':['vc','ranking','bump'].includes(page)?'notifications':(['uid','build','gift','gnews'].includes(page)?'genshin':(['annchannel','annroles','anncontent','annsticky'].includes(page)?'announce':(['inmonths','inrole','inexclude','inchannel','inon'].includes(page)?'inactive':(['analyticsmembers','analyticsvc'].includes(page)?'analytics':['official','broadcast'].includes(page)?'home':'home'))));
 }
 function select(id,placeholder,items) {
  return new StringSelectMenuBuilder().setCustomId(ROOT+id).setPlaceholder(placeholder)
@@ -120,6 +122,10 @@ function render(page='home',mode='pending',guildId=null,auditPage=0,graph=false)
    container.addActionRowComponents(row(new RoleSelectMenuBuilder().setCustomId(ROOT+'ann_pick_roles').setPlaceholder('付与・解除ロール（最大5つ・任意）').setMinValues(0).setMaxValues(5)));
    container.addActionRowComponents(row(button('ann_sticky_on','常駐 ON',a.sticky?ButtonStyle.Success:ButtonStyle.Secondary),button('ann_sticky_off','常駐 OFF',!a.sticky?ButtonStyle.Primary:ButtonStyle.Secondary)));
    container.addActionRowComponents(row(button('ann_open_modal','本文・画像を入力して投稿',ButtonStyle.Primary)));
+  }else if(page==='stickylist'){
+   const ids=Object.keys(st.get(guildId).sticky||{}).slice(0,25);
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(ids.length?'解除すると常駐を停止します。既存の投稿は削除されません。':'現在、常駐アナウンスはありません。'));
+   if(ids.length)container.addActionRowComponents(row(select('sticky_remove','解除する常駐投稿を選択',ids.map(id=>[id,'#'+(st.get(guildId).sticky?.[id]?.text||'常駐投稿').replace(/\\s+/g,' ').slice(0,65)]))));
   }else if(page==='annchannel'){
    const a=draft(guildId);
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('投稿先：'+(a.ch?'<#'+a.ch+'>':'未設定')));
@@ -144,6 +150,13 @@ function render(page='home',mode='pending',guildId=null,auditPage=0,graph=false)
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**VC参加通知：'+(d.vcOff?'OFF':'ON')+'**\n現在の通知先：'+(d.vc?'<#'+d.vc+'>':'未設定')+'\n\n通知先を変更すると、VCランキングでも同じ投稿先を使用します。'));
    container.addActionRowComponents(row(button('vc_on','ON',ButtonStyle.Success).setDisabled(!d.vcOff),button('vc_off','OFF',ButtonStyle.Secondary).setDisabled(!!d.vcOff)));
    container.addActionRowComponents(row(new ChannelSelectMenuBuilder().setCustomId(ROOT+'vc_select').setPlaceholder('VC通知先チャンネルを選択').addChannelTypes(ChannelType.GuildText)));
+  }else if(page==='alarm'){
+   const alarms=(st.get(guildId).alarms||[]);
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**毎日のアラーム**\\n'+(alarms.length?alarms.slice(0,25).map((a,n)=>(n+1)+'. '+a.time+'　<#'+a.ch+'>　'+a.msg.replace(/\\s+/g,' ').slice(0,70)).join('\\n'):'登録なし')));
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**新規登録の通知先**：'+(st.get(guildId).alarmChannelId?'<#'+st.get(guildId).alarmChannelId+'>':'未設定')));
+   container.addActionRowComponents(row(new ChannelSelectMenuBuilder().setCustomId(ROOT+'alarm_channel').setPlaceholder('アラーム通知先を選択').addChannelTypes(ChannelType.GuildText)));
+   container.addActionRowComponents(row(button('alarm_new','アラームを登録',ButtonStyle.Primary)));
+   if(alarms.length)container.addActionRowComponents(row(select('alarm_remove','解除するアラームを選択',alarms.slice(0,25).map((a,n)=>[String(n),a.time+'　'+(a.msg||'').slice(0,60)]))));
   }else if(page==='ranking'){
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**VCランキング**\n状態：'+(st.get(guildId).rkOff?'OFF':'ON')+'\n投稿先：'+(st.get(guildId).vc?'<#'+st.get(guildId).vc+'>':'未設定')+'\n\n-# 投稿先はVC参加通知と共通です。'));
    container.addActionRowComponents(row(button('ranking_on','ON',ButtonStyle.Success),button('ranking_off','OFF',ButtonStyle.Danger)));
@@ -233,9 +246,9 @@ function render(page='home',mode='pending',guildId=null,auditPage=0,graph=false)
     ...(mode==='on'?[['genshin','🎮 原神設定','原神のお知らせ・UID登録など']]:[['enable','🎮 原神機能を有効化','原神用の機能を設定']]),
     ...(guildId===testGuild?[['broadcast','📣 BOTのお知らせを配信','各サーバーへ案内を配信']]:[['official','📢 BOTのお知らせを受信','受信先を設定']]),
     ['reset','⚠️ 設定を初期化','テストサーバー限定・確認必須']
-   ]:page==='notifications'?[['vc','🔊 VC参加通知','参加通知を送るチャンネル'],['ranking','🏆 VCランキング','ランキングのON/OFF・投稿先'],['bump','🔔 Bump通知','通知先・リマインド設定']]:
+   ]:page==='notifications'?[['vc','🔊 VC参加通知','参加通知を送るチャンネル'],['ranking','🏆 VCランキング','ランキングのON/OFF・投稿先'],['bump','🔔 Bump通知','通知先・リマインド設定'],['alarm','⏰ アラーム','毎日の通知の登録・解除']]:
     page==='genshin'?[['gnews','原神のお知らせ','表示先と通知ロール'],['uid','UID登録','登録先と任意の付与ロール'],['build','ビルドカード','パネルの表示先'],['gift','ギフトコード','表示先']]:
-    page==='announce'?[]:
+    page==='announce'?[['stickylist','📌 常駐の解除','投稿済みの常駐アナウンスを解除']]:
     page==='inactive'?[['inmonths','判定期間','1〜12か月'],['inrole','対象ロール','管理対象を指定'],['inexclude','除外ロール','対象外にするロール'],['inchannel','ログ・通知先','管理ログ・キック承認通知の投稿先']]:
     page==='analytics'?[]:[];
   if(next.length)container.addActionRowComponents(row(select('sub','設定項目を選択',next)));
@@ -257,6 +270,52 @@ async function handleCore(i){
  }
  const testMode=st.get(i.guildId).panelTestGenshin;
  const mode=isGI(i.guildId)||testMode===true?'on':testMode===false?'off':'pending';
+ if(id==='sticky_remove'){
+  const data=st.get(i.guildId),key=i.values?.[0],old=data.sticky?.[key];
+  if(!old)return i.reply({content:'すでに解除されています。',flags:MessageFlags.Ephemeral});
+  delete data.sticky[key];
+  if(!await st.save(i.guild)){data.sticky[key]=old;return i.reply({content:'解除状態を保存できませんでした。',flags:MessageFlags.Ephemeral});}
+  return i.update(render('stickylist',mode,i.guildId));
+ }
+ if(id==='alarm_channel'){
+  const selected=i.values?.[0],ch=selected&&await i.guild.channels.fetch(selected).catch(()=>null);
+  const me=i.guild.members.me||await i.guild.members.fetchMe();
+  if(!ch?.isTextBased()||!ch.permissionsFor(me)?.has([PermissionFlagsBits.ViewChannel,PermissionFlagsBits.SendMessages,PermissionFlagsBits.EmbedLinks]))return i.reply({content:'BOTが投稿できるテキストチャンネルを選んでください。',flags:MessageFlags.Ephemeral});
+  const d=st.get(i.guildId),old=d.alarmChannelId;d.alarmChannelId=selected;
+  if(!await st.save(i.guild)){d.alarmChannelId=old;return i.reply({content:'保存に失敗しました。',flags:MessageFlags.Ephemeral});}
+  return i.update(render('alarm',mode,i.guildId));
+ }
+ if(id==='alarm_new'){
+  if(!st.get(i.guildId).alarmChannelId)return i.reply({content:'先にアラームの通知先を選択してください。',flags:MessageFlags.Ephemeral});
+  const modal=new ModalBuilder().setCustomId(ROOT+'alarm_create').setTitle('毎日のアラームを登録');
+  modal.addLabelComponents(
+   new LabelBuilder().setLabel('時刻（例：09:00 18:30）').setTextInputComponent(new TextInputBuilder().setCustomId('times').setStyle(TextInputStyle.Short).setRequired(true)),
+   new LabelBuilder().setLabel('通知本文').setTextInputComponent(new TextInputBuilder().setCustomId('message').setStyle(TextInputStyle.Paragraph).setMaxLength(2000).setRequired(true))
+  );
+  return i.showModal(modal);
+ }
+ if(id==='alarm_create'){
+  const times=i.fields.getTextInputValue('times').trim().split(/[\\s　]+/);
+  const normalized=times.map(x=>x.match(/^([01]?\\d|2[0-3]):([0-5]\\d)$/)).filter(Boolean).map(m=>m[1].padStart(2,'0')+':'+m[2]);
+  if(!normalized.length||normalized.length!==times.length)return i.reply({content:'時刻は 09:00 18:30 のように入力してください。',flags:MessageFlags.Ephemeral});
+  const data=st.get(i.guildId),old=[...(data.alarms||[])],setter={by:i.user.id,byName:i.member?.displayName||i.user.username,byAvatar:i.user.displayAvatarURL()};
+  // Alarm delivery is independent of the management channel.
+  data.alarms||=[];
+  for(const time of new Set(normalized)){
+   const a={time,ch:data.alarmChannelId,msg:i.fields.getTextInputValue('message'),...setter};
+   const existing=data.alarms.find(x=>x.time===time&&x.ch===a.ch&&x.msg===a.msg);
+   if(existing)Object.assign(existing,setter);else data.alarms.push(a);
+  }
+  if(!await st.save(i.guild)){data.alarms=old;return i.reply({content:'保存に失敗しました。',flags:MessageFlags.Ephemeral});}
+  await i.reply({content:'アラームを登録しました。投稿先：<#'+data.alarmChannelId+'>　時刻：'+[...new Set(normalized)].join('、'),flags:MessageFlags.Ephemeral});return true;
+ }
+ if(id==='alarm_remove'){
+  const data=st.get(i.guildId),n=Number(i.values?.[0]),old=[...(data.alarms||[])];
+  if(!Number.isInteger(n)||n<0||n>=old.length)return i.reply({content:'対象が見つかりません。',flags:MessageFlags.Ephemeral});
+  data.alarms.splice(n,1);
+  if(!await st.save(i.guild)){data.alarms=old;return i.reply({content:'解除を保存できませんでした。',flags:MessageFlags.Ephemeral});}
+  return i.update(render('alarm',mode,i.guildId));
+ }
  if(id==='ann_pick_channel'){
   const cid=i.values?.[0],ch=cid&&await i.guild.channels.fetch(cid).catch(()=>null);
   const me=i.guild.members.me||await i.guild.members.fetchMe();

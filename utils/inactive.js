@@ -24,6 +24,10 @@ async function restore(member, u, id) {
 
 async function restoreSuspended(guild, s) {
   let failed = 0;
+  for(const u of Object.values(s.users||{})){
+   if(u.approvalMessage)await st.findCh(guild)?.messages.delete(u.approvalMessage).catch(()=>null);
+   delete u.approvalMessage;delete u.approvalToken;
+  }
   for (const [id, u] of Object.entries(s.users)) {
     const role = u.restoreRole || u.suspendedRole;
     if (!role) continue;
@@ -65,6 +69,8 @@ function record(guild, user, at = Date.now()) {
   const u = s.users[user.id] ||= {};
   u.at = Math.max(u.at || 0, at);
   if (u.suspendedRole) u.restoreRole = u.suspendedRole;
+  if(u.approvalMessage) st.findCh(guild)?.messages.delete(u.approvalMessage).catch(()=>null);
+  delete u.approvalToken;delete u.approvalMessage;
   clearWarning(u);
   if (!flush.has(guild.id)) {
     const t = setTimeout(() => { flush.delete(guild.id); st.save(guild); }, 60000);
@@ -131,7 +137,7 @@ async function issueWarning(guild, member, s, u, now) {
     }
     delete u.roleFailureAt; delete u.dmFailedAt;
     if (!await persist(guild, s)) return;
-    await log(guild, s, `<@${member.id}> に参加意思確認のDMを送りました。${role ? `指定ロール：<@&${role.id}>（持っていた場合は解除済み）。` : ''}7日間、操作も活動もなければキックします。`);
+    await log(guild, s, `<@${member.id}> に参加意思確認のDMを送りました。${role ? `指定ロール：<@&${role.id}>（持っていた場合は解除済み）。` : ''}7日後に管理者へ確認を依頼します。管理者の承認なしにキックされることはありません。`);
   } finally { buttonLocks.delete(key); }
 }
 
@@ -174,6 +180,8 @@ async function sweep(guild, now = Date.now()) {
       if (!eligible(m, s, now)) {
         if (s.users[m.id]) {
           if (s.users[m.id].suspendedRole) s.users[m.id].restoreRole = s.users[m.id].suspendedRole;
+          if(s.users[m.id].approvalMessage)st.findCh(guild)?.messages.delete(s.users[m.id].approvalMessage).catch(()=>null);
+          delete s.users[m.id].approvalMessage;delete s.users[m.id].approvalToken;
           clearWarning(s.users[m.id]);
         }
         continue;
@@ -190,14 +198,22 @@ async function sweep(guild, now = Date.now()) {
       if (!fresh || !s.enabled || locked(guild.id, m.id) || !u.warningAt || !eligible(fresh, s, Date.now())) continue;
       if (!await persist(guild, s)) return;
       if (!s.enabled || locked(guild.id, m.id) || !u.warningAt || !eligible(fresh, s, Date.now())) continue;
-      await log(guild, s, `<@${m.id}>：${s.months || 3}か月活動なし・警告後7日経過のためキックを実行します。`);
-      // ログ送信待ち中の活動も確認する。
-      if (!s.enabled || locked(guild.id, m.id) || !u.warningAt || !eligible(fresh, s, Date.now())) continue;
-      try {
-        await fresh.kick(`${s.months || 3}か月発言・VC参加なし。警告DM送信後7日間活動なし。`);
-        delete s.users[m.id];
-        await log(guild, s, `<@${m.id}> をキックしました。`);
-      } catch (e) { await log(guild, s, `<@${m.id}> のキックに失敗しました：${e.message.slice(0, 200)}`); }
+      if (!u.approvalToken) {
+        const channel = st.findCh(guild);
+        if (!channel) continue;
+        const token = randomBytes(8).toString('hex');
+        u.approvalToken = token;
+        if (!await persist(guild,s)) return;
+        const confirm = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('ik_kick_'+m.id+'_'+token).setLabel('キックする').setStyle(ButtonStyle.Danger),
+          new ButtonBuilder().setCustomId('ik_cancel_'+m.id+'_'+token).setLabel('見送る').setStyle(ButtonStyle.Secondary)
+        );
+        try{
+          const msg=await channel.send({content:'**非アクティブメンバー：キック確認**\\n対象：<@'+m.id+'>\\n理由：'+(s.months||3)+'か月活動なし・警告後7日経過\\n-# 管理者が「キックする」を押すまで実行されません。',components:[confirm],allowedMentions:{parse:[]}});
+          u.approvalMessage=msg.id;
+          await persist(guild,s);
+        }catch(e){delete u.approvalToken;await persist(guild,s);console.error('キック承認通知失敗',e.message);}
+      }
       if (!await persist(guild, s)) return;
     }
     s.checkedAt = now;
@@ -205,6 +221,34 @@ async function sweep(guild, now = Date.now()) {
   } finally { running.delete(guild.id); }
 }
 
+async function handleApproval(i){
+ if(!i.guild||!i.isButton())return;
+ const match=/^ik_(kick|cancel)_(\\d+)_(\\w+)$/.exec(i.customId);
+ if(!match)return;
+ const [,action,uid,token]=match,s=st.get(i.guildId).inactive,u=s?.users?.[uid];
+ if(!i.memberPermissions?.has(P.KickMembers))return i.reply({content:'キック権限のある管理者のみ操作できます。',ephemeral:true});
+ if(!s?.enabled||!u?.approvalToken||u.approvalToken!==token||u.approvalMessage!==i.message.id)return i.reply({content:'この確認は無効です。',ephemeral:true});
+ if(locked(i.guildId,uid))return i.reply({content:'処理中です。',ephemeral:true});
+ buttonLocks.add(i.guildId+':'+uid);
+ try{
+  await i.deferUpdate();
+  const member=await i.guild.members.fetch({user:uid,force:true}).catch(()=>null);
+  if(action==='cancel'){
+   delete u.approvalToken;delete u.approvalMessage;u.at=Date.now();if(u.suspendedRole)u.restoreRole=u.suspendedRole;clearWarning(u);
+   await persist(i.guild,s);
+   return i.message.delete().catch(()=>i.editReply({content:'見送りました。',components:[]}));
+  }
+  if(!member||!s.enabled||!u.warningAt||Date.now()<u.warningAt+GRACE||!eligible(member,s,Date.now())||member.joinedTimestamp!==u.warningJoinedAt){
+   delete u.approvalToken;delete u.approvalMessage;await persist(i.guild,s);
+   return i.message.delete().catch(()=>i.editReply({content:'活動状況が変わったため中止しました。',components:[]}));
+  }
+  await member.kick('管理者が非アクティブ判定と警告期間を確認して承認');
+  delete s.users[uid];await persist(i.guild,s);
+  await log(i.guild,s,'<@'+uid+'> を <@'+i.user.id+'> の承認によりキックしました。').catch(()=>null);
+  return i.message.delete().catch(()=>i.editReply({content:'キックを実行しました。',components:[]}));
+ }catch(e){console.error('管理者キック承認失敗',e);if(i.deferred)await i.followUp({content:'処理に失敗しました。',ephemeral:true}).catch(()=>null);}
+ finally{buttonLocks.delete(i.guildId+':'+uid);}
+}
 async function tick(client) {
   for (const g of client.guilds.cache.values()) {
     if (!st.get(g.id).inactive?.enabled) continue;
@@ -278,4 +322,4 @@ async function handleButton(i, client) {
   } finally { buttonLocks.delete(`${gid}:${uid}`); }
 }
 
-module.exports = { threeMonths, record, eligible, sweep, tick, handleButton, managedRole, restoreSuspended };
+module.exports = { handleApproval, threeMonths, record, eligible, sweep, tick, handleButton, managedRole, restoreSuspended };

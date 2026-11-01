@@ -79,7 +79,7 @@ function render(page='home',mode='pending',guildId=null) {
   }else if(page==='annchannel'){
    const a=draft(guildId);
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('投稿先：'+(a.ch?'<#'+a.ch+'>':'未設定')));
-   container.addActionRowComponents(row(new ChannelSelectMenuBuilder().setCustomId(ROOT+'ann_pick_channel').setPlaceholder('投稿先を選択').addChannelTypes(ChannelType.GuildText)));
+   container.addActionRowComponents(row(new ChannelSelectMenuBuilder().setCustomId(ROOT+'ann_pick_channel').setPlaceholder('投稿先を選択').addChannelTypes(ChannelType.GuildText,ChannelType.GuildAnnouncement)));
   }else if(page==='annroles'){
    const a=draft(guildId);
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('選択中：'+(a.roles.length?a.roles.map(x=>'<@&'+x+'>').join('、'):'なし')));

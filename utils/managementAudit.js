@@ -3,7 +3,7 @@ const {MessageFlags,PermissionFlagsBits,ActionRowBuilder,ButtonBuilder,ButtonSty
 // Record only intentional configuration values; exclude UID, member history, message bodies.
 const fields=[
  ['alarms','アラーム'],['alarmChannelId','アラーム通知先'],['sticky','常駐アナウンス'],
- ['vc','VC通知先'],['vcOff','VC参加通知'],['rkOff','VCランキング'],['bump','Bump通知'],
+ ['vcMentionSchedule','VCメンション時間帯'],['vc','VC通知先'],['vcOff','VC参加通知'],['rkOff','VCランキング'],['bump','Bump通知'],
  ['gnews','原神のお知らせ'],['introP','UID登録'],['buildPanels','ビルドカード'],
  ['giftP','ギフトコード'],['genshin','原神機能'],['inactiveMonths','未活動判定期間'],
  ['inactiveSettings','未活動管理設定'],['inactive','未活動管理'],['officialFeed','公式お知らせ']
@@ -12,7 +12,8 @@ function compact(d){
  const v={};
  for(const [key] of fields){
   const x=d[key];
-  if(key==='alarms')v[key]=(x||[]).map(a=>({time:a.time,ch:a.ch,msg:a.msg?.slice(0,80)}));
+  if(key==='vcMentionSchedule')v[key]=x?{start:x.start,end:x.end,primaryRole:x.primaryRole,secondaryRole:x.secondaryRole}:null;
+  else if(key==='alarms')v[key]=(x||[]).map(a=>({time:a.time,ch:a.ch,msg:a.msg?.slice(0,80)}));
   else if(key==='sticky')v[key]=Object.keys(x||{}).sort();
   else if(key==='inactive')v[key]=x?{enabled:x.enabled,months:x.months,role:x.role,exclude:x.exclude,log:x.log,approvalChannelId:x.approvalChannelId}:null;
   else if(key==='gnews')v[key]=x?{ch:x.ch,role:x.role}:null;
@@ -24,14 +25,14 @@ function compact(d){
  }
  return v;
 }
-const names={ch:'チャンネル',role:'ロール',exclude:'除外ロール',enabled:'有効化',months:'判定期間',log:'ログ送信先',approvalChannelId:'確認通知先',here:'@here通知',channelId:'受信先',seen:'既読',posts:'投稿履歴'};
+const names={ch:'チャンネル',role:'ロール',exclude:'除外ロール',enabled:'有効化',months:'判定期間',log:'ログ送信先',approvalChannelId:'確認通知先',primaryRole:'時間帯①ロール',secondaryRole:'時間帯②ロール',start:'開始時刻',end:'終了時刻',here:'@here通知',channelId:'受信先',seen:'既読',posts:'投稿履歴'};
 function format(key,value){
  if(value===null||value===undefined||value==='')return '未設定';
  if(key==='rkOff'||key==='vcOff')return value?'OFF':'ON';
  if(typeof value==='boolean')return value?'ON':'OFF';
  if(key==='months'||key==='inactiveMonths')return value+'か月';
  if(['ch','vc','log','channelId','approvalChannelId','alarmChannelId'].includes(key)&&/^\\d{15,22}$/.test(String(value)))return '<#'+value+'>';
- if(['role','exclude'].includes(key)&&/^\\d{15,22}$/.test(String(value)))return '<@&'+value+'>';
+ if(['role','exclude','primaryRole','secondaryRole'].includes(key)&&/^\\d{15,22}$/.test(String(value)))return '<@&'+value+'>';
  if(Array.isArray(value))return value.length?value.map(v=>/^\\d{15,22}$/.test(String(v))?'<#'+v+'>':String(v)).join('、'):'なし';
  return String(value);
 }

@@ -2,6 +2,11 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, EmbedBuilder
   StringSelectMenuBuilder, ChannelSelectMenuBuilder, RoleSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ChannelType, PermissionFlagsBits, ContainerBuilder, TextDisplayBuilder } = require('discord.js');
 const ROOT='pt_';
 const announcements=new Map();
+async function returnHome(i,mode){
+ if(!i.message?.editable)return;
+ try{await i.message.edit(render('home',mode,i.guildId));}
+ catch(e){console.error('管理トップへの復帰失敗:',e);}
+}
 function draft(gid){const x=announcements.get(gid);if(x&&Date.now()-x.updated<3600000)return x;const d={ch:null,roles:[],sticky:false,updated:Date.now()};announcements.set(gid,d);return d;}
 const testGuild='1341988738074542111';
 const { isGI } = require('./gi');
@@ -221,6 +226,7 @@ async function handle(i){
     if(!await st.save(i.guild))throw Error('投稿できましたが常駐設定の保存に失敗しました');
    }
    announcements.delete(i.guildId);
+   await returnHome(i,mode);
    await i.editReply('アナウンスを投稿しました：'+sent.url);
   }catch(e){console.error('アナウンス投稿エラー:',e);await i.editReply('投稿できませんでした：'+e.message);}
   return true;
@@ -316,6 +322,7 @@ async function handle(i){
    await thread.send({content:header,allowedMentions:{parse:[]}});
    // The receiving guild owner is added as a private-thread member and explicitly notified there.
    await thread.send({content:'<@'+owner+'> 新しいお問い合わせです。',allowedMentions:{users:[owner]}});
+   await returnHome(i,mode);
    await i.editReply('お問い合わせを送信しました。');
   }catch(e){
    console.error('非公開お問い合わせスレッド作成失敗:',e);

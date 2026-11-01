@@ -153,6 +153,8 @@ function render(page='home',mode='pending',guildId=null,auditPage=0,graph=false)
   }else if(page==='alarm'){
    const alarms=(st.get(guildId).alarms||[]);
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**毎日のアラーム**\\n'+(alarms.length?alarms.slice(0,25).map((a,n)=>(n+1)+'. '+a.time+'　<#'+a.ch+'>　'+a.msg.replace(/\\s+/g,' ').slice(0,70)).join('\\n'):'登録なし')));
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**新規登録の通知先**：'+(st.get(guildId).alarmChannelId?'<#'+st.get(guildId).alarmChannelId+'>':'未設定')));
+   container.addActionRowComponents(row(new ChannelSelectMenuBuilder().setCustomId(ROOT+'alarm_channel').setPlaceholder('アラーム通知先を選択').addChannelTypes(ChannelType.GuildText)));
    container.addActionRowComponents(row(button('alarm_new','アラームを登録',ButtonStyle.Primary)));
    if(alarms.length)container.addActionRowComponents(row(select('alarm_remove','解除するアラームを選択',alarms.slice(0,25).map((a,n)=>[String(n),a.time+'　'+(a.msg||'').slice(0,60)]))));
   }else if(page==='ranking'){
@@ -275,7 +277,16 @@ async function handleCore(i){
   if(!await st.save(i.guild)){data.sticky[key]=old;return i.reply({content:'解除状態を保存できませんでした。',flags:MessageFlags.Ephemeral});}
   return i.update(render('stickylist',mode,i.guildId));
  }
+ if(id==='alarm_channel'){
+  const selected=i.values?.[0],ch=selected&&await i.guild.channels.fetch(selected).catch(()=>null);
+  const me=i.guild.members.me||await i.guild.members.fetchMe();
+  if(!ch?.isTextBased()||!ch.permissionsFor(me)?.has([PermissionFlagsBits.ViewChannel,PermissionFlagsBits.SendMessages,PermissionFlagsBits.EmbedLinks]))return i.reply({content:'BOTが投稿できるテキストチャンネルを選んでください。',flags:MessageFlags.Ephemeral});
+  const d=st.get(i.guildId),old=d.alarmChannelId;d.alarmChannelId=selected;
+  if(!await st.save(i.guild)){d.alarmChannelId=old;return i.reply({content:'保存に失敗しました。',flags:MessageFlags.Ephemeral});}
+  return i.update(render('alarm',mode,i.guildId));
+ }
  if(id==='alarm_new'){
+  if(!st.get(i.guildId).alarmChannelId)return i.reply({content:'先にアラームの通知先を選択してください。',flags:MessageFlags.Ephemeral});
   const modal=new ModalBuilder().setCustomId(ROOT+'alarm_create').setTitle('毎日のアラームを登録');
   modal.addLabelComponents(
    new LabelBuilder().setLabel('時刻（例：09:00 18:30）').setTextInputComponent(new TextInputBuilder().setCustomId('times').setStyle(TextInputStyle.Short).setRequired(true)),
@@ -288,15 +299,15 @@ async function handleCore(i){
   const normalized=times.map(x=>x.match(/^([01]?\\d|2[0-3]):([0-5]\\d)$/)).filter(Boolean).map(m=>m[1].padStart(2,'0')+':'+m[2]);
   if(!normalized.length||normalized.length!==times.length)return i.reply({content:'時刻は 09:00 18:30 のように入力してください。',flags:MessageFlags.Ephemeral});
   const data=st.get(i.guildId),old=[...(data.alarms||[])],setter={by:i.user.id,byName:i.member?.displayName||i.user.username,byAvatar:i.user.displayAvatarURL()};
-  // By default, reminders are posted to the channel where the panel lives.
+  // Alarm delivery is independent of the management channel.
   data.alarms||=[];
   for(const time of new Set(normalized)){
-   const a={time,ch:i.channelId,msg:i.fields.getTextInputValue('message'),...setter};
+   const a={time,ch:data.alarmChannelId,msg:i.fields.getTextInputValue('message'),...setter};
    const existing=data.alarms.find(x=>x.time===time&&x.ch===a.ch&&x.msg===a.msg);
    if(existing)Object.assign(existing,setter);else data.alarms.push(a);
   }
   if(!await st.save(i.guild)){data.alarms=old;return i.reply({content:'保存に失敗しました。',flags:MessageFlags.Ephemeral});}
-  await i.reply({content:'アラームを登録しました。投稿先：<#'+i.channelId+'>　時刻：'+[...new Set(normalized)].join('、'),flags:MessageFlags.Ephemeral});return true;
+  await i.reply({content:'アラームを登録しました。投稿先：<#'+data.alarmChannelId+'>　時刻：'+[...new Set(normalized)].join('、'),flags:MessageFlags.Ephemeral});return true;
  }
  if(id==='alarm_remove'){
   const data=st.get(i.guildId),n=Number(i.values?.[0]),old=[...(data.alarms||[])];

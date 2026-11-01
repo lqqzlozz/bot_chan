@@ -46,7 +46,7 @@ async function publish(guild){
  const me=guild.members.me||await guild.members.fetchMe();
  if(!ch.permissionsFor(me)?.has([PermissionFlagsBits.ViewChannel,PermissionFlagsBits.SendMessages,PermissionFlagsBits.ReadMessageHistory]))return;
  const d=st.get(guild.id);
- const body='## 📋 管理ログ\\n'+summary(guild.id,8)+'\\n\\n-# 直近50件をconfig.jsonに保存します。変更前の履歴は記録できません。';
+ const body=view(guild.id,0);
  let msg=d.managementLogMessageId&&await ch.messages.fetch(d.managementLogMessageId).catch(()=>null);
  if(!msg){
   const recent=await ch.messages.fetch({limit:100}).catch(()=>null);

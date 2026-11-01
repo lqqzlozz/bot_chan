@@ -43,6 +43,7 @@ const screen={
  annsticky:['常駐設定','投稿を常駐させるか選択します。'],
  inmonths:['判定期間','1〜12か月から活動がない期間を選択します。'],
  inrole:['対象ロール','活動状況を確認する対象ロールを設定します。'],
+ inchannel:['キック確認の通知先','管理者の承認待ち通知を投稿するチャンネルを設定します。'],
  inexclude:['除外ロール','未活動メンバー管理から除外するロールを設定します。'],
  inon:['有効化・停止','未活動メンバー管理の有効化・停止を設定します。'],
  analyticsmembers:['メンバー分析','人数・加入・退出の履歴と期間比較を表示します。'],
@@ -62,7 +63,7 @@ function choices(mode,guildId){
  ];
 }
 function back(page){
- return ['genshin','enable','official','broadcast','reset'].includes(page)?'other':['vc','ranking','bump'].includes(page)?'notifications':(['uid','build','gift','gnews'].includes(page)?'genshin':(['annchannel','annroles','anncontent','annsticky'].includes(page)?'announce':(['inmonths','inrole','inexclude','inon'].includes(page)?'inactive':(['analyticsmembers','analyticsvc'].includes(page)?'analytics':['official','broadcast'].includes(page)?'home':'home'))));
+ return ['genshin','enable','official','broadcast','reset'].includes(page)?'other':['vc','ranking','bump'].includes(page)?'notifications':(['uid','build','gift','gnews'].includes(page)?'genshin':(['annchannel','annroles','anncontent','annsticky'].includes(page)?'announce':(['inmonths','inrole','inexclude','inchannel','inon'].includes(page)?'inactive':(['analyticsmembers','analyticsvc'].includes(page)?'analytics':['official','broadcast'].includes(page)?'home':'home'))));
 }
 function select(id,placeholder,items) {
  return new StringSelectMenuBuilder().setCustomId(ROOT+id).setPlaceholder(placeholder)
@@ -171,6 +172,10 @@ function render(page='home',mode='pending',guildId=null,auditPage=0,graph=false)
   }else if(page==='reset'){
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**テストサーバー限定**\n保存した設定・UID情報・分析履歴を削除します。既存の投稿や外部サービスの連携は削除しません。実行後は元に戻せません。\n\n-# 未活動メンバー管理を停止した上で、所有者が確認文を入力する必要があります。'));
    container.addActionRowComponents(row(button('reset_start','初期化する',ButtonStyle.Danger)));
+  }else if(page==='inchannel'){
+   const d=st.get(guildId),id=d.inactiveSettings?.approvalChannelId||d.inactive?.approvalChannelId;
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('現在：'+(id?'<#'+id+'>':'#bot-config（初期値）')));
+   container.addActionRowComponents(row(new ChannelSelectMenuBuilder().setCustomId(ROOT+'inactive_channel').setPlaceholder('キック確認を送るチャンネル').addChannelTypes(ChannelType.GuildText)));
   }else if(page==='inrole'||page==='inexclude'){
    const d=st.get(guildId),settings=d.inactiveSettings||{},excluded=page==='inexclude';
    const current=excluded?settings.exclude||d.inactive?.exclude:settings.role||d.inactive?.role;
@@ -229,7 +234,7 @@ function render(page='home',mode='pending',guildId=null,auditPage=0,graph=false)
    ]:page==='notifications'?[['vc','🔊 VC参加通知','参加通知を送るチャンネル'],['ranking','🏆 VCランキング','ランキングのON/OFF・投稿先'],['bump','🔔 Bump通知','通知先・リマインド設定']]:
     page==='genshin'?[['gnews','原神のお知らせ','表示先と通知ロール'],['uid','UID登録','登録先と任意の付与ロール'],['build','ビルドカード','パネルの表示先'],['gift','ギフトコード','表示先']]:
     page==='announce'?[]:
-    page==='inactive'?[['inmonths','判定期間','1〜12か月'],['inrole','対象ロール','管理対象を指定'],['inexclude','除外ロール','対象外にするロール']]:
+    page==='inactive'?[['inmonths','判定期間','1〜12か月'],['inrole','対象ロール','管理対象を指定'],['inexclude','除外ロール','対象外にするロール'],['inchannel','キック確認の通知先','承認ボタンを送るチャンネル']]:
     page==='analytics'?[]:[];
   if(next.length)container.addActionRowComponents(row(select('sub','設定項目を選択',next)));
   container.addActionRowComponents(row(button('back_'+back(page),'← 戻る'),...(back(page)==='home'?[]:[button('back_home','最初に戻る')])));
@@ -526,9 +531,19 @@ async function handleCore(i){
    await i.followUp({content:'復元待ちのロールがあります。先に停止処理を完了してください。',flags:MessageFlags.Ephemeral});return true;
   }
   const now=Date.now(),prev=d.inactive;
-  d.inactive={enabled:true,since:now,seenAt:now,checkedAt:0,log:ch.id,role,exclude:d.inactiveSettings?.exclude||null,months,users:{}};
+  d.inactive={enabled:true,since:now,seenAt:now,checkedAt:0,log:ch.id,approvalChannelId:d.inactiveSettings?.approvalChannelId||ch.id,role,exclude:d.inactiveSettings?.exclude||null,months,users:{}};
   if(!await st.save(i.guild)){d.inactive=prev;await i.followUp({content:'保存に失敗したため有効化していません。',flags:MessageFlags.Ephemeral});return true;}
   await i.editReply(render('inon',mode,i.guildId));return true;
+ }
+ if(id==='inactive_channel'){
+  const idSelected=i.values?.[0],ch=idSelected&&await i.guild.channels.fetch(idSelected).catch(()=>null);
+  const me=i.guild.members.me||await i.guild.members.fetchMe();
+  if(!ch?.isTextBased()||!ch.permissionsFor(me)?.has([PermissionFlagsBits.ViewChannel,PermissionFlagsBits.SendMessages,PermissionFlagsBits.ReadMessageHistory]))return i.reply({content:'BOTが閲覧・投稿できるテキストチャンネルを選んでください。',flags:MessageFlags.Ephemeral});
+  const d=st.get(i.guildId),old={...(d.inactiveSettings||{})},oldLive=d.inactive?.approvalChannelId;
+  d.inactiveSettings={...old,approvalChannelId:idSelected};
+  if(d.inactive)d.inactive.approvalChannelId=idSelected;
+  if(!await st.save(i.guild)){d.inactiveSettings=old;if(d.inactive)d.inactive.approvalChannelId=oldLive;return i.reply({content:'保存できませんでした。',flags:MessageFlags.Ephemeral});}
+  await i.update(render('inactive',mode,i.guildId));return true;
  }
  if(id==='inactive_role'||id==='inactive_exclude'){
   const d=st.get(i.guildId),s=d.inactive||{},field=id==='inactive_role'?'role':'exclude';

@@ -67,17 +67,14 @@ async function record(guild,user,before){
 }
 function detail(entry){
  const raw=entry.details?.length?entry.details:[entry.action||'詳細なし'];
- const lines=raw.map(value=>{
-  let x=String(value).replace(/\\\\n/g,'\\n').replace(/\\*\\*/g,'');
-  // Older entries were saved with a bare "n" between the field labels.
-  x=x.replace(/n変更前：/g,'\\n変更前：').replace(/n変更後：/g,'\\n変更後：');
-  const m=x.match(/^(.+?)\\n変更前：([\\s\\S]*?)\\n変更後：([\\s\\S]*)$/);
+ return raw.map(value=>{
+  const x=String(value).replace(/\\n/g,'\n').replace(/n変更前：/g,'\n変更前：').replace(/n変更後：/g,'\n変更後：').replace(/\*\*/g,'');
+  const m=x.match(/^(.+?)\n変更前：([\s\S]*?)\n変更後：([\s\S]*)$/);
   if(!m)return x;
-  const resolve=v=>v.replace(/\\b\d{15,22}\\b/g,id=>'<#'+id+'>');
-  const title=m[1],oldValue=resolve(m[2]),newValue=resolve(m[3]);
-  return '**'+title+'**\\n'+oldValue+' → '+newValue;
- });
- return lines.join('\\n').slice(0,950);
+  const title=m[1],oldValue=m[2],newValue=m[3];
+  const fmt=v=>v.replace(/\b\d{15,22}\b/g,id=>'<#'+id+'>');
+  return '**'+title+'**\n'+fmt(oldValue)+' → '+fmt(newValue);
+ }).join('\n').slice(0,950);
 }
 function view(guildId,page=0){
  const rows=(st.get(guildId).managementLog||[]).slice().reverse();

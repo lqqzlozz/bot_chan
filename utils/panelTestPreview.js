@@ -76,8 +76,9 @@ function render(page='home',mode='pending',guildId=null) {
  );
  if(page==='home'){
   const feedSettings=guildId&&st.get(guildId).officialFeed;
-  if(guildId&&guildId!==testGuild&&!feedSettings?.channelId){
-   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### 📢 初期設定：お知らせの受信先\n公式お知らせを受信するチャンネルを最初に指定してください。'));
+  const needsFeed=!!(guildId&&guildId!==testGuild&&!feedSettings?.channelId);
+  if(needsFeed){
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### 📢 初期設定：お知らせの受信先\n公式お知らせを受信するチャンネルを最初に指定してください。\n-# ※この設定は一度完了すると、管理パネルから自動的に非表示になります。'));
    container.addActionRowComponents(row(new ChannelSelectMenuBuilder().setCustomId(ROOT+'official_channel').setPlaceholder('お知らせを受信するチャンネルを選択').addChannelTypes(ChannelType.GuildText)));
   }
   const notice=guildId&&st.get(guildId).broadcastNotice;
@@ -85,8 +86,8 @@ function render(page='home',mode='pending',guildId=null) {
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### 📢 BOTからのお知らせ\n'+notice.body));
    container.addActionRowComponents(row(button('broadcast_dismiss','確認しました',ButtonStyle.Primary)));
   }
-  if(mode==='pending'){
-   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**原神サーバーとして利用しますか？**'));
+  if(mode==='pending'&&!needsFeed){
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**原神サーバーとして利用しますか？**\n-# ※この設定は一度完了すると、管理パネルから自動的に非表示になります。'));
    container.addActionRowComponents(row(button('gen_on','原神設定：ON',ButtonStyle.Success),button('gen_off','原神設定：OFF',ButtonStyle.Danger)));
   }
   container.addActionRowComponents(row(select('pick','機能を選択してください',choices(mode,guildId))));

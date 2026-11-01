@@ -47,7 +47,7 @@ function choices(mode){
  ];
 }
 function back(page){
- return ['vc','ranking','bump'].includes(page)?'notifications':(['uid','build','gift','gnews'].includes(page)?'genshin':(['annchannel','annroles','anncontent','annsticky'].includes(page)?'announce':(['inmonths','inrole','inexclude','inon'].includes(page)?'inactive':(['analyticsmembers','analyticsvc'].includes(page)?'analytics':page==='inactive'?'members':'home'))));
+ return ['vc','ranking','bump'].includes(page)?'notifications':(['uid','build','gift','gnews'].includes(page)?'genshin':(['annchannel','annroles','anncontent','annsticky'].includes(page)?'announce':(['inmonths','inrole','inexclude','inon'].includes(page)?'inactive':(['analyticsmembers','analyticsvc'].includes(page)?'analytics':page==='inactive'?'home':'home'))));
 }
 function select(id,placeholder,items) {
  return new StringSelectMenuBuilder().setCustomId(ROOT+id).setPlaceholder(placeholder)
@@ -124,7 +124,6 @@ function render(page='home',mode='pending',guildId=null) {
    ));
   }
   const next=page==='notifications'?[['vc','🔊 VC参加通知','参加通知を送るチャンネル'],['ranking','🏆 VCランキング','ランキングのON/OFF・投稿先'],['bump','🔔 Bump通知','通知先・リマインド設定']]:
-    page==='members'?[['inactive','未活動メンバー管理','活動状況と対象者の管理']]:
     page==='genshin'?[['gnews','原神のお知らせ','表示先と通知ロール'],['uid','UID登録','登録先と任意の付与ロール'],['build','ビルドカード','パネルの表示先'],['gift','ギフトコード','表示先']]:
     page==='announce'?[['annchannel','投稿先','チャンネルを選ぶ'],['annroles','ロール設定','通知ロールを選ぶ'],['anncontent','本文・画像','本文と画像を用意'],['annsticky','常駐設定','ON/OFF']]:
     page==='inactive'?[['inmonths','判定期間','1〜12か月'],['inrole','対象ロール','管理対象を指定'],['inexclude','除外ロール','対象外にするロール'],['inon','有効化・停止','7日間の確認猶予']]:

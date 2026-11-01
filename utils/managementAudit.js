@@ -2,7 +2,7 @@ const st=require('./store');
 const {MessageFlags,PermissionFlagsBits,ActionRowBuilder,ButtonBuilder,ButtonStyle,ContainerBuilder,TextDisplayBuilder,SeparatorBuilder}=require('discord.js');
 // Record only intentional configuration values; exclude UID, member history, message bodies.
 const fields=[
- ['vc','VC通知先'],['rkOff','VCランキング'],['bump','Bump通知'],
+ ['vc','VC通知先'],['vcOff','VC参加通知'],['rkOff','VCランキング'],['bump','Bump通知'],
  ['gnews','原神のお知らせ'],['introP','UID登録'],['buildPanels','ビルドカード'],
  ['giftP','ギフトコード'],['genshin','原神機能'],['inactiveMonths','未活動判定期間'],
  ['inactiveSettings','未活動管理設定'],['inactive','未活動管理'],['officialFeed','公式お知らせ']
@@ -28,7 +28,7 @@ function format(key,value){
  if(key==='months'||key==='inactiveMonths')return value+'か月';
  if(['ch','vc','log','channelId'].includes(key)&&/^\\d{15,22}$/.test(String(value)))return '<#'+value+'>';
  if(['role','exclude'].includes(key)&&/^\\d{15,22}$/.test(String(value)))return '<@&'+value+'>';
- if(key==='rkOff')return value?'OFF':'ON';
+ if(key==='rkOff'||key==='vcOff')return value?'OFF':'ON';
  if(Array.isArray(value))return value.length?value.map(v=>/^\\d{15,22}$/.test(String(v))?'<#'+v+'>':String(v)).join('、'):'なし';
  return String(value);
 }
@@ -80,17 +80,19 @@ function summary(guildId,page=0){
  return '**'+(i+1)+' / '+rows.length+'**\n\n**操作した人**\n<@'+entry.by+'>\n\n**変更内容**\n'+detail(entry)+'\n\n**変更日時**\n<t:'+Math.floor(entry.at/1000)+':F>';
 }
 async function publish(guild){
- const ch=st.findCh(guild);if(!ch)return;
+ const ch=st.findCh(guild);if(!ch)throw Error('#bot-configが見つかりません');
  const me=guild.members.me||await guild.members.fetchMe();
- if(!ch.permissionsFor(me)?.has([PermissionFlagsBits.ViewChannel,PermissionFlagsBits.SendMessages,PermissionFlagsBits.ReadMessageHistory]))return;
+ if(!ch.permissionsFor(me)?.has([PermissionFlagsBits.ViewChannel,PermissionFlagsBits.SendMessages,PermissionFlagsBits.ReadMessageHistory]))throw Error('管理ログの閲覧・投稿・履歴権限が不足しています');
  const d=st.get(guild.id);
  const body=view(guild.id,0);
  let msg=d.managementLogMessageId&&await ch.messages.fetch(d.managementLogMessageId).catch(()=>null);
+ if(msg&&msg.author.id!==guild.client.user.id)msg=null;
  if(!msg){
   const recent=await ch.messages.fetch({limit:100}).catch(()=>null);
   msg=recent?.find(m=>m.author.id===guild.client.user.id&&(m.content?.startsWith('## 📋 管理ログ')||m.components?.some(c=>JSON.stringify(c.toJSON?.()||c).includes('pt_audit_'))))||null;
  }
- if(msg)await msg.edit(body);else msg=await ch.send({...body,flags:MessageFlags.SuppressNotifications});
+ if(msg){try{await msg.edit(body);}catch(e){console.warn('古い管理ログを更新できないため再作成:',guild.id,e.message);msg=null;}}
+ if(!msg)msg=await ch.send({...body,flags:MessageFlags.SuppressNotifications});
  if(d.managementLogMessageId!==msg.id){d.managementLogMessageId=msg.id;await st.save(guild);}
 }
 module.exports={compact,record,summary,view,publish};

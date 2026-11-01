@@ -32,6 +32,15 @@ module.exports = {
     await require('../utils/existingFollowNotice').scanAll(client).catch(e=>console.error('既存フォローの検出失敗:',e));
     await require('../utils/betaNoticeMigration').convertAll(client).catch(e=>console.error('ベータ案内のEmbed移行失敗:',e));
 
+    // Retry audit message synchronization if a transient Discord error prevented an edit.
+    // Keep the number of API calls low by checking only once every 15 minutes.
+    setInterval(async()=>{
+      for(const guild of client.guilds.cache.values()){
+        await require('../utils/managementAudit').publish(guild)
+          .catch(e=>console.error('管理ログ同期失敗:',guild.id,e.message));
+      }
+    },15*60*1000);
+
     analytics.initialize(client);
     setInterval(()=>analytics.tick(client),60000);
     await vr.init(client).catch(e => console.error('VC集計の初期化エラー:', e.message));

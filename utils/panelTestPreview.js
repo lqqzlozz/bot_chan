@@ -47,6 +47,7 @@ const screen={
  inon:['有効化・停止','未活動メンバー管理の有効化・停止を設定します。'],
  analyticsmembers:['メンバー分析','人数・加入・退出の履歴と期間比較を表示します。'],
  analyticsvc:['VC分析','通話回数・通話時間の履歴と期間比較を表示します。'],
+ audit:['📋 管理ログ','BOTの管理パネルから変更した設定の履歴'],
  reset:['すべての設定を初期化','UID情報・分析履歴・管理ログも削除され、取り消せません。\n原神の常駐パネルや通知も停止します。\n\nテスト中は初期化できません。']
 };
 function choices(mode,guildId){
@@ -58,6 +59,7 @@ function choices(mode,guildId){
   ['inactive','👥 未活動メンバー管理','一定期間活動がないメンバーを管理'],
   ...(mode==='off'?[['enable','🎮 原神機能を有効化','原神サーバーとして利用する']]:[]),
   ...(guildId===testGuild?[['broadcast','📣 一斉配信','全サーバーの管理パネルへお知らせ']]:[['official','📢 公式お知らせを受信','受信先チャンネルを設定']]),
+  ['audit','📋 管理ログ','管理パネルの設定変更履歴を表示'],
   ['contact','🗨️ お問い合わせ','不具合報告・デバッグ・ご要望など'],
   ['reset','すべての設定を初期化','このサーバーの設定・ログを消去し、導入時の状態にリセット']
  ];
@@ -162,6 +164,8 @@ function render(page='home',mode='pending',guildId=null) {
   }else if(page==='enable'){
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('このサーバーで原神機能を有効化します。\n-# 設定は保存されます。'));
    container.addActionRowComponents(row(button('enable_genshin','原神設定を表示',ButtonStyle.Success)));
+  }else if(page==='audit'){
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(require('./managementAudit').summary(guildId,15)));
   }else if(page==='contact'){
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('不具合報告・デバッグの相談・機能のご要望などを制作者へ送信します。\n-# BOT管理用の #bot-config に非公開スレッドを作成し、管理者に通知します。'));
    container.addActionRowComponents(row(button('contact_write','お問い合わせを作成',ButtonStyle.Primary)));
@@ -223,7 +227,7 @@ function render(page='home',mode='pending',guildId=null) {
  }
  return {components:[container],flags:MessageFlags.IsComponentsV2,allowedMentions:{parse:[]}};
 }
-async function handle(i){
+async function handleCore(i){
  if(!(i.isButton()||i.isStringSelectMenu()||i.isChannelSelectMenu()||i.isRoleSelectMenu()||i.isModalSubmit())||!i.customId?.startsWith(ROOT))return false;
  if(!i.guild||!isAdmin(i)||i.channel?.name!=='bot-config'){
   await i.reply({content:'この操作は #bot-config でサーバー管理者のみ実行できます。',flags:MessageFlags.Ephemeral});return true;
@@ -584,5 +588,14 @@ async function handle(i){
  if(id==='pick'||id==='sub')page=i.values?.[0]||'home';
  else if(id.startsWith('back_'))page=id.slice(5);
  await i.update(render(page,mode,i.guildId));return true;
+}
+async function handle(i){
+ if(!i.guildId||!i.customId?.startsWith(ROOT))return false;
+ const audit=require('./managementAudit');
+ const before=audit.compact(st.get(i.guildId));
+ const result=await handleCore(i);
+ if(result&&i.guild&&i.replied&&!i.ephemeral){ /* no special action */ }
+ if(result&&i.guild&&isAdmin(i))await audit.record(i.guild,i.user,before);
+ return result;
 }
 module.exports={render,handle};

@@ -77,7 +77,7 @@ function render(page='home',mode='pending',guildId=null) {
  if(page==='home'){
   const feedSettings=guildId&&st.get(guildId).officialFeed;
   if(guildId&&guildId!==testGuild&&!feedSettings?.channelId){
-   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### 📢 初期設定：お知らせの受信先\\n公式お知らせを受信するチャンネルを最初に指定してください。'));
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### 📢 初期設定：お知らせの受信先\n公式お知らせを受信するチャンネルを最初に指定してください。'));
    container.addActionRowComponents(row(new ChannelSelectMenuBuilder().setCustomId(ROOT+'official_channel').setPlaceholder('お知らせを受信するチャンネルを選択').addChannelTypes(ChannelType.GuildText)));
   }
   const notice=guildId&&st.get(guildId).broadcastNotice;

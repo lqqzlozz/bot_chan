@@ -2,10 +2,16 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, EmbedBuilder
   StringSelectMenuBuilder, ChannelSelectMenuBuilder, RoleSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ChannelType, PermissionFlagsBits, ContainerBuilder, TextDisplayBuilder } = require('discord.js');
 const ROOT='pt_';
 const announcements=new Map();
+const modalPanels=new Map();
 async function returnHome(i,mode){
- if(!i.message?.editable)return;
- try{await i.message.edit(render('home',mode,i.guildId));}
- catch(e){console.error('管理トップへの復帰失敗:',e);}
+ const key=i.guildId+':'+i.user.id;
+ const panelId=modalPanels.get(key);
+ modalPanels.delete(key);
+ try{
+  const ch=i.guild&&require('./store').findCh(i.guild);
+  const message=panelId&&ch&&await ch.messages.fetch(panelId).catch(()=>null);
+  if(message&&message.author.id===i.client.user.id)await message.edit(render('home',mode,i.guildId));
+ }catch(e){console.error('管理トップへの復帰失敗:',e);}
 }
 function draft(gid){const x=announcements.get(gid);if(x&&Date.now()-x.updated<3600000)return x;const d={ch:null,roles:[],sticky:false,updated:Date.now()};announcements.set(gid,d);return d;}
 const testGuild='1341988738074542111';
@@ -206,6 +212,7 @@ async function handle(i){
   return i.update(render('announce',mode,i.guildId));
  }
  if(id==='ann_open_modal'){
+  modalPanels.set(i.guildId+':'+i.user.id,i.message?.id);
   const a=draft(i.guildId);
   if(!a.ch)return i.reply({content:'先に投稿先を選択してください。',flags:MessageFlags.Ephemeral});
   const modal=new ModalBuilder().setCustomId(ROOT+'ann_submit').setTitle('アナウンスを投稿');
@@ -326,6 +333,7 @@ async function handle(i){
   return true;
  }
  if(id==='contact_write'){
+  modalPanels.set(i.guildId+':'+i.user.id,i.message?.id);
   const modal=new ModalBuilder().setCustomId(ROOT+'contact_submit').setTitle('制作者へのお問い合わせ');
   modal.addComponents(row(new TextInputBuilder().setCustomId('message').setLabel('お問い合わせ内容').setStyle(TextInputStyle.Paragraph).setRequired(true).setMaxLength(1500)));
   await i.showModal(modal);

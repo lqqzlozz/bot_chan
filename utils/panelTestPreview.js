@@ -170,12 +170,22 @@ function render(page='home',mode='pending',guildId=null) {
    const current=excluded?settings.exclude||d.inactive?.exclude:settings.role||d.inactive?.role;
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('現在：'+(current?'<@&'+current+'>':'未設定')+'\n-# '+(excluded?'除外ロールは未設定にも戻せます。':'対象ロールを指定してください。')));
    container.addActionRowComponents(row(new RoleSelectMenuBuilder().setCustomId(ROOT+(excluded?'inactive_exclude':'inactive_role')).setPlaceholder(excluded?'除外ロールを選択（選択なしも可）':'対象ロールを選択').setMinValues(excluded?0:1).setMaxValues(1)));
-  }else if(page==='analyticsmembers'){
-   const d=st.get(guildId);
-   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('現在のメンバー数は、サーバー分析の正式版で表示します。\n-# 保存済みの日次記録がない過去期間は集計できません。'));
-  }else if(page==='analyticsvc'){
-   const v=st.get(guildId).vcr?.cur;
-   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**今週のVC集計**\n通話回数：'+(v?.calls||0)+'回\n累計通話時間：'+Math.round((v?.total||0)/360)/10+'時間\n\n-# BOTが記録したデータのみ表示しています。'));
+  }else if(page==='analytics'){
+   const days=Object.entries(st.get(guildId).analyticsDaily||{}).sort(([a],[b])=>a.localeCompare(b));
+   const recent=days.slice(-7),sum=k=>recent.reduce((n,[,v])=>n+(Number(v[k])||0),0);
+   const last=days.at(-1)?.[1];
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
+    '**メンバー分析**\n現在の人数：'+(last?.members??'記録なし')+'人\n直近7記録日：加入 '+sum('joins')+'人 / 退出 '+sum('leaves')+'人\n\n**VC分析**\n通話開始：'+sum('vcCalls')+'回 / 累計 '+(sum('vcSeconds')/3600).toFixed(1)+'時間\n\n-# BOT導入後の記録のみ。記録がない過去日は補完しません。'
+   ));
+   container.addActionRowComponents(row(button('analytics_image','分析グラフを表示',ButtonStyle.Primary)));
+  }else if(page==='analyticsmembers'||page==='analyticsvc'){
+   const days=Object.entries(st.get(guildId).analyticsDaily||{}).sort(([a],[b])=>a.localeCompare(b));
+   const recent=days.slice(-7),sum=k=>recent.reduce((n,[,v])=>n+(Number(v[k])||0),0);
+   const last=days.at(-1)?.[1];
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(page==='analyticsmembers'?
+    '現在のメンバー数：'+(last?.members??'記録なし')+'人\n直近7記録日の加入：'+sum('joins')+'人 / 退出：'+sum('leaves')+'人':
+    '直近7記録日の通話開始：'+sum('vcCalls')+'回 / 通話時間：'+(sum('vcSeconds')/3600).toFixed(1)+'時間'));
+   container.addActionRowComponents(row(button('analytics_image','分析グラフを表示',ButtonStyle.Primary)));
   }else if(page==='inon'){
    const d=st.get(guildId),s=d.inactive||{},cfg=d.inactiveSettings||{};
    const lines=['**現在の状態：'+(s.enabled?'ON':'OFF')+'**','判定期間：'+(d.inactiveMonths||s.months||3)+'か月','対象ロール：'+(cfg.role||s.role?'<@&'+(cfg.role||s.role)+'>':'未設定'),'除外ロール：'+(cfg.exclude||s.exclude?'<@&'+(cfg.exclude||s.exclude)+'>':'なし'),'管理ログ：'+(s.log?'<#'+s.log+'>':'#bot-config（有効化時に設定）'),'','-# 有効化すると活動記録を開始します。指定期間の無活動後に警告DMを送り、7日間反応がない場合は自動キックします。停止すると監視を止め、外したロールの復元を試みます。'];
@@ -186,6 +196,13 @@ function render(page='home',mode='pending',guildId=null) {
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('現在：**'+(d.inactiveMonths||d.inactive?.months||3)+'か月**\n-# 月数の変更では自動キックは有効になりません。'));
    container.addActionRowComponents(row(select('months','判定期間を選択',Array.from({length:12},(_,n)=>[String(n+1),(n+1)+'か月']))));
   }else container.addTextDisplayComponents(new TextDisplayBuilder().setContent(screen[page][1]));
+  if(page==='inactive'){
+   const d=st.get(guildId),cfg=d.inactiveSettings||{},settings=d.inactive||{};
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
+    '**監視：'+(settings.enabled?'ON':'OFF')+'**\n判定期間：'+(d.inactiveMonths||settings.months||3)+'か月\n対象ロール：'+(cfg.role||settings.role?'<@&'+(cfg.role||settings.role)+'>':'未設定')+'\n除外ロール：'+(cfg.exclude||settings.exclude?'<@&'+(cfg.exclude||settings.exclude)+'>':'なし')+'\nログ：'+(settings.log?'<#'+settings.log+'>':'#bot-config（有効化時）')+'\n警告中：'+Object.values(settings.users||{}).filter(u=>u.warningAt).length+'人'
+   ));
+   container.addActionRowComponents(row(button('inactive_on','有効化',ButtonStyle.Success),button('inactive_off','停止',ButtonStyle.Secondary)));
+  }
   if(page==='genshin'){
    const d=st.get(guildId);
    const ch=v=>v?'<#'+v+'>':'未設定';
@@ -199,8 +216,8 @@ function render(page='home',mode='pending',guildId=null) {
   const next=page==='other'?(guildId===testGuild?[['broadcast','📣 一斉配信','各サーバーの管理者向けに送信']]:[['official','📢 公式お知らせ','メインサーバーの #log を受信']]):page==='notifications'?[['vc','🔊 VC参加通知','参加通知を送るチャンネル'],['ranking','🏆 VCランキング','ランキングのON/OFF・投稿先'],['bump','🔔 Bump通知','通知先・リマインド設定']]:
     page==='genshin'?[['gnews','原神のお知らせ','表示先と通知ロール'],['uid','UID登録','登録先と任意の付与ロール'],['build','ビルドカード','パネルの表示先'],['gift','ギフトコード','表示先']]:
     page==='announce'?[]:
-    page==='inactive'?[['inmonths','判定期間','1〜12か月'],['inrole','対象ロール','管理対象を指定'],['inexclude','除外ロール','対象外にするロール'],['inon','有効化・停止','7日間の確認猶予']]:
-    page==='analytics'?[['analyticsmembers','メンバー分析','人数・加入・退出'],['analyticsvc','VC分析','通話回数・時間']]:[];
+    page==='inactive'?[['inmonths','判定期間','1〜12か月'],['inrole','対象ロール','管理対象を指定'],['inexclude','除外ロール','対象外にするロール']]:
+    page==='analytics'?[]:[];
   if(next.length)container.addActionRowComponents(row(select('sub','設定項目を選択',next)));
   container.addActionRowComponents(row(button('back_'+back(page),'← 戻る'),...(back(page)==='home'?[]:[button('back_home','最初に戻る')])));
  }
@@ -434,6 +451,15 @@ async function handle(i){
    console.error('非公開お問い合わせスレッド作成失敗:',e);
    await i.editReply('お問い合わせを送信できませんでした。管理用チャンネルの権限設定をご確認ください。');
   }
+  return true;
+ }
+ if(id==='analytics_image'){
+  await i.deferReply({flags:MessageFlags.Ephemeral});
+  try{
+   const report=require('./analyticsGraph');
+   const png=report.create(st.get(i.guildId).analyticsDaily||{});
+   await i.editReply({content:'サーバー分析｜直近14記録日',files:[new AttachmentBuilder(png,{name:'server-analytics.png'})]});
+  }catch(e){console.error('分析グラフ作成失敗:',e);await i.editReply('分析グラフを作成できませんでした。');}
   return true;
  }
  if(id==='inactive_on'||id==='inactive_off'){

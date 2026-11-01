@@ -180,7 +180,8 @@ function render(page='home',mode='pending',guildId=null,auditPage=0,graph=false)
    const d=st.get(guildId),settings=d.inactiveSettings||{},excluded=page==='inexclude';
    const current=excluded?settings.exclude||d.inactive?.exclude:settings.role||d.inactive?.role;
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('現在：'+(current?'<@&'+current+'>':'未設定')+'\n-# '+(excluded?'除外ロールは未設定にも戻せます。':'対象ロールを指定してください。')));
-   container.addActionRowComponents(row(new RoleSelectMenuBuilder().setCustomId(ROOT+(excluded?'inactive_exclude':'inactive_role')).setPlaceholder(excluded?'除外ロールを選択（選択なしも可）':'対象ロールを選択').setMinValues(excluded?0:1).setMaxValues(1)));
+   container.addActionRowComponents(row(new RoleSelectMenuBuilder().setCustomId(ROOT+(excluded?'inactive_exclude':'inactive_role')).setPlaceholder(excluded?'除外ロールを選択':'対象ロールを選択').setMinValues(1).setMaxValues(1)));
+   if(excluded)container.addActionRowComponents(row(button('inactive_exclude_clear','除外ロールをなしにする',ButtonStyle.Secondary)));
   }else if(page==='analytics'){
    const days=Object.entries(st.get(guildId).analyticsDaily||{}).sort(([a],[b])=>a.localeCompare(b));
    const recent=days.slice(-7),sum=k=>recent.reduce((n,[,v])=>n+(Number(v[k])||0),0);
@@ -199,7 +200,7 @@ function render(page='home',mode='pending',guildId=null,auditPage=0,graph=false)
    container.addActionRowComponents(row(button('analytics_image','分析グラフを表示',ButtonStyle.Primary)));
   }else if(page==='inon'){
    const d=st.get(guildId),s=d.inactive||{},cfg=d.inactiveSettings||{};
-   const lines=['**現在の状態：'+(s.enabled?'ON':'OFF')+'**','判定期間：'+(d.inactiveMonths||s.months||3)+'か月','対象ロール：'+(cfg.role||s.role?'<@&'+(cfg.role||s.role)+'>':'未設定'),'除外ロール：'+(cfg.exclude||s.exclude?'<@&'+(cfg.exclude||s.exclude)+'>':'なし'),'管理ログ：'+(s.log?'<#'+s.log+'>':'#bot-config（有効化時に設定）'),'','-# 有効化すると活動記録を開始します。指定期間の無活動後に警告DMを送り、7日間反応がない場合は自動キックします。停止すると監視を止め、外したロールの復元を試みます。'];
+   const lines=['**現在の状態：'+(s.enabled?'ON':'OFF')+'**','判定期間：'+(d.inactiveMonths||s.months||3)+'か月','対象ロール：'+(cfg.role||s.role?'<@&'+(cfg.role||s.role)+'>':'未設定'),'除外ロール：'+(cfg.exclude||s.exclude?'<@&'+(cfg.exclude||s.exclude)+'>':'なし'),'管理ログ：'+(s.log?'<#'+s.log+'>':'#bot-config（有効化時に設定）'),'','-# 有効化すると活動記録を開始します。指定期間の無活動後に警告DMを送り、7日間反応がない場合、管理者へキックの承認を求めます。承認なしでキックは実行しません。停止すると監視を止め、外したロールの復元を試みます。'];
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(lines.join('\n')));
    container.addActionRowComponents(row(button('inactive_on','有効化する',ButtonStyle.Success),button('inactive_off','停止する',ButtonStyle.Danger)));
   }else if(page==='inmonths'){
@@ -506,7 +507,7 @@ async function handleCore(i){
   }catch(e){console.error('分析グラフ作成失敗:',e);return i.reply({content:'分析グラフを作成できませんでした。',flags:MessageFlags.Ephemeral});}
  }
  if(id==='inactive_on'||id==='inactive_off'){
-  if(i.guildId!==testGuild)return i.reply({content:'この管理パネルからの切り替えは現在テストサーバー限定です。',flags:MessageFlags.Ephemeral});
+  // All guilds may switch monitoring; actual kicks still require explicit admin approval.
   await i.deferUpdate();
   const d=st.get(i.guildId),s=d.inactive;
   if(id==='inactive_off'){
@@ -544,6 +545,13 @@ async function handleCore(i){
   if(d.inactive)d.inactive.approvalChannelId=idSelected;
   if(!await st.save(i.guild)){d.inactiveSettings=old;if(d.inactive)d.inactive.approvalChannelId=oldLive;return i.reply({content:'保存できませんでした。',flags:MessageFlags.Ephemeral});}
   await i.update(render('inactive',mode,i.guildId));return true;
+ }
+ if(id==='inactive_exclude_clear'){
+  const d=st.get(i.guildId),live=d.inactive;
+  if(live?.enabled)return i.reply({content:'先に管理を停止してください。',flags:MessageFlags.Ephemeral});
+  const old={...(d.inactiveSettings||{})};d.inactiveSettings={...old,exclude:null};
+  if(!await st.save(i.guild)){d.inactiveSettings=old;return i.reply({content:'保存に失敗しました。',flags:MessageFlags.Ephemeral});}
+  await i.update(render('inexclude',mode,i.guildId));return true;
  }
  if(id==='inactive_role'||id==='inactive_exclude'){
   const d=st.get(i.guildId),s=d.inactive||{},field=id==='inactive_role'?'role':'exclude';

@@ -142,9 +142,23 @@ function render(page='home',mode='pending',guildId=null,auditPage=0,graph=false)
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('本文と画像を入力して、そのまま投稿できます。'));
    container.addActionRowComponents(row(button('ann_open_modal','本文・画像を入力して投稿',ButtonStyle.Primary)));
   }else if(page==='notifications'){
-   const d=guildId ? st.get(guildId) : {};
-   const target=d.vc ? '<#'+d.vc+'>' : '未設定';
-   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**VC参加通知**\n-# 状態：'+(d.vcOff?'OFF':'ON')+'\n-# 通知先：'+target+'\n\n**VCランキング**\n-# 集計とランキング投稿の管理\n\n**Bump通知**\n-# リマインドと通知先の管理'));
+   const d=guildId?st.get(guildId):{},ch=v=>v?'<#'+v+'>':'未設定',roles=v=>v?'<@&'+v+'>':'なし',sc=d.vcMentionSchedule||{},bp=d.bump||{};
+   const alarms=Array.isArray(d.alarms)?d.alarms:[];
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent([
+    '**VC参加通知**',
+    '状態：'+(d.vcOff?'OFF':'ON')+' / 通知先：'+ch(d.vc),
+    '時間帯①：'+(sc.start&&sc.end?sc.start+'〜'+sc.end:'未設定')+' / '+roles(sc.primaryRole),
+    '時間帯②：'+roles(sc.secondaryRole),
+    '',
+    '**VCランキング**',
+    '状態：'+(d.rkOff?'OFF':'ON')+' / 投稿先：'+ch(d.vc),
+    '',
+    '**Bump通知**',
+    '通知先：'+ch(bp.ch)+' / @here：'+(bp.here?'ON':'OFF'),
+    '',
+    '**アラーム**',
+    '登録数：'+alarms.length+'件'+(alarms.length?' / '+alarms.slice(0,3).map(a=>a.time||'時刻未設定').join('、'):'')
+   ].join('\n')));
   }else if(page==='vc'){
    const d=guildId ? st.get(guildId) : {};
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**VC参加通知：'+(d.vcOff?'OFF':'ON')+'**\n現在の通知先：'+(d.vc?'<#'+d.vc+'>':'未設定')+'\n\n通知先を変更すると、VCランキングでも同じ投稿先を使用します。'));

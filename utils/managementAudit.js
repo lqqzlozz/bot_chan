@@ -65,7 +65,10 @@ async function record(guild,user,before){
  await publish(guild).catch(e=>console.error('管理ログ投稿失敗',guild.id,e.message));
  return true;
 }
-function detail(entry){return entry.details?.length?entry.details.join('\\n\\n'):(entry.action||'詳細なし（旧形式の履歴）')+'\\n-# 古いログの変更前・変更後の値は復元できません。';}
+function detail(entry){
+ const raw=entry.details?.length?entry.details:[entry.action||'詳細なし'];
+ return raw.map(x=>String(x).replace(/\\\\n/g,'\\n').replace(/\\*\\*/g,'').replace(/\\n変更前：([^\\n]*)\\n変更後：([^\\n]*)/g,'：$1 → $2')).join('\\n').slice(0,1100);
+}
 function view(guildId,page=0){
  const rows=(st.get(guildId).managementLog||[]).slice().reverse();
  const total=rows.length,index=Math.max(0,Math.min(Number(page)||0,Math.max(0,total-1)));
@@ -76,10 +79,10 @@ function view(guildId,page=0){
  }else{
   const entry=rows[index],at=Math.floor(entry.at/1000);
   box.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-   '**'+(index+1)+' / '+total+'**\n\n**操作した人**\n<@'+entry.by+'>\n\n**変更内容**\n'+detail(entry)+'\n\n**変更日時**\n<t:'+at+':F>'
+   '**'+(index+1)+' / '+total+'**　<@'+entry.by+'>　<t:'+at+':f>\n'+detail(entry)
   ));
   const button=(key,label,disabled)=>new ButtonBuilder().setCustomId('pt_audit_'+key+'_'+index).setLabel(label).setStyle(ButtonStyle.Secondary).setDisabled(disabled);
-  box.addActionRowComponents(new ActionRowBuilder().addComponents(button('prev','PREV',index===0),button('next','NEXT',index===total-1)));
+  box.addActionRowComponents(new ActionRowBuilder().addComponents(button('next','← PREV（過去）',index===total-1),button('prev','NEXT（最新）→',index===0)));
  }
  return {content:null,components:[box],flags:MessageFlags.IsComponentsV2,allowedMentions:{parse:[]}};
 }
@@ -87,7 +90,7 @@ function summary(guildId,page=0){
  const rows=(st.get(guildId).managementLog||[]).slice().reverse();
  if(!rows.length)return 'まだ設定変更の履歴はありません。';
  const i=Math.max(0,Math.min(page,rows.length-1)),entry=rows[i];
- return '**'+(i+1)+' / '+rows.length+'**\n\n**操作した人**\n<@'+entry.by+'>\n\n**変更内容**\n'+detail(entry)+'\n\n**変更日時**\n<t:'+Math.floor(entry.at/1000)+':F>';
+ return '**'+(i+1)+' / '+rows.length+'**　<@'+entry.by+'>　<t:'+Math.floor(entry.at/1000)+':f>\n'+detail(entry);
 }
 async function publish(guild){
  const ch=st.findCh(guild);if(!ch)throw Error('#bot-configが見つかりません');

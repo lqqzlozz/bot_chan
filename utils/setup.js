@@ -23,6 +23,7 @@ async function ensureConfig(guild) {
   const required = [P.ViewChannel, P.SendMessages, P.ReadMessageHistory, P.AttachFiles];
   if (!ch.permissionsFor(me)?.has(required)) throw new Error('#bot-config でBotの「チャンネルを見る」「メッセージを送信」「メッセージ履歴を読む」「ファイルを添付」を許可してください。');
   if (!await st.save(guild)) throw new Error(st.warn(guild).trim() || '#bot-config に設定を保存できませんでした。チャンネルとBotの権限を確認して、再実行してください。');
+  await require('./managementPanel').ensure(guild);
   return ch;
 }
 module.exports = { ensureConfig };

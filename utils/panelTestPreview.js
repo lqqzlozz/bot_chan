@@ -49,7 +49,7 @@ const screen={
  analyticsvc:['VC分析','通話回数・通話時間の履歴と期間比較を表示します。'],
  reset:['すべての設定を初期化','UID情報・分析履歴・管理ログも削除され、取り消せません。\n原神の常駐パネルや通知も停止します。\n\nテスト中は初期化できません。']
 };
-function choices(mode){
+function choices(mode,guildId){
  return [
   ['announce','📢 アナウンスを作る','投稿先や本文・画像を設定してEmbed形式で投稿'],
   ['notifications','🛎️ 通知設定','VC参加通知・VCランキングのON/OFF・Bump通知設定'],
@@ -57,13 +57,13 @@ function choices(mode){
   ['analytics','📊 サーバー分析','メンバー数とVC活動の推移'],
   ['inactive','👥 未活動メンバー管理','一定期間活動がないメンバーを管理'],
   ...(mode==='off'?[['enable','🎮 原神機能を有効化','原神サーバーとして利用する']]:[]),
-  ['other','⚙️ その他','公式お知らせの受信設定'],
+  ...(guildId===testGuild?[['broadcast','📣 一斉配信','全サーバーの管理パネルへお知らせ']]:[['official','📢 公式お知らせを受信','受信先チャンネルを設定']]),
   ['contact','🗨️ お問い合わせ','不具合報告・デバッグ・ご要望など'],
   ['reset','すべての設定を初期化','このサーバーの設定・ログを消去し、導入時の状態にリセット']
  ];
 }
 function back(page){
- return ['vc','ranking','bump'].includes(page)?'notifications':(['uid','build','gift','gnews'].includes(page)?'genshin':(['annchannel','annroles','anncontent','annsticky'].includes(page)?'announce':(['inmonths','inrole','inexclude','inon'].includes(page)?'inactive':(['analyticsmembers','analyticsvc'].includes(page)?'analytics':['official','broadcast'].includes(page)?'other':'home'))));
+ return ['vc','ranking','bump'].includes(page)?'notifications':(['uid','build','gift','gnews'].includes(page)?'genshin':(['annchannel','annroles','anncontent','annsticky'].includes(page)?'announce':(['inmonths','inrole','inexclude','inon'].includes(page)?'inactive':(['analyticsmembers','analyticsvc'].includes(page)?'analytics':['official','broadcast'].includes(page)?'home':'home'))));
 }
 function select(id,placeholder,items) {
  return new StringSelectMenuBuilder().setCustomId(ROOT+id).setPlaceholder(placeholder)
@@ -84,7 +84,7 @@ function render(page='home',mode='pending',guildId=null) {
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**原神サーバーとして利用しますか？**'));
    container.addActionRowComponents(row(button('gen_on','原神設定：ON',ButtonStyle.Success),button('gen_off','原神設定：OFF',ButtonStyle.Danger)));
   }
-  container.addActionRowComponents(row(select('pick','機能を選択してください',choices(mode))));
+  container.addActionRowComponents(row(select('pick','機能を選択してください',choices(mode,guildId))));
 
  }else{
   if(page==='other'){

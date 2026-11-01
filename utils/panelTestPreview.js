@@ -40,7 +40,7 @@ function choices(mode){
   ['notifications','🛎️ 通知設定','VC参加通知・VCランキングのON/OFF・Bump通知設定'],
   ...(mode==='on'?[['genshin','🎮 原神設定','原神のお知らせ・UID登録・ビルドカード・ギフトコードの表示先を設定']]:[]),
   ['analytics','📊 サーバー分析','メンバー数とVC活動の推移'],
-  ['members','👥 メンバー管理','指定の期間活動がないメンバーを管理'],
+  ['inactive','👥 未活動メンバー管理','一定期間活動がないメンバーを管理'],
   ...(mode==='off'?[['enable','🎮 原神機能を有効化','原神サーバーとして利用する']]:[]),
   ['contact','🗨️ お問い合わせ','不具合報告・デバッグ・ご要望など'],
   ['reset','すべての設定を初期化','このサーバーの設定・ログを消去し、導入時の状態にリセット']
@@ -56,7 +56,7 @@ function select(id,placeholder,items) {
 function render(page='home',mode='pending',guildId=null) {
  if(!screen[page])page='home';
  const container=new ContainerBuilder().addTextDisplayComponents(
-  new TextDisplayBuilder().setContent(page==='home'?'## ⚙️ Bot 管理パネル':'## '+screen[page][0])
+  new TextDisplayBuilder().setContent(page==='home'?'## ⚙️ BOT 管理パネル':'## '+screen[page][0])
  );
  if(page==='home'){
   if(mode==='pending'){
@@ -89,7 +89,7 @@ function render(page='home',mode='pending',guildId=null) {
    container.addActionRowComponents(row(new ChannelSelectMenuBuilder().setCustomId(ROOT+'gi_channel_'+page).setPlaceholder('設置先チャンネルを選択').addChannelTypes(ChannelType.GuildText)));
    if(page==='uid'||page==='gnews'){
     container.addActionRowComponents(row(new RoleSelectMenuBuilder().setCustomId(ROOT+'gi_role_'+page).setPlaceholder('任意のロールを選択').setMinValues(0).setMaxValues(1)));
-    container.addActionRowComponents(row(button('gi_norole_'+page,'ロールなし')));
+
    }
   }else if(page==='enable'){
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('このサーバーで原神機能を有効化します。\n-# 設定は保存されます。'));
@@ -107,12 +107,22 @@ function render(page='home',mode='pending',guildId=null) {
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('現在のメンバー数は、サーバー分析の正式版で表示します。\n-# 保存済みの日次記録がない過去期間は集計できません。'));
   }else if(page==='analyticsvc'){
    const v=st.get(guildId).vcr?.cur;
-   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**今週のVC集計**\n通話回数：'+(v?.calls||0)+'回\n累計通話時間：'+Math.round((v?.total||0)/360)/10+'時間\n\n-# Botが記録したデータのみ表示しています。'));
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**今週のVC集計**\n通話回数：'+(v?.calls||0)+'回\n累計通話時間：'+Math.round((v?.total||0)/360)/10+'時間\n\n-# BOTが記録したデータのみ表示しています。'));
   }else if(page==='inmonths'){
    const d=st.get(guildId);
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('現在：**'+(d.inactiveMonths||d.inactive?.months||3)+'か月**\n-# 月数の変更では自動キックは有効になりません。'));
    container.addActionRowComponents(row(select('months','判定期間を選択',Array.from({length:12},(_,n)=>[String(n+1),(n+1)+'か月']))));
   }else container.addTextDisplayComponents(new TextDisplayBuilder().setContent(screen[page][1]));
+  if(page==='genshin'){
+   const d=st.get(guildId);
+   const ch=v=>v?'<#'+v+'>':'未設定';
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
+    '**原神のお知らせ**\n-# '+ch(d.gnews?.ch)+' / 通知ロール：'+(d.gnews?.role?'<@&'+d.gnews.role+'>':'なし')+
+    '\n\n**UID登録**\n-# '+ch(d.introP?.ch)+' / 付与ロール：'+(d.introP?.role?'<@&'+d.introP.role+'>':'なし')+
+    '\n\n**ビルドカード**\n-# '+(Object.keys(d.buildPanels||{}).length?Object.keys(d.buildPanels).map(ch).join('、'):'未設定')+
+    '\n\n**ギフトコード**\n-# '+ch(d.giftP?.ch)
+   ));
+  }
   const next=page==='notifications'?[['vc','🔊 VC参加通知','参加通知を送るチャンネル'],['ranking','🏆 VCランキング','ランキングのON/OFF・投稿先'],['bump','🔔 Bump通知','通知先・リマインド設定']]:
     page==='members'?[['inactive','未活動メンバー管理','活動状況と対象者の管理']]:
     page==='genshin'?[['gnews','原神のお知らせ','表示先と通知ロール'],['uid','UID登録','登録先と任意の付与ロール'],['build','ビルドカード','パネルの表示先'],['gift','ギフトコード','表示先']]:
@@ -120,7 +130,7 @@ function render(page='home',mode='pending',guildId=null) {
     page==='inactive'?[['inmonths','判定期間','1〜12か月'],['inrole','対象ロール','管理対象を指定'],['inexclude','除外ロール','対象外にするロール'],['inon','有効化・停止','7日間の確認猶予']]:
     page==='analytics'?[['analyticsmembers','メンバー分析','人数・加入・退出'],['analyticsvc','VC分析','通話回数・時間']]:[];
   if(next.length)container.addActionRowComponents(row(select('sub','設定項目を選択',next)));
-  container.addActionRowComponents(row(button('back_'+back(page),'← 戻る')));
+  container.addActionRowComponents(row(button('back_'+back(page),'← 戻る'),...(back(page)==='home'?[]:[button('back_home','最初に戻る')])));
  }
  return {components:[container],flags:MessageFlags.IsComponentsV2,allowedMentions:{parse:[]}};
 }
@@ -138,7 +148,7 @@ async function handle(i){
   const cid=i.values?.[0],ch=cid&&await i.guild.channels.fetch(cid).catch(()=>null);
   const me=i.guild.members.me||await i.guild.members.fetchMe();
   if(!ch?.isTextBased()||ch.id===i.channelId||!ch.permissionsFor(me)?.has([PermissionFlagsBits.ViewChannel,PermissionFlagsBits.SendMessages,PermissionFlagsBits.EmbedLinks,PermissionFlagsBits.ReadMessageHistory])){
-   return i.reply({content:'Botが投稿できるテキストチャンネルを選んでください。',flags:MessageFlags.Ephemeral});
+   return i.reply({content:'BOTが投稿できるテキストチャンネルを選んでください。',flags:MessageFlags.Ephemeral});
   }
   const d=st.get(i.guildId);
   if(kind==='gnews'){
@@ -156,10 +166,10 @@ async function handle(i){
   await i.update(render(kind,mode,i.guildId));
   return true;
  }
- if(id.startsWith('gi_role_')||id.startsWith('gi_norole_')){
-  const kind=id.startsWith('gi_role_')?id.slice(8):id.slice(10);
+ if(id.startsWith('gi_role_')){
+  const kind=id.slice(8);
   if(!['uid','gnews'].includes(kind))return false;
-  const d=st.get(i.guildId),role=id.startsWith('gi_norole_')?null:i.values?.[0]||null;
+  const d=st.get(i.guildId),role=i.values?.[0]||null;
   if(kind==='uid'){
    if(!d.introP?.ch)return i.reply({content:'先にUID登録パネルの設置先を選択してください。',flags:MessageFlags.Ephemeral});
    const ch=await i.guild.channels.fetch(d.introP.ch).catch(()=>null);
@@ -176,7 +186,7 @@ async function handle(i){
   const cid=i.values?.[0],ch=cid&&await i.guild.channels.fetch(cid).catch(()=>null);
   const me=i.guild.members.me||await i.guild.members.fetchMe();
   if(!ch?.isTextBased()||ch.id===i.channelId||!ch.permissionsFor(me)?.has([PermissionFlagsBits.ViewChannel,PermissionFlagsBits.SendMessages,PermissionFlagsBits.EmbedLinks,PermissionFlagsBits.ReadMessageHistory])){
-   return i.reply({content:'Botが投稿できる通常のテキストチャンネルを選択してください。',flags:MessageFlags.Ephemeral});
+   return i.reply({content:'BOTが投稿できる通常のテキストチャンネルを選択してください。',flags:MessageFlags.Ephemeral});
   }
   try{
    await require('./bump').configure(ch,st.get(i.guildId).bump?.here||false);
@@ -267,7 +277,7 @@ async function handle(i){
   const me=i.guild.members.me||await i.guild.members.fetchMe();
   const required=[PermissionFlagsBits.ViewChannel,PermissionFlagsBits.SendMessages,PermissionFlagsBits.EmbedLinks];
   if(!ch?.isTextBased()||ch.id===i.channelId||!ch.permissionsFor(me)?.has(required)){
-   return i.reply({content:'Botが閲覧・投稿できる通常のテキストチャンネルを選択してください。',flags:MessageFlags.Ephemeral});
+   return i.reply({content:'BOTが閲覧・投稿できる通常のテキストチャンネルを選択してください。',flags:MessageFlags.Ephemeral});
   }
   const data=st.get(i.guildId),old=data.vc;
   data.vc=selected;

@@ -1,5 +1,5 @@
 const st=require('./store');
-const {MessageFlags,PermissionFlagsBits}=require('discord.js');
+const {MessageFlags,PermissionFlagsBits,ActionRowBuilder,ButtonBuilder,ButtonStyle}=require('discord.js');
 // Record only intentional configuration values; exclude UID, member history, message bodies.
 const fields=[
  ['vc','VC通知先'],['rkOff','VCランキング'],['bump','Bump通知'],
@@ -32,10 +32,15 @@ async function record(guild,user,before){
  await publish(guild).catch(e=>console.error('管理ログ投稿失敗',guild.id,e.message));
  return true;
 }
-function summary(guildId,count=12){
- const rows=(st.get(guildId).managementLog||[]).slice(-count).reverse();
- return rows.length?rows.map(x=>'<t:'+Math.floor(x.at/1000)+':f>　<@'+x.by+'>\\n'+x.action).join('\\n\\n'):'まだ設定変更の履歴はありません。';
+function view(guildId,page=0){
+ const rows=(st.get(guildId).managementLog||[]).slice().reverse();
+ const total=rows.length,index=Math.max(0,Math.min(Number(page)||0,Math.max(0,total-1)));
+ if(!total)return {content:'## 📋 管理ログ\\nまだ設定変更の履歴はありません。',components:[],allowedMentions:{parse:[]}};
+ const entry=rows[index];
+ const button=(key,label,disabled)=>new ButtonBuilder().setCustomId('pt_audit_'+key+'_'+index).setLabel(label).setStyle(ButtonStyle.Secondary).setDisabled(disabled);
+ return {content:'## 📋 管理ログ\\n**'+(index+1)+' / '+total+'**\\n\\n日時：<t:'+Math.floor(entry.at/1000)+':F>\\n操作：<@'+entry.by+'>\\n変更：'+entry.action+'\\n\\n-# 最新のログから1件ずつ表示',components:[new ActionRowBuilder().addComponents(button('prev','← 新しいログ',index===0),button('next','古いログ →',index===total-1))],allowedMentions:{parse:[]}};
 }
+function summary(guildId,page=0){return view(guildId,page).content.replace(/^## 📋 管理ログ\\n/,'');}
 async function publish(guild){
  const ch=st.findCh(guild);if(!ch)return;
  const me=guild.members.me||await guild.members.fetchMe();
@@ -47,7 +52,7 @@ async function publish(guild){
   const recent=await ch.messages.fetch({limit:100}).catch(()=>null);
   msg=recent?.find(m=>m.author.id===guild.client.user.id&&m.content?.startsWith('## 📋 管理ログ'))||null;
  }
- if(msg)await msg.edit({content:body,allowedMentions:{parse:[]}});else msg=await ch.send({content:body,allowedMentions:{parse:[]},flags:MessageFlags.SuppressNotifications});
+ if(msg)await msg.edit(body);else msg=await ch.send({...body,flags:MessageFlags.SuppressNotifications});
  if(d.managementLogMessageId!==msg.id){d.managementLogMessageId=msg.id;await st.save(guild);}
 }
-module.exports={compact,record,summary,publish};
+module.exports={compact,record,summary,view,publish};

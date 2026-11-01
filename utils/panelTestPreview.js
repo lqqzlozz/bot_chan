@@ -1,4 +1,4 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, EmbedBuilder, AttachmentBuilder, LabelBuilder, FileUploadBuilder,
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, EmbedBuilder, AttachmentBuilder, LabelBuilder, FileUploadBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder,
   StringSelectMenuBuilder, ChannelSelectMenuBuilder, RoleSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ChannelType, PermissionFlagsBits, ContainerBuilder, TextDisplayBuilder } = require('discord.js');
 const ROOT='pt_';
 const announcements=new Map();
@@ -49,7 +49,7 @@ const screen={
  analyticsvc:['VC分析','通話回数・通話時間の履歴と期間比較を表示します。'],
  other:['⚙️ その他の設定','原神設定・公式お知らせ・初期化'],
  audit:['📋 管理ログ','BOTの管理パネルから変更した設定の履歴'],
- reset:['すべての設定を初期化','UID情報・分析履歴・管理ログも削除され、取り消せません。\n原神の常駐パネルや通知も停止します。\n\nテスト中は初期化できません。']
+ reset:['⚠️ 設定を初期化','テストサーバー限定。BOTの保存設定と分析履歴を削除します。投稿済みメッセージは削除しません。']
 };
 function choices(mode,guildId){
  return [
@@ -68,7 +68,7 @@ function select(id,placeholder,items) {
  return new StringSelectMenuBuilder().setCustomId(ROOT+id).setPlaceholder(placeholder)
   .addOptions(items.map(([value,label,description])=>({value,label,...(description?{description}:{})})));
 }
-function render(page='home',mode='pending',guildId=null,auditPage=0) {
+function render(page='home',mode='pending',guildId=null,auditPage=0,graph=false) {
  if(!screen[page])page='home';
  const container=new ContainerBuilder().addTextDisplayComponents(
   new TextDisplayBuilder().setContent(page==='home'?'## ⚙️ BOT 管理パネル':'## '+screen[page][0])
@@ -164,10 +164,13 @@ function render(page='home',mode='pending',guildId=null,auditPage=0) {
    container.addActionRowComponents(row(button('enable_genshin','原神設定を表示',ButtonStyle.Success)));
   }else if(page==='audit'){
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(require('./managementAudit').summary(guildId,auditPage)));
-   container.addActionRowComponents(row(button('audit_prev_'+auditPage,'← 新しいログ',ButtonStyle.Secondary).setDisabled(auditPage<=0),button('audit_next_'+auditPage,'古いログ →',ButtonStyle.Secondary).setDisabled(auditPage>=(st.get(guildId).managementLog||[]).length-1)));
+   container.addActionRowComponents(row(button('audit_prev_'+auditPage,'PREV',ButtonStyle.Secondary).setDisabled(auditPage<=0),button('audit_next_'+auditPage,'NEXT',ButtonStyle.Secondary).setDisabled(auditPage>=(st.get(guildId).managementLog||[]).length-1)));
   }else if(page==='contact'){
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('不具合報告・デバッグの相談・機能のご要望などを制作者へ送信します。\n-# BOT管理用の #bot-config に非公開スレッドを作成し、管理者に通知します。'));
    container.addActionRowComponents(row(button('contact_write','お問い合わせを作成',ButtonStyle.Primary)));
+  }else if(page==='reset'){
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**テストサーバー限定**\n保存した設定・UID情報・分析履歴を削除します。既存の投稿や外部サービスの連携は削除しません。実行後は元に戻せません。\n\n-# 未活動メンバー管理を停止した上で、所有者が確認文を入力する必要があります。'));
+   container.addActionRowComponents(row(button('reset_start','初期化する',ButtonStyle.Danger)));
   }else if(page==='inrole'||page==='inexclude'){
    const d=st.get(guildId),settings=d.inactiveSettings||{},excluded=page==='inexclude';
    const current=excluded?settings.exclude||d.inactive?.exclude:settings.role||d.inactive?.role;
@@ -199,6 +202,9 @@ function render(page='home',mode='pending',guildId=null,auditPage=0) {
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('現在：**'+(d.inactiveMonths||d.inactive?.months||3)+'か月**\n-# 月数の変更では自動キックは有効になりません。'));
    container.addActionRowComponents(row(select('months','判定期間を選択',Array.from({length:12},(_,n)=>[String(n+1),(n+1)+'か月']))));
   }else container.addTextDisplayComponents(new TextDisplayBuilder().setContent(screen[page][1]));
+  if(page==='analytics'&&graph){
+   container.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL('attachment://server-analytics.png')));
+  }
   if(page==='inactive'){
    const d=st.get(guildId),cfg=d.inactiveSettings||{},settings=d.inactive||{};
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
@@ -219,7 +225,7 @@ function render(page='home',mode='pending',guildId=null,auditPage=0) {
   const next=page==='other'?[
     ...(mode==='on'?[['genshin','🎮 原神設定','原神のお知らせ・UID登録など']]:[['enable','🎮 原神機能を有効化','原神用の機能を設定']]),
     ...(guildId===testGuild?[['broadcast','📣 BOTのお知らせを配信','各サーバーへ案内を配信']]:[['official','📢 BOTのお知らせを受信','受信先を設定']]),
-    ['reset','⚠️ 設定を初期化','このサーバーの設定を初期化（現在利用不可）']
+    ['reset','⚠️ 設定を初期化','テストサーバー限定・確認必須']
    ]:page==='notifications'?[['vc','🔊 VC参加通知','参加通知を送るチャンネル'],['ranking','🏆 VCランキング','ランキングのON/OFF・投稿先'],['bump','🔔 Bump通知','通知先・リマインド設定']]:
     page==='genshin'?[['gnews','原神のお知らせ','表示先と通知ロール'],['uid','UID登録','登録先と任意の付与ロール'],['build','ビルドカード','パネルの表示先'],['gift','ギフトコード','表示先']]:
     page==='announce'?[]:
@@ -466,14 +472,33 @@ async function handleCore(i){
   }
   return true;
  }
- if(id==='analytics_image'){
+ if(id==='reset_start'){
+  if(i.guildId!==testGuild||i.user.id!==i.guild.ownerId)return i.reply({content:'初期化はテストサーバーの所有者のみ実行できます。',flags:MessageFlags.Ephemeral});
+  if(st.get(i.guildId).inactive?.enabled)return i.reply({content:'先に未活動メンバー管理を停止してください。',flags:MessageFlags.Ephemeral});
+  const modal=new ModalBuilder().setCustomId(ROOT+'reset_confirm').setTitle('設定を初期化');
+  modal.addComponents(row(new TextInputBuilder().setCustomId('confirm').setLabel('初期化する場合 RESET と入力').setStyle(TextInputStyle.Short).setRequired(true)));
+  return i.showModal(modal);
+ }
+ if(id==='reset_confirm'){
+  if(i.guildId!==testGuild||i.user.id!==i.guild.ownerId)return i.reply({content:'権限がありません。',flags:MessageFlags.Ephemeral});
+  if(i.fields.getTextInputValue('confirm').trim()!=='RESET')return i.reply({content:'初期化を中止しました。',flags:MessageFlags.Ephemeral});
+  const data=st.get(i.guildId);
+  if(data.inactive?.enabled||Object.values(data.inactive?.users||{}).some(x=>x.suspendedRole||x.restoreRole))return i.reply({content:'未活動メンバー管理の停止とロール復元を完了してから実行してください。',flags:MessageFlags.Ephemeral});
   await i.deferReply({flags:MessageFlags.Ephemeral});
+  const original={...data},panelId=data.managementPanelId,logId=data.managementLogMessageId;
+  // Keep the persistent message IDs and an audit marker, without retaining user-related configuration.
+  for(const key of Object.keys(data))delete data[key];
+  Object.assign(data,{vc:null,sticky:{},alarms:[],entry:{},welcome:{},managementPanelId:panelId,managementLogMessageId:logId,managementLog:[{at:Date.now(),by:i.user.id,action:'設定を初期化',details:['設定データ：保存済み → 初期状態']}]});
+  if(!await st.save(i.guild)){for(const key of Object.keys(data))delete data[key];Object.assign(data,original);return i.editReply('保存に失敗したため初期化を取り消しました。');}
+  await require('./managementAudit').publish(i.guild).catch(e=>console.error('初期化後ログ更新:',e));
+  await require('./managementPanel').ensure(i.guild).catch(e=>console.error('初期化後パネル更新:',e));
+  return i.editReply('保存設定を初期化しました。既存の投稿済みメッセージは削除していません。');
+ }
+ if(id==='analytics_image'){
   try{
-   const report=require('./analyticsGraph');
-   const png=report.create(st.get(i.guildId).analyticsDaily||{});
-   await i.editReply({content:'サーバー分析｜直近14記録日',files:[new AttachmentBuilder(png,{name:'server-analytics.png'})]});
-  }catch(e){console.error('分析グラフ作成失敗:',e);await i.editReply('分析グラフを作成できませんでした。');}
-  return true;
+   const png=require('./analyticsGraph').create(st.get(i.guildId).analyticsDaily||{});
+   return i.update({...render('analytics',mode,i.guildId,0,true),files:[new AttachmentBuilder(png,{name:'server-analytics.png'})],attachments:[]});
+  }catch(e){console.error('分析グラフ作成失敗:',e);return i.reply({content:'分析グラフを作成できませんでした。',flags:MessageFlags.Ephemeral});}
  }
  if(id==='inactive_on'||id==='inactive_off'){
   if(i.guildId!==testGuild)return i.reply({content:'この管理パネルからの切り替えは現在テストサーバー限定です。',flags:MessageFlags.Ephemeral});

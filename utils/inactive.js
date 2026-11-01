@@ -24,6 +24,10 @@ async function restore(member, u, id) {
 
 async function restoreSuspended(guild, s) {
   let failed = 0;
+  for(const u of Object.values(s.users||{})){
+   if(u.approvalMessage)await st.findCh(guild)?.messages.delete(u.approvalMessage).catch(()=>null);
+   delete u.approvalMessage;delete u.approvalToken;
+  }
   for (const [id, u] of Object.entries(s.users)) {
     const role = u.restoreRole || u.suspendedRole;
     if (!role) continue;
@@ -176,6 +180,8 @@ async function sweep(guild, now = Date.now()) {
       if (!eligible(m, s, now)) {
         if (s.users[m.id]) {
           if (s.users[m.id].suspendedRole) s.users[m.id].restoreRole = s.users[m.id].suspendedRole;
+          if(s.users[m.id].approvalMessage)st.findCh(guild)?.messages.delete(s.users[m.id].approvalMessage).catch(()=>null);
+          delete s.users[m.id].approvalMessage;delete s.users[m.id].approvalToken;
           clearWarning(s.users[m.id]);
         }
         continue;
@@ -228,7 +234,7 @@ async function handleApproval(i){
   await i.deferUpdate();
   const member=await i.guild.members.fetch({user:uid,force:true}).catch(()=>null);
   if(action==='cancel'){
-   delete u.approvalToken;delete u.approvalMessage;u.at=Date.now();clearWarning(u);
+   delete u.approvalToken;delete u.approvalMessage;u.at=Date.now();if(u.suspendedRole)u.restoreRole=u.suspendedRole;clearWarning(u);
    await persist(i.guild,s);
    return i.message.delete().catch(()=>i.editReply({content:'見送りました。',components:[]}));
   }

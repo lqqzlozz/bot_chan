@@ -261,6 +261,7 @@ async function handle(i){
   await i.deferUpdate();
   try{
    if(next.enabled){const result=await feed.follow(i.client,i.guild,next.channelId);if(result.already&&result.channelId)next.channelId=result.channelId;}
+   else if(old?.channelId&&old.enabled)await feed.unfollow(i.client,i.guild,old.channelId);
    data.officialFeed=next;
    if(!await st.save(i.guild))throw Error('設定を保存できませんでした');
    await i.editReply(render('official',mode,i.guildId));

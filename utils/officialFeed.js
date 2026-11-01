@@ -25,4 +25,18 @@ async function follow(client,guild,channelId){
  await source.addFollower(target.id,'公式お知らせの受信設定');
  return {already:false};
 }
-module.exports={follow,SOURCE_GUILD};
+async function unfollow(client,guild,channelId){
+ const sourceGuild=await client.guilds.fetch(SOURCE_GUILD).catch(()=>null);
+ const src=sourceGuild&&(sourceGuild.channels.cache.find(c=>c.name==='log'&&c.type===ChannelType.GuildAnnouncement)
+  ||(await sourceGuild.channels.fetch().catch(()=>new Map())).find(c=>c.name==='log'&&c.type===ChannelType.GuildAnnouncement));
+ if(!src)throw Error('配信元 #log が見つかりません');
+ const target=await guild.channels.fetch(channelId).catch(()=>null);
+ if(!target||target.type!==ChannelType.GuildText)throw Error('登録済みチャンネルが見つかりません');
+ const me=guild.members.me||await guild.members.fetchMe();
+ if(!target.permissionsFor(me)?.has(PermissionFlagsBits.ManageWebhooks))throw Error('「ウェブフックの管理」権限が必要です');
+ const hooks=await target.fetchWebhooks();
+ const matches=hooks.filter(h=>h.type===2&&(h.sourceChannel?.id===src.id||h.sourceChannelId===src.id));
+ for(const hook of matches.values())await hook.delete('公式お知らせの受信停止');
+ return matches.size;
+}
+module.exports={follow,unfollow,SOURCE_GUILD};

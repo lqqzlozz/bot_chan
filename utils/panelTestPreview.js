@@ -47,25 +47,22 @@ const screen={
  inon:['有効化・停止','未活動メンバー管理の有効化・停止を設定します。'],
  analyticsmembers:['メンバー分析','人数・加入・退出の履歴と期間比較を表示します。'],
  analyticsvc:['VC分析','通話回数・通話時間の履歴と期間比較を表示します。'],
+ other:['⚙️ その他の設定','原神設定・公式お知らせ・初期化'],
  audit:['📋 管理ログ','BOTの管理パネルから変更した設定の履歴'],
  reset:['すべての設定を初期化','UID情報・分析履歴・管理ログも削除され、取り消せません。\n原神の常駐パネルや通知も停止します。\n\nテスト中は初期化できません。']
 };
 function choices(mode,guildId){
  return [
-  ['announce','📢 アナウンスを作る','投稿先や本文・画像を設定してEmbed形式で投稿'],
-  ['notifications','🛎️ 通知設定','VC参加通知・VCランキングのON/OFF・Bump通知設定'],
-  ...(mode==='on'?[['genshin','🎮 原神設定','原神のお知らせ・UID登録・ビルドカード・ギフトコードの表示先を設定']]:[]),
+  ['announce','📢 アナウンスを作る','本文・画像を設定して投稿'],
+  ['notifications','🛎️ 通知設定','VC参加通知・ランキング・Bump通知'],
   ['analytics','📊 サーバー分析','メンバー数とVC活動の推移'],
-  ['inactive','👥 未活動メンバー管理','一定期間活動がないメンバーを管理'],
-  ...(mode==='off'?[['enable','🎮 原神機能を有効化','原神サーバーとして利用する']]:[]),
-  ...(guildId===testGuild?[['broadcast','📣 一斉配信','全サーバーの管理パネルへお知らせ']]:[['official','📢 公式お知らせを受信','受信先チャンネルを設定']]),
-  ['audit','📋 管理ログ','管理パネルの設定変更履歴を表示'],
-  ['contact','🗨️ お問い合わせ','不具合報告・デバッグ・ご要望など'],
-  ['reset','すべての設定を初期化','このサーバーの設定・ログを消去し、導入時の状態にリセット']
+  ['inactive','👥 未活動メンバー管理','判定期間・対象ロールなどを管理'],
+  ['other','⚙️ その他の設定','原神・BOTお知らせ・初期化'],
+  ['contact','🗨️ お問い合わせ','不具合報告・ご要望']
  ];
 }
 function back(page){
- return ['vc','ranking','bump'].includes(page)?'notifications':(['uid','build','gift','gnews'].includes(page)?'genshin':(['annchannel','annroles','anncontent','annsticky'].includes(page)?'announce':(['inmonths','inrole','inexclude','inon'].includes(page)?'inactive':(['analyticsmembers','analyticsvc'].includes(page)?'analytics':['official','broadcast'].includes(page)?'home':'home'))));
+ return ['genshin','enable','official','broadcast','reset'].includes(page)?'other':['vc','ranking','bump'].includes(page)?'notifications':(['uid','build','gift','gnews'].includes(page)?'genshin':(['annchannel','annroles','anncontent','annsticky'].includes(page)?'announce':(['inmonths','inrole','inexclude','inon'].includes(page)?'inactive':(['analyticsmembers','analyticsvc'].includes(page)?'analytics':['official','broadcast'].includes(page)?'home':'home'))));
 }
 function select(id,placeholder,items) {
  return new StringSelectMenuBuilder().setCustomId(ROOT+id).setPlaceholder(placeholder)
@@ -96,7 +93,8 @@ function render(page='home',mode='pending',guildId=null,auditPage=0) {
 
  }else{
   if(page==='other'){
-   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(guildId===testGuild?'管理者向けのお知らせを配信・設定します。':'公式お知らせの受信先を設定します。'));
+   const d=st.get(guildId);
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**原神機能**：'+(mode==='on'?'ON':mode==='off'?'OFF':'初期設定待ち')+'\n**BOTのお知らせ**：'+(guildId===testGuild?'配信元サーバー':d.officialFeed?.enabled?'受信 ON':'受信 OFF')+'\n\n-# 各項目から詳細設定を変更できます。'));
   }else if(page==='broadcast'){
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**全サーバーへの管理者向け案内**\n各サーバーの常設管理パネルに表示します。\n-# 既に同じ案内を受け取ったサーバーには重複送信しません。送信後は取り消せません。'));
    container.addActionRowComponents(row(button('broadcast_write','一斉配信の本文を入力',ButtonStyle.Primary)));
@@ -218,7 +216,11 @@ function render(page='home',mode='pending',guildId=null,auditPage=0) {
     '\n\n**ギフトコード**\n-# '+ch(d.giftP?.ch)
    ));
   }
-  const next=page==='other'?(guildId===testGuild?[['broadcast','📣 一斉配信','各サーバーの管理者向けに送信']]:[['official','📢 公式お知らせ','メインサーバーの #log を受信']]):page==='notifications'?[['vc','🔊 VC参加通知','参加通知を送るチャンネル'],['ranking','🏆 VCランキング','ランキングのON/OFF・投稿先'],['bump','🔔 Bump通知','通知先・リマインド設定']]:
+  const next=page==='other'?[
+    ...(mode==='on'?[['genshin','🎮 原神設定','原神のお知らせ・UID登録など']]:[['enable','🎮 原神機能を有効化','原神用の機能を設定']]),
+    ...(guildId===testGuild?[['broadcast','📣 BOTのお知らせを配信','各サーバーへ案内を配信']]:[['official','📢 BOTのお知らせを受信','受信先を設定']]),
+    ['reset','⚠️ 設定を初期化','このサーバーの設定を初期化（現在利用不可）']
+   ]:page==='notifications'?[['vc','🔊 VC参加通知','参加通知を送るチャンネル'],['ranking','🏆 VCランキング','ランキングのON/OFF・投稿先'],['bump','🔔 Bump通知','通知先・リマインド設定']]:
     page==='genshin'?[['gnews','原神のお知らせ','表示先と通知ロール'],['uid','UID登録','登録先と任意の付与ロール'],['build','ビルドカード','パネルの表示先'],['gift','ギフトコード','表示先']]:
     page==='announce'?[]:
     page==='inactive'?[['inmonths','判定期間','1〜12か月'],['inrole','対象ロール','管理対象を指定'],['inexclude','除外ロール','対象外にするロール']]:

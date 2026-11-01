@@ -75,6 +75,11 @@ function render(page='home',mode='pending',guildId=null) {
   new TextDisplayBuilder().setContent(page==='home'?'## ⚙️ BOT 管理パネル':'## '+screen[page][0])
  );
  if(page==='home'){
+  const notice=guildId&&st.get(guildId).broadcastNotice;
+  if(notice?.body){
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### 📢 BOTからのお知らせ\n'+notice.body));
+   container.addActionRowComponents(row(button('broadcast_dismiss','確認しました',ButtonStyle.Primary)));
+  }
   if(mode==='pending'){
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**原神サーバーとして利用しますか？**'));
    container.addActionRowComponents(row(button('gen_on','原神設定：ON',ButtonStyle.Success),button('gen_off','原神設定：OFF',ButtonStyle.Danger)));
@@ -85,7 +90,7 @@ function render(page='home',mode='pending',guildId=null) {
   if(page==='other'){
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(guildId===testGuild?'管理者向けのお知らせを配信・設定します。':'公式お知らせの受信先を設定します。'));
   }else if(page==='broadcast'){
-   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**全サーバーへの管理者向け案内**\n各サーバーの #bot-config に送信します。\n-# 既に同じ案内を受け取ったサーバーには重複送信しません。送信後は取り消せません。'));
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**全サーバーへの管理者向け案内**\n各サーバーの常設管理パネルに表示します。\n-# 既に同じ案内を受け取ったサーバーには重複送信しません。送信後は取り消せません。'));
    container.addActionRowComponents(row(button('broadcast_write','一斉配信の本文を入力',ButtonStyle.Primary)));
   }else if(page==='official'){
    const settings=st.get(guildId).officialFeed;
@@ -255,6 +260,12 @@ async function handle(i){
   }catch(e){console.error('アナウンス投稿エラー:',e);await i.editReply('投稿できませんでした：'+e.message);}
   return true;
  }
+ if(id==='broadcast_dismiss'){
+  const data=st.get(i.guildId),old=data.broadcastNotice;
+  delete data.broadcastNotice;
+  if(!await st.save(i.guild)){data.broadcastNotice=old;return i.reply({content:'確認状態を保存できませんでした。',flags:MessageFlags.Ephemeral});}
+  await i.update(render('home',mode,i.guildId));return true;
+ }
  if(id==='broadcast_write'){
   if(i.guildId!==testGuild||i.user.id!==i.guild.ownerId)return i.reply({content:'配信はメインサーバーの所有者のみ実行できます。',flags:MessageFlags.Ephemeral});
   const modal=new ModalBuilder().setCustomId(ROOT+'broadcast_submit').setTitle('全サーバーへの一斉配信');
@@ -276,9 +287,10 @@ async function handle(i){
    try{
     const me=guild.members.me||await guild.members.fetchMe();
     if(!channel.permissionsFor(me)?.has([PermissionFlagsBits.ViewChannel,PermissionFlagsBits.SendMessages]))throw Error('送信権限不足');
-    await channel.send({content:'📢 **BOTからのお知らせ**\\n\\n'+body,allowedMentions:{parse:[]}});
+    data.broadcastNotice={body,signature};
     data.broadcastHistory=[...(data.broadcastHistory||[]).slice(-9),signature];
-    if(!await st.save(guild))console.error('一斉配信履歴保存失敗',guild.id);
+    if(!await st.save(guild))throw Error('お知らせの保存に失敗しました');
+    await require('./managementPanel').ensure(guild);
     sent++;
    }catch(e){failed++;console.error('一斉配信失敗',guild.id,e);}
   }

@@ -1,7 +1,7 @@
 const {ChannelType,PermissionFlagsBits:P}=require('discord.js');
 const st=require('./store');
 const {SOURCE_GUILD}=require('./officialFeed');
-const NOTICE='⚙️ BOT管理パネル ベータ版公開！\n\n各サーバーの `#bot-config` に、BOTの設定を変更できる管理パネルを設置しました！\n\nまだベータ版なので、不具合や使いづらいところがあるかもしれません。\n\n🐛 不具合・改善要望などがあれば、管理パネル内の「お問い合わせ」から気軽に送ってください！\n\n今後も少しずつ改善していきます！';
+const {deliver}=require('./betaPanelNotice');
 async function detectAndNotify(client,guild){
  if(guild.id===SOURCE_GUILD)return;
  const data=st.get(guild.id);
@@ -25,9 +25,7 @@ async function detectAndNotify(client,guild){
  data.officialFeed={enabled:true,channelId:destination.id};
  if(!await st.save(guild)){data.officialFeed=previous;return;}
  if(!destination.permissionsFor(me)?.has([P.SendMessages,P.ReadMessageHistory]))return;
- const history=await destination.messages.fetch({limit:100}).catch(()=>null);
- let posted=history?.find(m=>m.author.id===client.user.id&&m.content===NOTICE);
- if(!posted)posted=await destination.send({content:NOTICE,allowedMentions:{parse:[]}});
+ const posted=await deliver(destination);
  data.betaPanelNoticeSent={messageId:posted.id,channelId:destination.id};
  if(!await st.save(guild))console.error('案内送信済み情報の保存に失敗',guild.id);
  await require('./managementPanel').ensure(guild);

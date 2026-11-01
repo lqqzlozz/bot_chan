@@ -29,6 +29,7 @@ module.exports = {
     }
 
     await require('../utils/existingFollowNotice').scanAll(client).catch(e=>console.error('既存フォローの検出失敗:',e));
+    await require('../utils/betaNoticeMigration').convertAll(client).catch(e=>console.error('ベータ案内のEmbed移行失敗:',e));
 
     analytics.initialize(client);
     setInterval(()=>analytics.tick(client),60000);

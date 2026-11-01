@@ -31,8 +31,8 @@ function format(key,value){
  if(key==='rkOff'||key==='vcOff')return value?'OFF':'ON';
  if(typeof value==='boolean')return value?'ON':'OFF';
  if(key==='months'||key==='inactiveMonths')return value+'か月';
- if(['ch','vc','log','channelId','approvalChannelId','alarmChannelId'].includes(key)&&/^\\d{15,22}$/.test(String(value)))return '<#'+value+'>';
- if(['role','exclude','primaryRole','secondaryRole'].includes(key)&&/^\\d{15,22}$/.test(String(value)))return '<@&'+value+'>';
+ if(['ch','vc','log','channelId','approvalChannelId','alarmChannelId'].includes(key)&&/^\d{15,22}$/.test(String(value)))return '<#'+value+'>';
+ if(['role','exclude','primaryRole','secondaryRole'].includes(key)&&/^\d{15,22}$/.test(String(value)))return '<@&'+value+'>';
  if(typeof value==='object'){
   if(Array.isArray(value))return value.length?value.map(v=>format(key==='sticky'||key==='buildPanels'?'ch':key,v)).join('、'):'なし';
   const props=Object.entries(value).filter(([k])=>!['seen','posts'].includes(k));
@@ -67,7 +67,14 @@ async function record(guild,user,before){
 }
 function detail(entry){
  const raw=entry.details?.length?entry.details:[entry.action||'詳細なし'];
- return raw.map(x=>String(x).replace(/\\\\n/g,'\\n').replace(/\\*\\*/g,'').replace(/\\n変更前：([^\\n]*)\\n変更後：([^\\n]*)/g,'：$1 → $2')).join('\\n').slice(0,1100);
+ return raw.map(value=>{
+  const x=String(value).replace(/\\n/g,'\n').replace(/n変更前：/g,'\n変更前：').replace(/n変更後：/g,'\n変更後：').replace(/\*\*/g,'');
+  const m=x.match(/^(.+?)\n変更前：([\s\S]*?)\n変更後：([\s\S]*)$/);
+  if(!m)return x;
+  const title=m[1],oldValue=m[2],newValue=m[3];
+  const fmt=v=>v.replace(/\b\d{15,22}\b/g,id=>'<#'+id+'>');
+  return '**'+title+'**\n'+fmt(oldValue)+' → '+fmt(newValue);
+ }).join('\n').slice(0,950);
 }
 function view(guildId,page=0){
  const rows=(st.get(guildId).managementLog||[]).slice().reverse();

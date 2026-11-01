@@ -28,8 +28,8 @@ const screen={
  ranking:['🏆 VCランキング','ランキングの設定画面（プレビューのみ）'],
  bump:['🔔 Bump通知','Bump通知の設定画面（プレビューのみ）'],
  analytics:['📊 サーバー分析','メンバー分析・VC分析（プレビューのみ）'],
- members:['👥 メンバー管理','未活動メンバー管理'],
- inactive:['👥 未活動メンバー管理','判定月数・対象ロール・除外ロール・ON/OFF（プレビューのみ）'],
+ members:['👥 メンバー管理','非アクティブメンバー管理'],
+ inactive:['👥 非アクティブメンバー管理','判定月数・対象ロール・除外ロール・ON/OFF（プレビューのみ）'],
  genshin:['🎮 原神設定','原神のお知らせ・UID登録・ビルドカード・ギフトコード（プレビューのみ）'],
  enable:['🎮 原神機能を有効化','後から原神サーバーとして利用できます。（テスト中は変更不可）'],
  contact:['🗨️ お問い合わせ','デバッグ・不具合報告・ご要望などを制作者にお問い合わせ（テスト中は送信不可）'],
@@ -43,8 +43,8 @@ const screen={
  annsticky:['常駐設定','投稿を常駐させるか選択します。'],
  inmonths:['判定期間','1〜12か月から活動がない期間を選択します。'],
  inrole:['対象ロール','活動状況を確認する対象ロールを設定します。'],
- inexclude:['除外ロール','未活動メンバー管理から除外するロールを設定します。'],
- inon:['有効化・停止','未活動メンバー管理の有効化・停止を設定します。'],
+ inexclude:['除外ロール','非アクティブメンバー管理から除外するロールを設定します。'],
+ inon:['有効化・停止','非アクティブメンバー管理の有効化・停止を設定します。'],
  analyticsmembers:['メンバー分析','人数・加入・退出の履歴と期間比較を表示します。'],
  analyticsvc:['VC分析','通話回数・通話時間の履歴と期間比較を表示します。'],
  other:['⚙️ その他の設定','原神設定・公式お知らせ・初期化'],
@@ -56,7 +56,7 @@ function choices(mode,guildId){
   ['announce','📢 アナウンスを作る','本文・画像を設定して投稿'],
   ['notifications','🛎️ 通知設定','VC参加通知・ランキング・Bump通知'],
   ['analytics','📊 サーバー分析','メンバー数とVC活動の推移'],
-  ['inactive','👥 未活動メンバー管理','判定期間・対象ロールなどを管理'],
+  ['inactive','👥 非アクティブメンバー管理','判定期間・対象ロールなどを管理'],
   ['other','⚙️ その他の設定','原神・BOTお知らせ・初期化'],
   ['contact','🗨️ お問い合わせ','不具合報告・ご要望']
  ];
@@ -169,7 +169,7 @@ function render(page='home',mode='pending',guildId=null,auditPage=0,graph=false)
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('不具合報告・デバッグの相談・機能のご要望などを制作者へ送信します。\n-# BOT管理用の #bot-config に非公開スレッドを作成し、管理者に通知します。'));
    container.addActionRowComponents(row(button('contact_write','お問い合わせを作成',ButtonStyle.Primary)));
   }else if(page==='reset'){
-   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**テストサーバー限定**\n保存した設定・UID情報・分析履歴を削除します。既存の投稿や外部サービスの連携は削除しません。実行後は元に戻せません。\n\n-# 未活動メンバー管理を停止した上で、所有者が確認文を入力する必要があります。'));
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**テストサーバー限定**\n保存した設定・UID情報・分析履歴を削除します。既存の投稿や外部サービスの連携は削除しません。実行後は元に戻せません。\n\n-# 非アクティブメンバー管理を停止した上で、所有者が確認文を入力する必要があります。'));
    container.addActionRowComponents(row(button('reset_start','初期化する',ButtonStyle.Danger)));
   }else if(page==='inrole'||page==='inexclude'){
    const d=st.get(guildId),settings=d.inactiveSettings||{},excluded=page==='inexclude';
@@ -210,7 +210,8 @@ function render(page='home',mode='pending',guildId=null,auditPage=0,graph=false)
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
     '**監視：'+(settings.enabled?'ON':'OFF')+'**\n判定期間：'+(d.inactiveMonths||settings.months||3)+'か月\n対象ロール：'+(cfg.role||settings.role?'<@&'+(cfg.role||settings.role)+'>':'未設定')+'\n除外ロール：'+(cfg.exclude||settings.exclude?'<@&'+(cfg.exclude||settings.exclude)+'>':'なし')+'\nログ：'+(settings.log?'<#'+settings.log+'>':'#bot-config（有効化時）')+'\n警告中：'+Object.values(settings.users||{}).filter(u=>u.warningAt).length+'人'
    ));
-   container.addActionRowComponents(row(button('inactive_on','有効化',ButtonStyle.Success),button('inactive_off','停止',ButtonStyle.Secondary)));
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('-# 有効化には対象ロールが必要です。停止はいつでも操作できます。'));
+   container.addActionRowComponents(row(button('inactive_on','ON',ButtonStyle.Success),button('inactive_off','OFF',ButtonStyle.Secondary)));
   }
   if(page==='genshin'){
    const d=st.get(guildId);
@@ -474,7 +475,7 @@ async function handleCore(i){
  }
  if(id==='reset_start'){
   if(i.guildId!==testGuild||i.user.id!==i.guild.ownerId)return i.reply({content:'初期化はテストサーバーの所有者のみ実行できます。',flags:MessageFlags.Ephemeral});
-  if(st.get(i.guildId).inactive?.enabled)return i.reply({content:'先に未活動メンバー管理を停止してください。',flags:MessageFlags.Ephemeral});
+  if(st.get(i.guildId).inactive?.enabled)return i.reply({content:'先に非アクティブメンバー管理を停止してください。',flags:MessageFlags.Ephemeral});
   const modal=new ModalBuilder().setCustomId(ROOT+'reset_confirm').setTitle('設定を初期化');
   modal.addComponents(row(new TextInputBuilder().setCustomId('confirm').setLabel('初期化する場合 RESET と入力').setStyle(TextInputStyle.Short).setRequired(true)));
   return i.showModal(modal);
@@ -483,7 +484,7 @@ async function handleCore(i){
   if(i.guildId!==testGuild||i.user.id!==i.guild.ownerId)return i.reply({content:'権限がありません。',flags:MessageFlags.Ephemeral});
   if(i.fields.getTextInputValue('confirm').trim()!=='RESET')return i.reply({content:'初期化を中止しました。',flags:MessageFlags.Ephemeral});
   const data=st.get(i.guildId);
-  if(data.inactive?.enabled||Object.values(data.inactive?.users||{}).some(x=>x.suspendedRole||x.restoreRole))return i.reply({content:'未活動メンバー管理の停止とロール復元を完了してから実行してください。',flags:MessageFlags.Ephemeral});
+  if(data.inactive?.enabled||Object.values(data.inactive?.users||{}).some(x=>x.suspendedRole||x.restoreRole))return i.reply({content:'非アクティブメンバー管理の停止とロール復元を完了してから実行してください。',flags:MessageFlags.Ephemeral});
   await i.deferReply({flags:MessageFlags.Ephemeral});
   const original={...data},panelId=data.managementPanelId,logId=data.managementLogMessageId;
   // Keep the persistent message IDs and an audit marker, without retaining user-related configuration.
@@ -501,22 +502,22 @@ async function handleCore(i){
   }catch(e){console.error('分析グラフ作成失敗:',e);return i.reply({content:'分析グラフを作成できませんでした。',flags:MessageFlags.Ephemeral});}
  }
  if(id==='inactive_on'||id==='inactive_off'){
-  if(i.guildId!==testGuild)return i.reply({content:'この管理パネルからの切り替えは現在テストサーバー限定です。',flags:MessageFlags.Ephemeral});
+  if(i.guildId!==testGuild&&id==='inactive_on')return i.reply({content:'自動キックを伴う有効化は現在テストサーバー限定です。ほかのサーバーでは /inactive enable をご利用ください。',flags:MessageFlags.Ephemeral});
   await i.deferUpdate();
   const d=st.get(i.guildId),s=d.inactive;
   if(id==='inactive_off'){
    if(s)s.enabled=false;
    const failures=s?await require('./inactive').restoreSuspended(i.guild,s):0;
    const saved=await st.save(i.guild);
-   await i.editReply(render('inon',mode,i.guildId));
+   await i.editReply(render('inactive',mode,i.guildId));
    if(!saved||failures)await i.followUp({content:!saved?'停止状態を保存できませんでした。':'監視は停止しましたが、'+failures+'人のロールを復元できませんでした。',flags:MessageFlags.Ephemeral});
    return true;
   }
-  if(s?.enabled){await i.editReply(render('inon',mode,i.guildId));return true;}
+  if(s?.enabled){await i.editReply(render('inactive',mode,i.guildId));return true;}
   const role=d.inactiveSettings?.role||s?.role;
   const months=d.inactiveMonths||s?.months||3;
   const ch=st.findCh(i.guild),me=i.guild.members.me||await i.guild.members.fetchMe();
-  if(!role||!ch){await i.followUp({content:'有効化する前に対象ロールと #bot-config を設定してください。',flags:MessageFlags.Ephemeral});return true;}
+  if(!role||!ch){await i.followUp({content:'有効化には対象ロールの設定と #bot-config が必要です。対象ロールを選択してからONにしてください。',flags:MessageFlags.Ephemeral});return true;}
   if(!me.permissions.has(PermissionFlagsBits.KickMembers)||!ch.permissionsFor(me)?.has([PermissionFlagsBits.ViewChannel,PermissionFlagsBits.SendMessages,PermissionFlagsBits.EmbedLinks])){
    await i.followUp({content:'BOTのキック権限、または #bot-config のログ投稿権限が不足しています。',flags:MessageFlags.Ephemeral});return true;
   }
@@ -528,11 +529,11 @@ async function handleCore(i){
   const now=Date.now(),prev=d.inactive;
   d.inactive={enabled:true,since:now,seenAt:now,checkedAt:0,log:ch.id,role,exclude:d.inactiveSettings?.exclude||null,months,users:{}};
   if(!await st.save(i.guild)){d.inactive=prev;await i.followUp({content:'保存に失敗したため有効化していません。',flags:MessageFlags.Ephemeral});return true;}
-  await i.editReply(render('inon',mode,i.guildId));return true;
+  await i.editReply(render('inactive',mode,i.guildId));return true;
  }
  if(id==='inactive_role'||id==='inactive_exclude'){
   const d=st.get(i.guildId),s=d.inactive||{},field=id==='inactive_role'?'role':'exclude';
-  if(s.enabled)return i.reply({content:'未活動メンバー管理を停止してから変更してください。',flags:MessageFlags.Ephemeral});
+  if(s.enabled)return i.reply({content:'非アクティブメンバー管理を停止してから変更してください。',flags:MessageFlags.Ephemeral});
   const value=i.values?.[0]||null;
   if(field==='role'&&!value)return i.reply({content:'対象ロールを指定してください。',flags:MessageFlags.Ephemeral});
   if(value&&field==='role'){
@@ -550,7 +551,7 @@ async function handleCore(i){
  }
  if(id==='months'){
   const months=Number(i.values?.[0]),d=st.get(i.guildId);
-  if(d.inactive?.enabled)return i.reply({content:'未活動メンバー管理を停止してから判定期間を変更してください。',flags:MessageFlags.Ephemeral});
+  if(d.inactive?.enabled)return i.reply({content:'非アクティブメンバー管理を停止してから判定期間を変更してください。',flags:MessageFlags.Ephemeral});
   if(!Number.isInteger(months)||months<1||months>12)return i.reply({content:'1〜12か月を選んでください。',flags:MessageFlags.Ephemeral});
   const old=d.inactiveMonths,oldNested=d.inactive?.months;
   d.inactiveMonths=months;

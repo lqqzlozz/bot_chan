@@ -71,7 +71,7 @@ function select(id,placeholder,items) {
  return new StringSelectMenuBuilder().setCustomId(ROOT+id).setPlaceholder(placeholder)
   .addOptions(items.map(([value,label,description])=>({value,label,...(description?{description}:{})})));
 }
-function render(page='home',mode='pending',guildId=null) {
+function render(page='home',mode='pending',guildId=null,auditPage=0) {
  if(!screen[page])page='home';
  const container=new ContainerBuilder().addTextDisplayComponents(
   new TextDisplayBuilder().setContent(page==='home'?'## ⚙️ BOT 管理パネル':'## '+screen[page][0])
@@ -165,8 +165,8 @@ function render(page='home',mode='pending',guildId=null) {
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('このサーバーで原神機能を有効化します。\n-# 設定は保存されます。'));
    container.addActionRowComponents(row(button('enable_genshin','原神設定を表示',ButtonStyle.Success)));
   }else if(page==='audit'){
-   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(require('./managementAudit').summary(guildId,0)));
-   container.addActionRowComponents(row(button('audit_prev_0','← 新しいログ',ButtonStyle.Secondary).setDisabled(true),button('audit_next_0','古いログ →',ButtonStyle.Secondary).setDisabled((st.get(guildId).managementLog||[]).length<2)));
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(require('./managementAudit').summary(guildId,auditPage)));
+   container.addActionRowComponents(row(button('audit_prev_'+auditPage,'← 新しいログ',ButtonStyle.Secondary).setDisabled(auditPage<=0),button('audit_next_'+auditPage,'古いログ →',ButtonStyle.Secondary).setDisabled(auditPage>=(st.get(guildId).managementLog||[]).length-1)));
   }else if(page==='contact'){
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('不具合報告・デバッグの相談・機能のご要望などを制作者へ送信します。\n-# BOT管理用の #bot-config に非公開スレッドを作成し、管理者に通知します。'));
    container.addActionRowComponents(row(button('contact_write','お問い合わせを作成',ButtonStyle.Primary)));
@@ -237,7 +237,7 @@ async function handleCore(i){
  if(id.startsWith('audit_prev_')||id.startsWith('audit_next_')){
   const direction=id.startsWith('audit_prev_')?-1:1;
   const n=Math.max(0,Math.min((st.get(i.guildId).managementLog||[]).length-1,(Number(id.split('_').at(-1))||0)+direction));
-  if(i.message?.components?.some(x=>JSON.stringify(x.toJSON?.()||x).includes('pt_pick'))){return i.update(render('audit',mode,i.guildId));}
+  if(i.message?.flags?.has(MessageFlags.IsComponentsV2))return i.update(render('audit',mode,i.guildId,n));
   return i.update(require('./managementAudit').view(i.guildId,n));
  }
  const testMode=st.get(i.guildId).panelTestGenshin;

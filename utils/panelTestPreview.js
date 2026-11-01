@@ -319,8 +319,7 @@ async function handle(i){
    if(next.enabled&&!data.betaPanelNoticeSent){
     const destination=await i.guild.channels.fetch(next.channelId);
     if(!destination?.send)throw Error('お知らせの投稿先が見つかりません');
-    const message='⚙️ BOT管理パネル ベータ版公開！\n\n各サーバーの `#bot-config` に、BOTの設定を変更できる管理パネルを設置しました！\n\nまだベータ版なので、不具合や使いづらいところがあるかもしれません。\n\n🐛 不具合・改善要望などがあれば、管理パネル内の「お問い合わせ」から気軽に送ってください！\n\n今後も少しずつ改善していきます！';
-    const posted=await destination.send({content:message,allowedMentions:{parse:[]}});
+    const posted=await require('./betaPanelNotice').deliver(destination);
     data.betaPanelNoticeSent={messageId:posted.id,channelId:next.channelId};
     if(!await st.save(i.guild))console.error('ベータ版案内の送信記録保存失敗',i.guildId);
    }

@@ -26,6 +26,7 @@ module.exports = {
 
     for(const guild of client.guilds.cache.values()){
       await require('../utils/managementPanel').ensure(guild).catch(e=>console.error('管理パネルの自動設置失敗:',guild.id,e.message));
+      await require('../utils/managementAudit').publish(guild).catch(e=>console.error('管理ログの自動設置失敗:',guild.id,e.message));
     }
 
     await require('../utils/existingFollowNotice').scanAll(client).catch(e=>console.error('既存フォローの検出失敗:',e));

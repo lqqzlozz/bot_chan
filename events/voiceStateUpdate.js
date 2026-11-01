@@ -46,6 +46,9 @@ module.exports = {
         .setURL(`https://discord.com/channels/${newState.guild.id}/${newState.channelId}`)
     );
 
-    await notifyChannel.send({ embeds: [embed], components: [vcRow] }).catch(e => console.error('VC通知失敗:', e.message));
+    const roleId=require('../utils/vcMentionSchedule').selected(st.get(newState.guild.id).vcMentionSchedule);
+    const role=roleId&&newState.guild.roles.cache.get(roleId);
+    const mention=role?'<@&'+role.id+'>':null;
+    await notifyChannel.send({ ...(mention?{content:mention}:{}), embeds: [embed], components: [vcRow],allowedMentions:{parse:[],roles:role?[role.id]:[]} }).catch(e => console.error('VC通知失敗:', e.message));
   },
 };

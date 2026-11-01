@@ -76,6 +76,10 @@ function render(page='home',mode='pending',guildId=null) {
     '\n\n**常駐**\n'+(a.sticky?'ON':'OFF')+
     '\n\n-# 投稿先とロールを選び、本文・画像を入力して投稿します。'
    ));
+   container.addActionRowComponents(row(new ChannelSelectMenuBuilder().setCustomId(ROOT+'ann_pick_channel').setPlaceholder('投稿先を選択').addChannelTypes(ChannelType.GuildText,ChannelType.GuildAnnouncement)));
+   container.addActionRowComponents(row(new RoleSelectMenuBuilder().setCustomId(ROOT+'ann_pick_roles').setPlaceholder('付与・解除ロール（最大5つ・任意）').setMinValues(0).setMaxValues(5)));
+   container.addActionRowComponents(row(button('ann_sticky_on','常駐 ON',a.sticky?ButtonStyle.Success:ButtonStyle.Secondary),button('ann_sticky_off','常駐 OFF',!a.sticky?ButtonStyle.Primary:ButtonStyle.Secondary)));
+   container.addActionRowComponents(row(button('ann_open_modal','本文・画像を入力して投稿',ButtonStyle.Primary)));
   }else if(page==='annchannel'){
    const a=draft(guildId);
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('投稿先：'+(a.ch?'<#'+a.ch+'>':'未設定')));
@@ -150,7 +154,7 @@ function render(page='home',mode='pending',guildId=null) {
   }
   const next=page==='notifications'?[['vc','🔊 VC参加通知','参加通知を送るチャンネル'],['ranking','🏆 VCランキング','ランキングのON/OFF・投稿先'],['bump','🔔 Bump通知','通知先・リマインド設定']]:
     page==='genshin'?[['gnews','原神のお知らせ','表示先と通知ロール'],['uid','UID登録','登録先と任意の付与ロール'],['build','ビルドカード','パネルの表示先'],['gift','ギフトコード','表示先']]:
-    page==='announce'?[['annchannel','投稿先','チャンネルを選ぶ'],['annroles','ロール設定','通知ロールを選ぶ'],['anncontent','本文・画像','本文と画像を用意'],['annsticky','常駐設定','ON/OFF']]:
+    page==='announce'?[]:
     page==='inactive'?[['inmonths','判定期間','1〜12か月'],['inrole','対象ロール','管理対象を指定'],['inexclude','除外ロール','対象外にするロール'],['inon','有効化・停止','7日間の確認猶予']]:
     page==='analytics'?[['analyticsmembers','メンバー分析','人数・加入・退出'],['analyticsvc','VC分析','通話回数・時間']]:[];
   if(next.length)container.addActionRowComponents(row(select('sub','設定項目を選択',next)));
@@ -172,15 +176,15 @@ async function handle(i){
   if(!ch?.isTextBased()||ch.id===i.channelId||!ch.permissionsFor(me)?.has([PermissionFlagsBits.ViewChannel,PermissionFlagsBits.SendMessages,PermissionFlagsBits.EmbedLinks,PermissionFlagsBits.AttachFiles]))
    return i.reply({content:'BOTが投稿できるテキストチャンネルを選択してください。',flags:MessageFlags.Ephemeral});
   const a=draft(i.guildId);a.ch=cid;a.updated=Date.now();
-  return i.update(render('annchannel',mode,i.guildId));
+  return i.update(render('announce',mode,i.guildId));
  }
  if(id==='ann_pick_roles'){
   const a=draft(i.guildId);a.roles=i.values||[];a.updated=Date.now();
-  return i.update(render('annroles',mode,i.guildId));
+  return i.update(render('announce',mode,i.guildId));
  }
  if(id==='ann_sticky_on'||id==='ann_sticky_off'){
   const a=draft(i.guildId);a.sticky=id==='ann_sticky_on';a.updated=Date.now();
-  return i.update(render('annsticky',mode,i.guildId));
+  return i.update(render('announce',mode,i.guildId));
  }
  if(id==='ann_open_modal'){
   const a=draft(i.guildId);

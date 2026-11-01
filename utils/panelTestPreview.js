@@ -75,6 +75,10 @@ function render(page='home',mode='pending',guildId=null) {
   new TextDisplayBuilder().setContent(page==='home'?'## ⚙️ BOT 管理パネル':'## '+screen[page][0])
  );
  if(page==='home'){
+  container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
+   'サーバー管理者向けの設定画面です。下のメニューから操作できます。'+
+   (guildId===testGuild?'\\n\\n**📣 一斉配信** — 全サーバーの管理パネルへお知らせを届けます。':'\\n\\n**📢 公式お知らせを受信** — 受信先の設定ができます。')
+  ));
   const notice=guildId&&st.get(guildId).broadcastNotice;
   if(notice?.body){
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### 📢 BOTからのお知らせ\n'+notice.body));

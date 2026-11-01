@@ -176,6 +176,12 @@ function render(page='home',mode='pending',guildId=null) {
   }else if(page==='analyticsvc'){
    const v=st.get(guildId).vcr?.cur;
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**今週のVC集計**\n通話回数：'+(v?.calls||0)+'回\n累計通話時間：'+Math.round((v?.total||0)/360)/10+'時間\n\n-# BOTが記録したデータのみ表示しています。'));
+  }else if(page==='inon'){
+   const d=st.get(guildId),s=d.inactive||{},cfg=d.inactiveSettings||{};
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
+    '**現在の状態：'+(s.enabled?'ON':'OFF')+'**\\n判定期間：'+(d.inactiveMonths||s.months||3)+'か月\\n対象ロール：'+(cfg.role||s.role?'<@&'+(cfg.role||s.role)+'>':'未設定')+'\\n除外ロール：'+(cfg.exclude||s.exclude?'<@&'+(cfg.exclude||s.exclude)+'>':'なし')+'\\n管理ログ：<#'+(s.log||'未設定')+'>\\n\\n-# ONにすると活動記録を開始します。指定期間に活動がない人にDMを送り、7日間反応がない場合はキックされる機能です。停止すると監視を止め、解除済みロールの復元を試みます。'
+   ));
+   container.addActionRowComponents(row(button('inactive_on','有効化する',ButtonStyle.Success),button('inactive_off','停止する',ButtonStyle.Danger)));
   }else if(page==='inmonths'){
    const d=st.get(guildId);
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('現在：**'+(d.inactiveMonths||d.inactive?.months||3)+'か月**\n-# 月数の変更では自動キックは有効になりません。'));
@@ -430,6 +436,36 @@ async function handle(i){
    await i.editReply('お問い合わせを送信できませんでした。管理用チャンネルの権限設定をご確認ください。');
   }
   return true;
+ }
+ if(id==='inactive_on'||id==='inactive_off'){
+  if(i.guildId!==testGuild)return i.reply({content:'この管理パネルからの切り替えは現在テストサーバー限定です。',flags:MessageFlags.Ephemeral});
+  await i.deferUpdate();
+  const d=st.get(i.guildId),s=d.inactive;
+  if(id==='inactive_off'){
+   if(s)s.enabled=false;
+   const failures=s?await require('./inactive').restoreSuspended(i.guild,s):0;
+   const saved=await st.save(i.guild);
+   await i.editReply(render('inon',mode,i.guildId));
+   if(!saved||failures)await i.followUp({content:!saved?'停止状態を保存できませんでした。':'監視は停止しましたが、'+failures+'人のロールを復元できませんでした。',flags:MessageFlags.Ephemeral});
+   return true;
+  }
+  if(s?.enabled){await i.editReply(render('inon',mode,i.guildId));return true;}
+  const role=d.inactiveSettings?.role||s?.role;
+  const months=d.inactiveMonths||s?.months||3;
+  const ch=st.findCh(i.guild),me=i.guild.members.me||await i.guild.members.fetchMe();
+  if(!role||!ch){await i.followUp({content:'有効化する前に対象ロールと #bot-config を設定してください。',flags:MessageFlags.Ephemeral});return true;}
+  if(!me.permissions.has(PermissionFlagsBits.KickMembers)||!ch.permissionsFor(me)?.has([PermissionFlagsBits.ViewChannel,PermissionFlagsBits.SendMessages,PermissionFlagsBits.EmbedLinks])){
+   await i.followUp({content:'BOTのキック権限、または #bot-config のログ投稿権限が不足しています。',flags:MessageFlags.Ephemeral});return true;
+  }
+  try{await require('./inactive').managedRole(i.guild,role);}
+  catch(e){await i.followUp({content:'対象ロールを操作できません：'+e.message,flags:MessageFlags.Ephemeral});return true;}
+  if(s&&Object.values(s.users||{}).some(u=>u.suspendedRole||u.restoreRole)){
+   await i.followUp({content:'復元待ちのロールがあります。先に停止処理を完了してください。',flags:MessageFlags.Ephemeral});return true;
+  }
+  const now=Date.now(),prev=d.inactive;
+  d.inactive={enabled:true,since:now,seenAt:now,checkedAt:0,log:ch.id,role,exclude:d.inactiveSettings?.exclude||null,months,users:{}};
+  if(!await st.save(i.guild)){d.inactive=prev;await i.followUp({content:'保存に失敗したため有効化していません。',flags:MessageFlags.Ephemeral});return true;}
+  await i.editReply(render('inon',mode,i.guildId));return true;
  }
  if(id==='inactive_role'||id==='inactive_exclude'){
   const d=st.get(i.guildId),s=d.inactive||{},field=id==='inactive_role'?'role':'exclude';

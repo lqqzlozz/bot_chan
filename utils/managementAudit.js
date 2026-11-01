@@ -27,14 +27,19 @@ function compact(d){
 }
 const names={ch:'チャンネル',role:'ロール',exclude:'除外ロール',enabled:'有効化',months:'判定期間',log:'ログ送信先',approvalChannelId:'確認通知先',primaryRole:'時間帯①ロール',secondaryRole:'時間帯②ロール',start:'開始時刻',end:'終了時刻',here:'@here通知',channelId:'受信先',seen:'既読',posts:'投稿履歴'};
 function format(key,value){
- if(value===null||value===undefined||value==='')return '未設定';
+ if(value===null||value===undefined||value==='')return 'なし（未設定）';
  if(key==='rkOff'||key==='vcOff')return value?'OFF':'ON';
  if(typeof value==='boolean')return value?'ON':'OFF';
  if(key==='months'||key==='inactiveMonths')return value+'か月';
  if(['ch','vc','log','channelId','approvalChannelId','alarmChannelId'].includes(key)&&/^\\d{15,22}$/.test(String(value)))return '<#'+value+'>';
  if(['role','exclude','primaryRole','secondaryRole'].includes(key)&&/^\\d{15,22}$/.test(String(value)))return '<@&'+value+'>';
- if(Array.isArray(value))return value.length?value.map(v=>/^\\d{15,22}$/.test(String(v))?'<#'+v+'>':String(v)).join('、'):'なし';
- return String(value);
+ if(typeof value==='object'){
+  if(Array.isArray(value))return value.length?value.map(v=>format(key==='sticky'||key==='buildPanels'?'ch':key,v)).join('、'):'なし';
+  const props=Object.entries(value).filter(([k])=>!['seen','posts'].includes(k));
+  return props.length?props.map(([k,v])=>(names[k]||k)+'：'+format(k,v)).join(' / '):'なし';
+ }
+ const raw=String(value);
+ return raw.length>160?raw.slice(0,157)+'…':raw.replace(/\\n/g,' ');
 }
 function changes(before,after){
  const lines=[];
@@ -43,23 +48,24 @@ function changes(before,after){
   if(JSON.stringify(a)===JSON.stringify(b))continue;
   if(a&&b&&typeof a==='object'&&typeof b==='object'&&!Array.isArray(a)&&!Array.isArray(b)){
    for(const sub of new Set([...Object.keys(a),...Object.keys(b)])){
-    if(JSON.stringify(a[sub])!==JSON.stringify(b[sub]))lines.push(title+' / '+(names[sub]||sub)+'：'+format(sub,a[sub])+' → '+format(sub,b[sub]));
+    if(JSON.stringify(a[sub])!==JSON.stringify(b[sub]))
+     lines.push('**'+title+' — '+(names[sub]||sub)+'**\\n変更前：'+format(sub,a[sub])+'\\n変更後：'+format(sub,b[sub]));
    }
-  }else lines.push(title+'：'+format(key,a)+' → '+format(key,b));
+  }else lines.push('**'+title+'**\\n変更前：'+format(key,a)+'\\n変更後：'+format(key,b));
  }
  return lines.slice(0,15);
 }
 async function record(guild,user,before){
  const d=st.get(guild.id),details=changes(before,compact(d));
  if(!details.length)return false;
- const item={at:Date.now(),by:user.id,action:details.map(x=>x.split('：')[0]).join('・'),details};
+ const item={at:Date.now(),by:user.id,action:details.map(x=>x.split('\\n')[0].replace(/\\*/g,'')).join('・'),details};
  const old=d.managementLog||[];
  d.managementLog=[...old,item].slice(-50);
  if(!await st.save(guild)){d.managementLog=old;console.error('管理ログの保存失敗',guild.id);return false;}
  await publish(guild).catch(e=>console.error('管理ログ投稿失敗',guild.id,e.message));
  return true;
 }
-function detail(entry){return entry.details?.length?entry.details.join('\n'):(entry.action||'詳細なし（旧形式の履歴）');}
+function detail(entry){return entry.details?.length?entry.details.join('\\n\\n'):(entry.action||'詳細なし（旧形式の履歴）')+'\\n-# 古いログの変更前・変更後の値は復元できません。';}
 function view(guildId,page=0){
  const rows=(st.get(guildId).managementLog||[]).slice().reverse();
  const total=rows.length,index=Math.max(0,Math.min(Number(page)||0,Math.max(0,total-1)));

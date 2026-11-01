@@ -93,6 +93,7 @@ function render(page='home',mode='pending',guildId=null,auditPage=0,graph=false)
    container.addActionRowComponents(row(button('gen_on','原神設定：ON',ButtonStyle.Success),button('gen_off','原神設定：OFF',ButtonStyle.Danger)));
   }
   container.addActionRowComponents(row(select('pick','機能を選択してください',choices(mode,guildId))));
+  container.addTextDisplayComponents(new TextDisplayBuilder().setContent('-# BOTの更新情報・不具合報告・ご要望は [サポートサーバー](https://discord.gg/9vgM8kB324) へ'));
 
  }else{
   if(page==='other'){

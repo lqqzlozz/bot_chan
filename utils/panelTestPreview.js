@@ -95,7 +95,7 @@ function render(page='home',mode='pending',guildId=null) {
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('このサーバーで原神機能を有効化します。\n-# 設定は保存されます。'));
    container.addActionRowComponents(row(button('enable_genshin','原神設定を表示',ButtonStyle.Success)));
   }else if(page==='contact'){
-   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('不具合報告・デバッグの相談・機能のご要望などを制作者に送信できます。\n-# サーバー名と送信者のDiscord IDも送られます。'));
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('不具合報告・デバッグの相談・機能のご要望などを制作者へ送信します。\n-# 内容は管理用の非公開スレッドに保存されます。'));
    container.addActionRowComponents(row(button('contact_write','お問い合わせを作成',ButtonStyle.Primary)));
   }else if(page==='inrole'||page==='inexclude'){
    const d=st.get(guildId),settings=d.inactiveSettings||{},excluded=page==='inexclude';
@@ -215,11 +215,17 @@ async function handle(i){
   if(!msg)return i.reply({content:'お問い合わせ内容を入力してください。',flags:MessageFlags.Ephemeral});
   await i.deferReply({flags:MessageFlags.Ephemeral});
   try{
-   const creator=await i.client.users.fetch('1088369918069715024');
-   await creator.send({content:'**管理パネルからのお問い合わせ**\nサーバー：'+i.guild.name+' ('+i.guildId+')\n送信者：'+i.user.username+' ('+i.user.id+')\n\n'+msg,allowedMentions:{parse:[]}});
+   const hub=i.client.guilds.cache.get(testGuild);
+   const channel=hub&&st.findCh(hub);
+   const me=hub&&(hub.members.me||await hub.members.fetchMe());
+   const required=[PermissionFlagsBits.ViewChannel,PermissionFlagsBits.CreatePrivateThreads,PermissionFlagsBits.SendMessagesInThreads];
+   if(!channel||!channel.permissionsFor(me)?.has(required))throw Error('非公開スレッドの作成権限がありません');
+   const thread=await channel.threads.create({name:'お問い合わせ-'+new Date().toISOString().slice(0,10)+'-'+i.user.username.slice(0,30),type:ChannelType.PrivateThread,invitable:false,reason:'管理パネルからのお問い合わせ'});
+   await thread.send({content:'**BOTへのお問い合わせ**\n送信元サーバー：'+i.guild.name+' ('+i.guildId+')\n送信者：'+i.user.username+' ('+i.user.id+')\n\n'+msg,allowedMentions:{parse:[]}});
    await i.editReply('お問い合わせを送信しました。');
   }catch(e){
-   await i.editReply('お問い合わせを送信できませんでした。時間を置いて再度お試しください。');
+   console.error('非公開お問い合わせスレッド作成失敗:',e);
+   await i.editReply('お問い合わせを送信できませんでした。管理用チャンネルの権限設定をご確認ください。');
   }
   return true;
  }

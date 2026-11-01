@@ -138,10 +138,11 @@ function render(page='home',mode='pending',guildId=null,auditPage=0,graph=false)
   }else if(page==='notifications'){
    const d=guildId ? st.get(guildId) : {};
    const target=d.vc ? '<#'+d.vc+'>' : '未設定';
-   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**VC参加通知**\n-# 通知先：'+target+'\n\n**VCランキング**\n-# 集計とランキング投稿の管理\n\n**Bump通知**\n-# リマインドと通知先の管理'));
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**VC参加通知**\n-# 状態：'+(d.vcOff?'OFF':'ON')+'\n-# 通知先：'+target+'\n\n**VCランキング**\n-# 集計とランキング投稿の管理\n\n**Bump通知**\n-# リマインドと通知先の管理'));
   }else if(page==='vc'){
    const d=guildId ? st.get(guildId) : {};
-   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**現在の通知先**\n'+(d.vc?'<#'+d.vc+'>':'未設定')+'\n\n通知先を変更すると、VCランキングでも同じ投稿先を使用します。'));
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**VC参加通知：'+(d.vcOff?'OFF':'ON')+'**\n現在の通知先：'+(d.vc?'<#'+d.vc+'>':'未設定')+'\n\n通知先を変更すると、VCランキングでも同じ投稿先を使用します。'));
+   container.addActionRowComponents(row(button('vc_on','ON',ButtonStyle.Success).setDisabled(!d.vcOff),button('vc_off','OFF',ButtonStyle.Secondary).setDisabled(!!d.vcOff)));
    container.addActionRowComponents(row(new ChannelSelectMenuBuilder().setCustomId(ROOT+'vc_select').setPlaceholder('VC通知先チャンネルを選択').addChannelTypes(ChannelType.GuildText)));
   }else if(page==='ranking'){
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**VCランキング**\n状態：'+(st.get(guildId).rkOff?'OFF':'ON')+'\n投稿先：'+(st.get(guildId).vc?'<#'+st.get(guildId).vc+'>':'未設定')+'\n\n-# 投稿先はVC参加通知と共通です。'));
@@ -600,6 +601,13 @@ async function handleCore(i){
   }
   await i.update(render('ranking',mode,i.guildId));
   return true;
+ }
+ if(id==='vc_on'||id==='vc_off'){
+  const data=st.get(i.guildId),old=data.vcOff;
+  if(id==='vc_on'&&!data.vc)return i.reply({content:'先にVC通知先を選択してください。',flags:MessageFlags.Ephemeral});
+  data.vcOff=id==='vc_off';
+  if(!await st.save(i.guild)){data.vcOff=old;return i.reply({content:'ON/OFFを保存できませんでした。',flags:MessageFlags.Ephemeral});}
+  await i.update(render('vc',mode,i.guildId));return true;
  }
  if(id==='vc_select'){
   const selected=i.values?.[0];

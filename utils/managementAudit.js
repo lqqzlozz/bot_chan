@@ -1,5 +1,5 @@
 const st=require('./store');
-const {MessageFlags,PermissionFlagsBits,ActionRowBuilder,ButtonBuilder,ButtonStyle}=require('discord.js');
+const {MessageFlags,PermissionFlagsBits,ActionRowBuilder,ButtonBuilder,ButtonStyle,ContainerBuilder,TextDisplayBuilder,SeparatorBuilder}=require('discord.js');
 // Record only intentional configuration values; exclude UID, member history, message bodies.
 const fields=[
  ['vc','VC通知先'],['rkOff','VCランキング'],['bump','Bump通知'],
@@ -35,12 +35,26 @@ async function record(guild,user,before){
 function view(guildId,page=0){
  const rows=(st.get(guildId).managementLog||[]).slice().reverse();
  const total=rows.length,index=Math.max(0,Math.min(Number(page)||0,Math.max(0,total-1)));
- if(!total)return {content:'## 📋 管理ログ\nまだ設定変更の履歴はありません。',components:[],allowedMentions:{parse:[]}};
- const entry=rows[index];
- const button=(key,label,disabled)=>new ButtonBuilder().setCustomId('pt_audit_'+key+'_'+index).setLabel(label).setStyle(ButtonStyle.Secondary).setDisabled(disabled);
- return {content:'## 📋 管理ログ\n**'+(index+1)+' / '+total+'**\n\n日時：<t:'+Math.floor(entry.at/1000)+':F>\n操作：<@'+entry.by+'>\n変更：'+entry.action+'\n\n-# 最新のログから1件ずつ表示',components:[new ActionRowBuilder().addComponents(button('prev','← 新しいログ',index===0),button('next','古いログ →',index===total-1))],allowedMentions:{parse:[]}};
+ const box=new ContainerBuilder();
+ box.addTextDisplayComponents(new TextDisplayBuilder().setContent('## 📋 管理ログ'));
+ if(!total){
+  box.addTextDisplayComponents(new TextDisplayBuilder().setContent('まだ設定変更の履歴はありません。'));
+ }else{
+  const entry=rows[index],at=Math.floor(entry.at/1000);
+  box.addTextDisplayComponents(new TextDisplayBuilder().setContent(
+   '**'+(index+1)+' / '+total+'**\\n\\n**操作した人**\\n<@'+entry.by+'>\\n\\n**変更内容**\\n'+entry.action+'\\n\\n**変更日時**\\n<t:'+at+':F>'
+  ));
+  const button=(key,label,disabled)=>new ButtonBuilder().setCustomId('pt_audit_'+key+'_'+index).setLabel(label).setStyle(ButtonStyle.Secondary).setDisabled(disabled);
+  box.addActionRowComponents(new ActionRowBuilder().addComponents(button('prev','← 新しいログ',index===0),button('next','古いログ →',index===total-1)));
+ }
+ return {content:null,components:[box],flags:MessageFlags.IsComponentsV2,allowedMentions:{parse:[]}};
 }
-function summary(guildId,page=0){return view(guildId,page).content.replace(/^## 📋 管理ログ\n/,'');}
+function summary(guildId,page=0){
+ const rows=(st.get(guildId).managementLog||[]).slice().reverse();
+ if(!rows.length)return 'まだ設定変更の履歴はありません。';
+ const i=Math.max(0,Math.min(page,rows.length-1)),entry=rows[i];
+ return '**'+(i+1)+' / '+rows.length+'**\\n\\n**操作した人**\\n<@'+entry.by+'>\\n\\n**変更内容**\\n'+entry.action+'\\n\\n**変更日時**\\n<t:'+Math.floor(entry.at/1000)+':F>';
+}
 async function publish(guild){
  const ch=st.findCh(guild);if(!ch)return;
  const me=guild.members.me||await guild.members.fetchMe();
@@ -50,7 +64,7 @@ async function publish(guild){
  let msg=d.managementLogMessageId&&await ch.messages.fetch(d.managementLogMessageId).catch(()=>null);
  if(!msg){
   const recent=await ch.messages.fetch({limit:100}).catch(()=>null);
-  msg=recent?.find(m=>m.author.id===guild.client.user.id&&m.content?.startsWith('## 📋 管理ログ'))||null;
+  msg=recent?.find(m=>m.author.id===guild.client.user.id&&(m.content?.startsWith('## 📋 管理ログ')||m.components?.some(c=>JSON.stringify(c.toJSON?.()||c).includes('pt_audit_'))))||null;
  }
  if(msg)await msg.edit(body);else msg=await ch.send({...body,flags:MessageFlags.SuppressNotifications});
  if(d.managementLogMessageId!==msg.id){d.managementLogMessageId=msg.id;await st.save(guild);}

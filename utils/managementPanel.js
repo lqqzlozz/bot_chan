@@ -26,4 +26,9 @@ async function ensure(guild){
  }
  return true;
 }
-module.exports={ensure,mode};
+async function refreshAll(client){
+ for(const guild of client.guilds.cache.values()){
+  await ensure(guild).catch(e=>console.error('管理パネル更新失敗',guild.id,e.message));
+ }
+}
+module.exports={ensure,mode,refreshAll};

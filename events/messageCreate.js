@@ -39,7 +39,7 @@ module.exports = {
       bump.schedule(message.channel);
     }
 
-    if (message.author.bot) return;
+    if (message.author.bot && message.author.id === client.user.id) return;
 
     // --- 0. 住宅用語辞典（会社のサーバーでbotにメンション）---
     if (message.guildId === WEL_GUILD && new RegExp(`<@!?${client.user.id}>`).test(message.content)) {
@@ -82,7 +82,7 @@ module.exports = {
         const nm = (iu.split('?')[0].split('/').pop() || 'ann.png').replace(/[^\w.\-]/g, '') || 'ann.png';
         if (b) files.push(new AttachmentBuilder(Buffer.from(b), { name: nm }));
       }
-      if (old) await old.delete().catch(() => null);
+      // Keep the old announcement until the replacement has been sent.
 
       // 元メッセージが見つからない時(再起動直後とか)はtextから作り直す
       let emb = old?.embeds.map((e,n) => files[n] ? EmbedBuilder.from(e).setImage(`attachment://${files[n].name}`) : e);
@@ -97,6 +97,7 @@ module.exports = {
       // 貼り直しは通知なし
       const nw = await message.channel.send({ embeds: emb, components: cmp, files, flags: MessageFlags.SuppressNotifications });
       sk.messageId = nw.id;
+      if (old) await old.delete().catch(e=>console.warn('旧常駐投稿の削除に失敗:',e.message));
       st.saveLater(message.guild);
     } catch (e) {
       console.error(e);

@@ -49,6 +49,10 @@ module.exports = {
     const roleId=require('../utils/vcMentionSchedule').selected(st.get(newState.guild.id).vcMentionSchedule);
     const role=roleId&&newState.guild.roles.cache.get(roleId);
     const mention=role?'<@&'+role.id+'>':null;
-    await notifyChannel.send({ ...(mention?{content:mention}:{}), embeds: [embed], components: [vcRow],allowedMentions:{parse:[],roles:role?[role.id]:[]} }).catch(e => console.error('VC通知失敗:', e.message));
+    // Discord always renders message content above embeds; send the mention separately afterward.
+    try {
+      await notifyChannel.send({ embeds: [embed], components: [vcRow],allowedMentions:{parse:[]} });
+      if(mention)await notifyChannel.send({content:mention,allowedMentions:{parse:[],roles:[role.id]}});
+    }catch(e){console.error('VC通知失敗:',e.message);}
   },
 };

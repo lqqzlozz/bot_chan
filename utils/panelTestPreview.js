@@ -63,7 +63,7 @@ function choices(mode){
  ];
 }
 function back(page){
- return ['vc','ranking','bump'].includes(page)?'notifications':(['uid','build','gift','gnews'].includes(page)?'genshin':(['annchannel','annroles','anncontent','annsticky'].includes(page)?'announce':(['inmonths','inrole','inexclude','inon'].includes(page)?'inactive':(['analyticsmembers','analyticsvc'].includes(page)?'analytics':page==='official'?'other':'home'))));
+ return ['vc','ranking','bump'].includes(page)?'notifications':(['uid','build','gift','gnews'].includes(page)?'genshin':(['annchannel','annroles','anncontent','annsticky'].includes(page)?'announce':(['inmonths','inrole','inexclude','inon'].includes(page)?'inactive':(['analyticsmembers','analyticsvc'].includes(page)?'analytics':['official','broadcast'].includes(page)?'other':'home'))));
 }
 function select(id,placeholder,items) {
  return new StringSelectMenuBuilder().setCustomId(ROOT+id).setPlaceholder(placeholder)
@@ -83,7 +83,10 @@ function render(page='home',mode='pending',guildId=null) {
 
  }else{
   if(page==='other'){
-   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('公式お知らせの受信先などを設定します。'));
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(guildId===testGuild?'管理者向けのお知らせを配信・設定します。':'公式お知らせの受信先を設定します。'));
+  }else if(page==='broadcast'){
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**全サーバーへの管理者向け案内**\n各サーバーの #bot-config に送信します。\n-# 既に同じ案内を受け取ったサーバーには重複送信しません。送信後は取り消せません。'));
+   container.addActionRowComponents(row(button('broadcast_write','一斉配信の本文を入力',ButtonStyle.Primary)));
   }else if(page==='official'){
    const settings=st.get(guildId).officialFeed;
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
@@ -177,7 +180,7 @@ function render(page='home',mode='pending',guildId=null) {
     '\n\n**ギフトコード**\n-# '+ch(d.giftP?.ch)
    ));
   }
-  const next=page==='other'?[['official','📢 公式お知らせ','メインサーバーの #log を受信']]:page==='notifications'?[['vc','🔊 VC参加通知','参加通知を送るチャンネル'],['ranking','🏆 VCランキング','ランキングのON/OFF・投稿先'],['bump','🔔 Bump通知','通知先・リマインド設定']]:
+  const next=page==='other'?(guildId===testGuild?[['broadcast','📣 一斉配信','各サーバーの管理者向けに送信'],['official','📢 公式お知らせ','受信設定']]:[['official','📢 公式お知らせ','メインサーバーの #log を受信']]):page==='notifications'?[['vc','🔊 VC参加通知','参加通知を送るチャンネル'],['ranking','🏆 VCランキング','ランキングのON/OFF・投稿先'],['bump','🔔 Bump通知','通知先・リマインド設定']]:
     page==='genshin'?[['gnews','原神のお知らせ','表示先と通知ロール'],['uid','UID登録','登録先と任意の付与ロール'],['build','ビルドカード','パネルの表示先'],['gift','ギフトコード','表示先']]:
     page==='announce'?[]:
     page==='inactive'?[['inmonths','判定期間','1〜12か月'],['inrole','対象ロール','管理対象を指定'],['inexclude','除外ロール','対象外にするロール'],['inon','有効化・停止','7日間の確認猶予']]:
@@ -250,6 +253,37 @@ async function handle(i){
    await returnHome(i,mode);
    await i.editReply('アナウンスを投稿しました：'+sent.url);
   }catch(e){console.error('アナウンス投稿エラー:',e);await i.editReply('投稿できませんでした：'+e.message);}
+  return true;
+ }
+ if(id==='broadcast_write'){
+  if(i.guildId!==testGuild||i.user.id!==i.guild.ownerId)return i.reply({content:'配信はメインサーバーの所有者のみ実行できます。',flags:MessageFlags.Ephemeral});
+  const modal=new ModalBuilder().setCustomId(ROOT+'broadcast_submit').setTitle('全サーバーへの一斉配信');
+  modal.addComponents(row(new TextInputBuilder().setCustomId('broadcast_body').setLabel('送信する本文').setStyle(TextInputStyle.Paragraph).setRequired(true).setMaxLength(1700)));
+  return i.showModal(modal);
+ }
+ if(id==='broadcast_submit'){
+  if(i.guildId!==testGuild||i.user.id!==i.guild.ownerId)return i.reply({content:'配信権限がありません。',flags:MessageFlags.Ephemeral});
+  const body=i.fields.getTextInputValue('broadcast_body').trim();
+  if(!body)return i.reply({content:'本文を入力してください。',flags:MessageFlags.Ephemeral});
+  await i.deferReply({flags:MessageFlags.Ephemeral});
+  const signature=require('node:crypto').createHash('sha256').update(body).digest('hex').slice(0,16);
+  let sent=0,skipped=0,failed=0;
+  for(const guild of i.client.guilds.cache.values()){
+   const channel=st.findCh(guild);
+   if(!channel){failed++;continue;}
+   const data=st.get(guild.id);
+   if((data.broadcastHistory||[]).includes(signature)){skipped++;continue;}
+   try{
+    const me=guild.members.me||await guild.members.fetchMe();
+    if(!channel.permissionsFor(me)?.has([PermissionFlagsBits.ViewChannel,PermissionFlagsBits.SendMessages]))throw Error('送信権限不足');
+    await channel.send({content:'📢 **BOTからのお知らせ**\\n\\n'+body,allowedMentions:{parse:[]}});
+    data.broadcastHistory=[...(data.broadcastHistory||[]).slice(-9),signature];
+    if(!await st.save(guild))console.error('一斉配信履歴保存失敗',guild.id);
+    sent++;
+   }catch(e){failed++;console.error('一斉配信失敗',guild.id,e);}
+  }
+  await returnHome(i,mode);
+  await i.editReply('一斉配信の結果：送信 '+sent+'サーバー／重複除外 '+skipped+'サーバー／失敗 '+failed+'サーバー');
   return true;
  }
  if(id==='official_channel'||id==='official_on'||id==='official_off'){

@@ -120,7 +120,7 @@ function render(page='home',mode='pending',guildId=null) {
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('このサーバーで原神機能を有効化します。\n-# 設定は保存されます。'));
    container.addActionRowComponents(row(button('enable_genshin','原神設定を表示',ButtonStyle.Success)));
   }else if(page==='contact'){
-   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('不具合報告・デバッグの相談・機能のご要望などを制作者へ送信します。\n-# 内容は管理用の非公開スレッドに保存されます。'));
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('不具合報告・デバッグの相談・機能のご要望などを制作者へ送信します。\n-# お問い合わせ専用の非公開チャンネルに、案件ごとの非公開スレッドを作成します。'));
    container.addActionRowComponents(row(button('contact_write','お問い合わせを作成',ButtonStyle.Primary)));
   }else if(page==='inrole'||page==='inexclude'){
    const d=st.get(guildId),settings=d.inactiveSettings||{},excluded=page==='inexclude';
@@ -295,12 +295,24 @@ async function handle(i){
   await i.deferReply({flags:MessageFlags.Ephemeral});
   try{
    const hub=i.client.guilds.cache.get(testGuild);
-   const channel=hub&&st.findCh(hub);
-   const me=hub&&(hub.members.me||await hub.members.fetchMe());
+   if(!hub)throw Error('受付先サーバーが見つかりません');
+   const me=hub.members.me||await hub.members.fetchMe();
+   const name='bot-inquiries';
+   let channel=hub.channels.cache.find(c=>c.name===name&&c.type===ChannelType.GuildText);
+   if(!channel){
+    if(!me.permissions.has(PermissionFlagsBits.ManageChannels))throw Error('受付チャンネルの作成権限がありません');
+    channel=await hub.channels.create({
+     name,type:ChannelType.GuildText,topic:'BOTへのお問い合わせ受付（管理者のみ）',
+     permissionOverwrites:[
+      {id:hub.roles.everyone.id,deny:[PermissionFlagsBits.ViewChannel]},
+      {id:me.id,allow:[PermissionFlagsBits.ViewChannel,PermissionFlagsBits.SendMessages,PermissionFlagsBits.ReadMessageHistory,PermissionFlagsBits.CreatePrivateThreads,PermissionFlagsBits.SendMessagesInThreads,PermissionFlagsBits.ManageThreads]}
+     ],reason:'問い合わせを #bot-config と分離するため'
+    });
+   }
    const required=[PermissionFlagsBits.ViewChannel,PermissionFlagsBits.CreatePrivateThreads,PermissionFlagsBits.SendMessagesInThreads];
-   if(!channel||!channel.permissionsFor(me)?.has(required))throw Error('非公開スレッドの作成権限がありません');
+   if(!channel.permissionsFor(me)?.has(required))throw Error('非公開スレッドの作成権限がありません');
    const thread=await channel.threads.create({name:'お問い合わせ-'+new Date().toISOString().slice(0,10)+'-'+i.user.username.slice(0,30),type:ChannelType.PrivateThread,invitable:false,reason:'管理パネルからのお問い合わせ'});
-   await thread.send({content:'**BOTへのお問い合わせ**\n送信元サーバー：'+i.guild.name+' ('+i.guildId+')\n送信者：'+i.user.username+' ('+i.user.id+')\n\n'+msg,allowedMentions:{parse:[]}});
+   await thread.send({content:'**BOTへのお問い合わせ**\n**送信元サーバー**：'+i.guild.name+' ('+i.guildId+')\n**サーバー所有者**：<@'+i.guild.ownerId+'>\n**お問い合わせ送信者**：<@'+i.user.id+'>\n\n**内容**\n'+msg,allowedMentions:{parse:[]}});
    await i.editReply('お問い合わせを送信しました。');
   }catch(e){
    console.error('非公開お問い合わせスレッド作成失敗:',e);

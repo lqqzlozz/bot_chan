@@ -7,7 +7,7 @@ const running = new Set(), flush = new Map();
 const buttonLocks = new Set();
 const locked = (gid, uid) => buttonLocks.has(`${gid}:${uid}`);
 function clearWarning(u) {
-  for (const key of ['warningAt', 'warningToken', 'warningJoinedAt', 'warningRole', 'confirmToken', 'confirmUntil', 'dmFailedAt']) delete u[key];
+  for (const key of ['warningAt', 'warningToken', 'warningJoinedAt', 'warningMonths', 'warningRole', 'confirmToken', 'confirmUntil', 'dmFailedAt']) delete u[key];
 }
 
 async function managedRole(guild, id) {
@@ -44,16 +44,16 @@ function buttons(gid, uid, token, confirm = false) {
 
 function warning(guild, member, u) {
   return {
-    embeds: [new EmbedBuilder().setColor('#BA7517').setTitle(`${guild.name}：参加意思の確認`).setDescription(`3か月間、発言・VC参加を確認できていません。\n**参加を続ける**：キック予定を解除し、押した日から3か月を数え直します。\n**退出する**：確認画面を出し、確定後にキックします。\n発言・VC参加でもキック予定は解除されます。\n操作も活動もない場合、<t:${Math.floor((u.warningAt + GRACE) / 1000)}:F>以降にキックします。\nボタンの選択結果はサーバーの管理者用ログに記録されます。\nBotが閲覧できない場所での活動は確認できません。`).addFields(u.warningRole ? [{ name: "指定ロール", value: `<@&${u.warningRole}> を持っている場合は警告時に外します。「参加を続ける」で、元々持っていなくても付与します。` }] : [])],
+    embeds: [new EmbedBuilder().setColor('#BA7517').setTitle(`${guild.name}：参加意思の確認`).setDescription(`${u.warningMonths || 3}か月間、発言・VC参加を確認できていません。\n**参加を続ける**：キック予定を解除し、押した日から${u.warningMonths || 3}か月を数え直します。\n**退出する**：確認画面を出し、確定後にキックします。\n発言・VC参加でもキック予定は解除されます。\n操作も活動もない場合、<t:${Math.floor((u.warningAt + GRACE) / 1000)}:F>以降にキックします。\nボタンの選択結果はサーバーの管理者用ログに記録されます。\nBotが閲覧できない場所での活動は確認できません。`).addFields(u.warningRole ? [{ name: "指定ロール", value: `<@&${u.warningRole}> を持っている場合は警告時に外します。「参加を続ける」で、元々持っていなくても付与します。` }] : [])],
     components: buttons(guild.id, member.id, u.warningToken), allowedMentions: { parse: [] },
   };
 }
 
 // 月末は移動先の月末に丸める。日時は日本時間で扱う。
-function threeMonths(at) {
+function threeMonths(at, months = 3) {
   const d = new Date(at + 9 * 3600000);
   const day = d.getUTCDate();
-  d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() + 3);
+  d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() + months);
   const end = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
   d.setUTCDate(Math.min(day, end));
   return d.getTime() - 9 * 3600000;
@@ -78,7 +78,7 @@ function eligible(member, s, now) {
   if (!member.joinedTimestamp || member.voice?.channelId || !member.kickable) return false;
   const u = s.users[member.id] || {};
   if (u.restoreRole) return false;
-  return now >= threeMonths(Math.max(s.since, member.joinedTimestamp, u.at || 0));
+  return now >= threeMonths(Math.max(s.since, member.joinedTimestamp, u.at || 0), s.months || 3);
 }
 
 async function log(guild, s, text) {
@@ -106,7 +106,7 @@ async function issueWarning(guild, member, s, u, now) {
   const key = `${guild.id}:${member.id}`;
   buttonLocks.add(key);
   const observed = u.at || 0, token = randomBytes(8).toString('hex');
-  u.warningAt = now; u.warningToken = token; u.warningJoinedAt = member.joinedTimestamp;
+  u.warningAt = now; u.warningToken = token; u.warningJoinedAt = member.joinedTimestamp; u.warningMonths = s.months || 3;
   if (role) u.warningRole = role.id;
   try {
     try { await member.send(warning(guild, member, u)); }
@@ -144,7 +144,7 @@ async function sweep(guild, now = Date.now()) {
     if (now - s.seenAt > 15 * 60000) {
       s.since = now;
       for (const u of Object.values(s.users)) { if (u.suspendedRole) u.restoreRole = u.suspendedRole; clearWarning(u); }
-      await log(guild, s, 'Botが15分以上活動を確認できなかったため、判定期間を今日から3か月にリセットしました。');
+      await log(guild, s, `BOTが15分以上活動を確認できなかったため、判定期間を今日から${s.months || 3}か月にリセットしました。`);
     }
     s.seenAt = now;
     if (!await persist(guild, s)) return;
@@ -190,11 +190,11 @@ async function sweep(guild, now = Date.now()) {
       if (!fresh || !s.enabled || locked(guild.id, m.id) || !u.warningAt || !eligible(fresh, s, Date.now())) continue;
       if (!await persist(guild, s)) return;
       if (!s.enabled || locked(guild.id, m.id) || !u.warningAt || !eligible(fresh, s, Date.now())) continue;
-      await log(guild, s, `<@${m.id}>：3か月活動なし・警告後7日経過のためキックを実行します。`);
+      await log(guild, s, `<@${m.id}>：${s.months || 3}か月活動なし・警告後7日経過のためキックを実行します。`);
       // ログ送信待ち中の活動も確認する。
       if (!s.enabled || locked(guild.id, m.id) || !u.warningAt || !eligible(fresh, s, Date.now())) continue;
       try {
-        await fresh.kick('3か月発言・VC参加なし。警告DM送信後7日間活動なし。');
+        await fresh.kick(`${s.months || 3}か月発言・VC参加なし。警告DM送信後7日間活動なし。`);
         delete s.users[m.id];
         await log(guild, s, `<@${m.id}> をキックしました。`);
       } catch (e) { await log(guild, s, `<@${m.id}> のキックに失敗しました：${e.message.slice(0, 200)}`); }

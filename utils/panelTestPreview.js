@@ -1,4 +1,4 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, EmbedBuilder, AttachmentBuilder, LabelBuilder, FileUploadBuilder,
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, EmbedBuilder, AttachmentBuilder, LabelBuilder, FileUploadBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder,
   StringSelectMenuBuilder, ChannelSelectMenuBuilder, RoleSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ChannelType, PermissionFlagsBits, ContainerBuilder, TextDisplayBuilder } = require('discord.js');
 const ROOT='pt_';
 const announcements=new Map();
@@ -68,7 +68,7 @@ function select(id,placeholder,items) {
  return new StringSelectMenuBuilder().setCustomId(ROOT+id).setPlaceholder(placeholder)
   .addOptions(items.map(([value,label,description])=>({value,label,...(description?{description}:{})})));
 }
-function render(page='home',mode='pending',guildId=null,auditPage=0) {
+function render(page='home',mode='pending',guildId=null,auditPage=0,graph=false) {
  if(!screen[page])page='home';
  const container=new ContainerBuilder().addTextDisplayComponents(
   new TextDisplayBuilder().setContent(page==='home'?'## ⚙️ BOT 管理パネル':'## '+screen[page][0])
@@ -164,7 +164,7 @@ function render(page='home',mode='pending',guildId=null,auditPage=0) {
    container.addActionRowComponents(row(button('enable_genshin','原神設定を表示',ButtonStyle.Success)));
   }else if(page==='audit'){
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(require('./managementAudit').summary(guildId,auditPage)));
-   container.addActionRowComponents(row(button('audit_prev_'+auditPage,'← 新しいログ',ButtonStyle.Secondary).setDisabled(auditPage<=0),button('audit_next_'+auditPage,'古いログ →',ButtonStyle.Secondary).setDisabled(auditPage>=(st.get(guildId).managementLog||[]).length-1)));
+   container.addActionRowComponents(row(button('audit_prev_'+auditPage,'PREV',ButtonStyle.Secondary).setDisabled(auditPage<=0),button('audit_next_'+auditPage,'NEXT',ButtonStyle.Secondary).setDisabled(auditPage>=(st.get(guildId).managementLog||[]).length-1)));
   }else if(page==='contact'){
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('不具合報告・デバッグの相談・機能のご要望などを制作者へ送信します。\n-# BOT管理用の #bot-config に非公開スレッドを作成し、管理者に通知します。'));
    container.addActionRowComponents(row(button('contact_write','お問い合わせを作成',ButtonStyle.Primary)));
@@ -199,6 +199,9 @@ function render(page='home',mode='pending',guildId=null,auditPage=0) {
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('現在：**'+(d.inactiveMonths||d.inactive?.months||3)+'か月**\n-# 月数の変更では自動キックは有効になりません。'));
    container.addActionRowComponents(row(select('months','判定期間を選択',Array.from({length:12},(_,n)=>[String(n+1),(n+1)+'か月']))));
   }else container.addTextDisplayComponents(new TextDisplayBuilder().setContent(screen[page][1]));
+  if(page==='analytics'&&graph){
+   container.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL('attachment://server-analytics.png')));
+  }
   if(page==='inactive'){
    const d=st.get(guildId),cfg=d.inactiveSettings||{},settings=d.inactive||{};
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
@@ -467,13 +470,10 @@ async function handleCore(i){
   return true;
  }
  if(id==='analytics_image'){
-  await i.deferReply({flags:MessageFlags.Ephemeral});
   try{
-   const report=require('./analyticsGraph');
-   const png=report.create(st.get(i.guildId).analyticsDaily||{});
-   await i.editReply({content:'サーバー分析｜直近14記録日',files:[new AttachmentBuilder(png,{name:'server-analytics.png'})]});
-  }catch(e){console.error('分析グラフ作成失敗:',e);await i.editReply('分析グラフを作成できませんでした。');}
-  return true;
+   const png=require('./analyticsGraph').create(st.get(i.guildId).analyticsDaily||{});
+   return i.update({...render('analytics',mode,i.guildId,0,true),files:[new AttachmentBuilder(png,{name:'server-analytics.png'})],attachments:[]});
+  }catch(e){console.error('分析グラフ作成失敗:',e);return i.reply({content:'分析グラフを作成できませんでした。',flags:MessageFlags.Ephemeral});}
  }
  if(id==='inactive_on'||id==='inactive_off'){
   if(i.guildId!==testGuild)return i.reply({content:'この管理パネルからの切り替えは現在テストサーバー限定です。',flags:MessageFlags.Ephemeral});

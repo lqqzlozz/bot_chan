@@ -49,7 +49,7 @@ const screen={
  analyticsvc:['VC分析','通話回数・通話時間の履歴と期間比較を表示します。'],
  other:['⚙️ その他の設定','原神設定・公式お知らせ・初期化'],
  audit:['📋 管理ログ','BOTの管理パネルから変更した設定の履歴'],
- reset:['すべての設定を初期化','UID情報・分析履歴・管理ログも削除され、取り消せません。\n原神の常駐パネルや通知も停止します。\n\nテスト中は初期化できません。']
+ reset:['⚠️ 設定を初期化','テストサーバー限定。BOTの保存設定と分析履歴を削除します。投稿済みメッセージは削除しません。']
 };
 function choices(mode,guildId){
  return [
@@ -168,6 +168,9 @@ function render(page='home',mode='pending',guildId=null,auditPage=0,graph=false)
   }else if(page==='contact'){
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('不具合報告・デバッグの相談・機能のご要望などを制作者へ送信します。\n-# BOT管理用の #bot-config に非公開スレッドを作成し、管理者に通知します。'));
    container.addActionRowComponents(row(button('contact_write','お問い合わせを作成',ButtonStyle.Primary)));
+  }else if(page==='reset'){
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**テストサーバー限定**\\n保存した設定・UID情報・分析履歴を削除します。既存の投稿や外部サービスの連携は削除しません。実行後は元に戻せません。\\n\\n-# 未活動メンバー管理を停止した上で、所有者が確認文を入力する必要があります。'));
+   container.addActionRowComponents(row(button('reset_start','初期化する',ButtonStyle.Danger)));
   }else if(page==='inrole'||page==='inexclude'){
    const d=st.get(guildId),settings=d.inactiveSettings||{},excluded=page==='inexclude';
    const current=excluded?settings.exclude||d.inactive?.exclude:settings.role||d.inactive?.role;
@@ -222,7 +225,7 @@ function render(page='home',mode='pending',guildId=null,auditPage=0,graph=false)
   const next=page==='other'?[
     ...(mode==='on'?[['genshin','🎮 原神設定','原神のお知らせ・UID登録など']]:[['enable','🎮 原神機能を有効化','原神用の機能を設定']]),
     ...(guildId===testGuild?[['broadcast','📣 BOTのお知らせを配信','各サーバーへ案内を配信']]:[['official','📢 BOTのお知らせを受信','受信先を設定']]),
-    ['reset','⚠️ 設定を初期化','このサーバーの設定を初期化（現在利用不可）']
+    ['reset','⚠️ 設定を初期化','テストサーバー限定・確認必須']
    ]:page==='notifications'?[['vc','🔊 VC参加通知','参加通知を送るチャンネル'],['ranking','🏆 VCランキング','ランキングのON/OFF・投稿先'],['bump','🔔 Bump通知','通知先・リマインド設定']]:
     page==='genshin'?[['gnews','原神のお知らせ','表示先と通知ロール'],['uid','UID登録','登録先と任意の付与ロール'],['build','ビルドカード','パネルの表示先'],['gift','ギフトコード','表示先']]:
     page==='announce'?[]:
@@ -468,6 +471,28 @@ async function handleCore(i){
    await i.editReply('お問い合わせを送信できませんでした。管理用チャンネルの権限設定をご確認ください。');
   }
   return true;
+ }
+ if(id==='reset_start'){
+  if(i.guildId!==testGuild||i.user.id!==i.guild.ownerId)return i.reply({content:'初期化はテストサーバーの所有者のみ実行できます。',flags:MessageFlags.Ephemeral});
+  if(st.get(i.guildId).inactive?.enabled)return i.reply({content:'先に未活動メンバー管理を停止してください。',flags:MessageFlags.Ephemeral});
+  const modal=new ModalBuilder().setCustomId(ROOT+'reset_confirm').setTitle('設定を初期化');
+  modal.addComponents(row(new TextInputBuilder().setCustomId('confirm').setLabel('初期化する場合 RESET と入力').setStyle(TextInputStyle.Short).setRequired(true)));
+  return i.showModal(modal);
+ }
+ if(id==='reset_confirm'){
+  if(i.guildId!==testGuild||i.user.id!==i.guild.ownerId)return i.reply({content:'権限がありません。',flags:MessageFlags.Ephemeral});
+  if(i.fields.getTextInputValue('confirm').trim()!=='RESET')return i.reply({content:'初期化を中止しました。',flags:MessageFlags.Ephemeral});
+  const data=st.get(i.guildId);
+  if(data.inactive?.enabled||Object.values(data.inactive?.users||{}).some(x=>x.suspendedRole||x.restoreRole))return i.reply({content:'未活動メンバー管理の停止とロール復元を完了してから実行してください。',flags:MessageFlags.Ephemeral});
+  await i.deferReply({flags:MessageFlags.Ephemeral});
+  const original={...data},panelId=data.managementPanelId,logId=data.managementLogMessageId;
+  // Keep the persistent message IDs and an audit marker, without retaining user-related configuration.
+  for(const key of Object.keys(data))delete data[key];
+  Object.assign(data,{vc:null,sticky:{},alarms:[],entry:{},welcome:{},managementPanelId:panelId,managementLogMessageId:logId,managementLog:[{at:Date.now(),by:i.user.id,action:'設定を初期化',details:['設定データ：保存済み → 初期状態']}]});
+  if(!await st.save(i.guild)){for(const key of Object.keys(data))delete data[key];Object.assign(data,original);return i.editReply('保存に失敗したため初期化を取り消しました。');}
+  await require('./managementAudit').publish(i.guild).catch(e=>console.error('初期化後ログ更新:',e));
+  await require('./managementPanel').ensure(i.guild).catch(e=>console.error('初期化後パネル更新:',e));
+  return i.editReply('保存設定を初期化しました。既存の投稿済みメッセージは削除していません。');
  }
  if(id==='analytics_image'){
   try{

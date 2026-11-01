@@ -166,6 +166,7 @@ function render(page='home',mode='pending',guildId=null,auditPage=0,graph=false)
    container.addActionRowComponents(row(new ChannelSelectMenuBuilder().setCustomId(ROOT+'vc_select').setPlaceholder('VC通知先チャンネルを選択').addChannelTypes(ChannelType.GuildText)));
    const schedule=d.vcMentionSchedule||{};
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**時間帯別メンション（日本時間）**\\n① '+(schedule.start||'未設定')+'〜'+(schedule.end||'未設定')+'：'+(schedule.primaryRole?'<@&'+schedule.primaryRole+'>':'なし')+'\\n② ①以外の時間帯：'+(schedule.secondaryRole?'<@&'+schedule.secondaryRole+'>':'なし')));
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**①のロールをメンションする時間を設定する**'));
    container.addActionRowComponents(row(button('vc_schedule_time','時間帯を設定',ButtonStyle.Primary),button('vc_schedule_clear','時間帯を無効化',ButtonStyle.Secondary)));
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**①の時間帯にメンションを行うロールを指定**'));
    container.addActionRowComponents(row(new RoleSelectMenuBuilder().setCustomId(ROOT+'vc_schedule_primary').setPlaceholder('① メンションするロールを選択').setMinValues(1).setMaxValues(1)));

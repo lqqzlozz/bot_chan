@@ -28,6 +28,8 @@ module.exports = {
       await require('../utils/managementPanel').ensure(guild).catch(e=>console.error('管理パネルの自動設置失敗:',guild.id,e.message));
     }
 
+    await require('../utils/existingFollowNotice').scanAll(client).catch(e=>console.error('既存フォローの検出失敗:',e));
+
     analytics.initialize(client);
     setInterval(()=>analytics.tick(client),60000);
     await vr.init(client).catch(e => console.error('VC集計の初期化エラー:', e.message));

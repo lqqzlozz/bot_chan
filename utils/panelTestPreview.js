@@ -240,7 +240,6 @@ async function handleCore(i){
   const direction=id.startsWith('audit_prev_')?-1:1;
   const n=Math.max(0,Math.min((st.get(i.guildId).managementLog||[]).length-1,(Number(id.split('_').at(-1))||0)+direction));
   const currentMode=isGI(i.guildId)||st.get(i.guildId).panelTestGenshin===true?'on':st.get(i.guildId).panelTestGenshin===false?'off':'pending';
-  if(i.message?.flags?.has(MessageFlags.IsComponentsV2))return i.update(render('audit',currentMode,i.guildId,n));
   return i.update(require('./managementAudit').view(i.guildId,n));
  }
  const testMode=st.get(i.guildId).panelTestGenshin;

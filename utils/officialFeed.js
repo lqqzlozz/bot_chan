@@ -12,9 +12,16 @@ async function follow(client,guild,channelId){
  const member=guild.members.me||await guild.members.fetchMe();
  if(!target.permissionsFor(member)?.has([PermissionFlagsBits.ViewChannel,PermissionFlagsBits.ManageWebhooks]))
   throw Error('BOTに受信先の「チャンネルを見る」と「ウェブフックの管理」が必要です');
- const hooks=await target.fetchWebhooks();
- const exists=hooks.some(h=>h.type===2&&(h.sourceChannel?.id===source.id||h.sourceChannelId===source.id));
- if(exists)return {already:true};
+ // Check accessible text channels in the destination guild before creating another follower.
+ // If webhook listing is forbidden in a channel, do not assume it is unconfigured.
+ for(const c of guild.channels.cache.values()){
+  if(c.type!==ChannelType.GuildText)continue;
+  if(!c.permissionsFor(member)?.has(PermissionFlagsBits.ManageWebhooks))continue;
+  const hooks=await c.fetchWebhooks().catch(()=>null);
+  if(!hooks)continue;
+  if(hooks.some(h=>h.type===2&&(h.sourceChannel?.id===source.id||h.sourceChannelId===source.id)))
+   return {already:true,channelId:c.id};
+ }
  await source.addFollower(target.id,'公式お知らせの受信設定');
  return {already:false};
 }

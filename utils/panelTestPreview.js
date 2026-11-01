@@ -178,9 +178,8 @@ function render(page='home',mode='pending',guildId=null) {
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**今週のVC集計**\n通話回数：'+(v?.calls||0)+'回\n累計通話時間：'+Math.round((v?.total||0)/360)/10+'時間\n\n-# BOTが記録したデータのみ表示しています。'));
   }else if(page==='inon'){
    const d=st.get(guildId),s=d.inactive||{},cfg=d.inactiveSettings||{};
-   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-    '**現在の状態：'+(s.enabled?'ON':'OFF')+'**\\n判定期間：'+(d.inactiveMonths||s.months||3)+'か月\\n対象ロール：'+(cfg.role||s.role?'<@&'+(cfg.role||s.role)+'>':'未設定')+'\\n除外ロール：'+(cfg.exclude||s.exclude?'<@&'+(cfg.exclude||s.exclude)+'>':'なし')+'\\n管理ログ：<#'+(s.log||'未設定')+'>\\n\\n-# ONにすると活動記録を開始します。指定期間に活動がない人にDMを送り、7日間反応がない場合はキックされる機能です。停止すると監視を止め、解除済みロールの復元を試みます。'
-   ));
+   const lines=['**現在の状態：'+(s.enabled?'ON':'OFF')+'**','判定期間：'+(d.inactiveMonths||s.months||3)+'か月','対象ロール：'+(cfg.role||s.role?'<@&'+(cfg.role||s.role)+'>':'未設定'),'除外ロール：'+(cfg.exclude||s.exclude?'<@&'+(cfg.exclude||s.exclude)+'>':'なし'),'管理ログ：'+(s.log?'<#'+s.log+'>':'#bot-config（有効化時に設定）'),'','-# 有効化すると活動記録を開始します。指定期間の無活動後に警告DMを送り、7日間反応がない場合は自動キックします。停止すると監視を止め、外したロールの復元を試みます。'];
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(lines.join('\n')));
    container.addActionRowComponents(row(button('inactive_on','有効化する',ButtonStyle.Success),button('inactive_off','停止する',ButtonStyle.Danger)));
   }else if(page==='inmonths'){
    const d=st.get(guildId);

@@ -35,12 +35,12 @@ async function record(guild,user,before){
 function view(guildId,page=0){
  const rows=(st.get(guildId).managementLog||[]).slice().reverse();
  const total=rows.length,index=Math.max(0,Math.min(Number(page)||0,Math.max(0,total-1)));
- if(!total)return {content:'## 📋 管理ログ\\nまだ設定変更の履歴はありません。',components:[],allowedMentions:{parse:[]}};
+ if(!total)return {content:'## 📋 管理ログ\nまだ設定変更の履歴はありません。',components:[],allowedMentions:{parse:[]}};
  const entry=rows[index];
  const button=(key,label,disabled)=>new ButtonBuilder().setCustomId('pt_audit_'+key+'_'+index).setLabel(label).setStyle(ButtonStyle.Secondary).setDisabled(disabled);
- return {content:'## 📋 管理ログ\\n**'+(index+1)+' / '+total+'**\\n\\n日時：<t:'+Math.floor(entry.at/1000)+':F>\\n操作：<@'+entry.by+'>\\n変更：'+entry.action+'\\n\\n-# 最新のログから1件ずつ表示',components:[new ActionRowBuilder().addComponents(button('prev','← 新しいログ',index===0),button('next','古いログ →',index===total-1))],allowedMentions:{parse:[]}};
+ return {content:'## 📋 管理ログ\n**'+(index+1)+' / '+total+'**\n\n日時：<t:'+Math.floor(entry.at/1000)+':F>\n操作：<@'+entry.by+'>\n変更：'+entry.action+'\n\n-# 最新のログから1件ずつ表示',components:[new ActionRowBuilder().addComponents(button('prev','← 新しいログ',index===0),button('next','古いログ →',index===total-1))],allowedMentions:{parse:[]}};
 }
-function summary(guildId,page=0){return view(guildId,page).content.replace(/^## 📋 管理ログ\\n/,'');}
+function summary(guildId,page=0){return view(guildId,page).content.replace(/^## 📋 管理ログ\n/,'');}
 async function publish(guild){
  const ch=st.findCh(guild);if(!ch)return;
  const me=guild.members.me||await guild.members.fetchMe();

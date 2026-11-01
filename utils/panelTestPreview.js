@@ -150,6 +150,12 @@ function render(page='home',mode='pending',guildId=null,auditPage=0,graph=false)
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**VC参加通知：'+(d.vcOff?'OFF':'ON')+'**\n現在の通知先：'+(d.vc?'<#'+d.vc+'>':'未設定')+'\n\n通知先を変更すると、VCランキングでも同じ投稿先を使用します。'));
    container.addActionRowComponents(row(button('vc_on','ON',ButtonStyle.Success).setDisabled(!d.vcOff),button('vc_off','OFF',ButtonStyle.Secondary).setDisabled(!!d.vcOff)));
    container.addActionRowComponents(row(new ChannelSelectMenuBuilder().setCustomId(ROOT+'vc_select').setPlaceholder('VC通知先チャンネルを選択').addChannelTypes(ChannelType.GuildText)));
+   const schedule=d.vcMentionSchedule||{};
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**時間帯別メンション（日本時間）**\n時間帯①：'+(schedule.start||'未設定')+'〜'+(schedule.end||'未設定')+'　'+(schedule.primaryRole?'<@&'+schedule.primaryRole+'>':'メンションなし')+'\nそれ以外：'+(schedule.secondaryRole?'<@&'+schedule.secondaryRole+'>':'メンションなし')+'\n-# 開始時刻を含み終了時刻は含みません。日付をまたぐ指定も可能です。'));
+   container.addActionRowComponents(row(button('vc_schedule_time','時間帯を設定',ButtonStyle.Primary),button('vc_schedule_clear','時間帯を無効化',ButtonStyle.Secondary)));
+   container.addActionRowComponents(row(new RoleSelectMenuBuilder().setCustomId(ROOT+'vc_schedule_primary').setPlaceholder('時間帯①のメンションロール').setMinValues(1).setMaxValues(1)));
+   container.addActionRowComponents(row(new RoleSelectMenuBuilder().setCustomId(ROOT+'vc_schedule_secondary').setPlaceholder('それ以外のメンションロール').setMinValues(1).setMaxValues(1)));
+   container.addActionRowComponents(row(button('vc_role_primary_clear','時間帯①：なし'),button('vc_role_secondary_clear','それ以外：なし')));
   }else if(page==='alarm'){
    const alarms=(st.get(guildId).alarms||[]);
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**毎日のアラーム**\\n'+(alarms.length?alarms.slice(0,25).map((a,n)=>(n+1)+'. '+a.time+'　<#'+a.ch+'>　'+a.msg.replace(/\\s+/g,' ').slice(0,70)).join('\\n'):'登録なし')));
@@ -660,6 +666,33 @@ async function handleCore(i){
   }
   await i.update(render('ranking',mode,i.guildId));
   return true;
+ }
+ if(id==='vc_schedule_time'){
+  const modal=new ModalBuilder().setCustomId(ROOT+'vc_schedule_save').setTitle('VCメンションの時間帯');
+  const current=st.get(i.guildId).vcMentionSchedule||{};
+  modal.addLabelComponents(
+   new LabelBuilder().setLabel('開始時刻（HH:mm）').setTextInputComponent(new TextInputBuilder().setCustomId('start').setStyle(TextInputStyle.Short).setRequired(true).setValue(current.start||'08:00')),
+   new LabelBuilder().setLabel('終了時刻（HH:mm）').setTextInputComponent(new TextInputBuilder().setCustomId('end').setStyle(TextInputStyle.Short).setRequired(true).setValue(current.end||'18:00'))
+  );
+  return i.showModal(modal);
+ }
+ if(['vc_schedule_save','vc_schedule_clear','vc_schedule_primary','vc_schedule_secondary','vc_role_primary_clear','vc_role_secondary_clear'].includes(id)){
+  const d=st.get(i.guildId),old=d.vcMentionSchedule;
+  const next={...(old||{})};
+  if(id==='vc_schedule_save'){
+   const a=i.fields.getTextInputValue('start').trim(),b=i.fields.getTextInputValue('end').trim();
+   const valid=require('./vcMentionSchedule').minute;
+   if(valid(a)===null||valid(b)===null||a===b)return i.reply({content:'時刻は08:00の形式で、開始と終了を異なる時刻にしてください。',flags:MessageFlags.Ephemeral});
+   next.start=a;next.end=b;
+  }else if(id==='vc_schedule_clear'){d.vcMentionSchedule=null;}
+  else if(id==='vc_schedule_primary')next.primaryRole=i.values?.[0]||null;
+  else if(id==='vc_schedule_secondary')next.secondaryRole=i.values?.[0]||null;
+  else if(id==='vc_role_primary_clear')next.primaryRole=null;
+  else if(id==='vc_role_secondary_clear')next.secondaryRole=null;
+  if(id!=='vc_schedule_clear')d.vcMentionSchedule=next;
+  if(!await st.save(i.guild)){d.vcMentionSchedule=old;return i.reply({content:'設定の保存に失敗しました。',flags:MessageFlags.Ephemeral});}
+  if(id==='vc_schedule_save')return i.reply({content:'時間帯を保存しました：'+next.start+'〜'+next.end+'（日本時間）',flags:MessageFlags.Ephemeral});
+  return i.update(render('vc',mode,i.guildId));
  }
  if(id==='vc_on'||id==='vc_off'){
   const data=st.get(i.guildId),old=data.vcOff;

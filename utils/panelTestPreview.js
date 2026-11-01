@@ -165,11 +165,13 @@ function render(page='home',mode='pending',guildId=null,auditPage=0,graph=false)
    container.addActionRowComponents(row(button('vc_on','ON',ButtonStyle.Success).setDisabled(!d.vcOff),button('vc_off','OFF',ButtonStyle.Secondary).setDisabled(!!d.vcOff)));
    container.addActionRowComponents(row(new ChannelSelectMenuBuilder().setCustomId(ROOT+'vc_select').setPlaceholder('VC通知先チャンネルを選択').addChannelTypes(ChannelType.GuildText)));
    const schedule=d.vcMentionSchedule||{};
-   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**時間帯別メンション（日本時間）**\n時間帯①：'+(schedule.start||'未設定')+'〜'+(schedule.end||'未設定')+'　'+(schedule.primaryRole?'<@&'+schedule.primaryRole+'>':'メンションなし')+'\nそれ以外：'+(schedule.secondaryRole?'<@&'+schedule.secondaryRole+'>':'メンションなし')+'\n-# 開始時刻を含み終了時刻は含みません。日付をまたぐ指定も可能です。'));
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**時間帯別メンション（日本時間）**\\n① '+(schedule.start||'未設定')+'〜'+(schedule.end||'未設定')+'：'+(schedule.primaryRole?'<@&'+schedule.primaryRole+'>':'なし')+'\\n② ①以外の時間帯：'+(schedule.secondaryRole?'<@&'+schedule.secondaryRole+'>':'なし')));
    container.addActionRowComponents(row(button('vc_schedule_time','時間帯を設定',ButtonStyle.Primary),button('vc_schedule_clear','時間帯を無効化',ButtonStyle.Secondary)));
-   container.addActionRowComponents(row(new RoleSelectMenuBuilder().setCustomId(ROOT+'vc_schedule_primary').setPlaceholder('時間帯①のメンションロール').setMinValues(1).setMaxValues(1)));
-   container.addActionRowComponents(row(new RoleSelectMenuBuilder().setCustomId(ROOT+'vc_schedule_secondary').setPlaceholder('それ以外のメンションロール').setMinValues(1).setMaxValues(1)));
-   container.addActionRowComponents(row(button('vc_role_primary_clear','時間帯①：なし'),button('vc_role_secondary_clear','それ以外：なし')));
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**①の時間帯にメンションを行うロールを指定**'));
+   container.addActionRowComponents(row(new RoleSelectMenuBuilder().setCustomId(ROOT+'vc_schedule_primary').setPlaceholder('① メンションするロールを選択').setMinValues(1).setMaxValues(1)));
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**②の時間帯にメンションを行うロールを指定**'));
+   container.addActionRowComponents(row(new RoleSelectMenuBuilder().setCustomId(ROOT+'vc_schedule_secondary').setPlaceholder('② メンションするロールを選択').setMinValues(1).setMaxValues(1)));
+   container.addActionRowComponents(row(button('vc_role_primary_clear','①ロールを解除',ButtonStyle.Danger).setDisabled(!schedule.primaryRole),button('vc_role_secondary_clear','②ロールを解除',ButtonStyle.Danger).setDisabled(!schedule.secondaryRole)));
   }else if(page==='alarm'){
    const alarms=(st.get(guildId).alarms||[]);
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**毎日のアラーム**\\n'+(alarms.length?alarms.slice(0,25).map((a,n)=>(n+1)+'. '+a.time+'　<#'+a.ch+'>　'+a.msg.replace(/\\s+/g,' ').slice(0,70)).join('\\n'):'登録なし')));

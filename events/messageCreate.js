@@ -85,7 +85,7 @@ module.exports = {
       if (old) await old.delete().catch(() => null);
 
       // 元メッセージが見つからない時(再起動直後とか)はtextから作り直す
-      let emb = old?.embeds.map(e => files[0] ? EmbedBuilder.from(e).setImage(`attachment://${files[0].name}`) : e);
+      let emb = old?.embeds.map((e,n) => files[n] ? EmbedBuilder.from(e).setImage(`attachment://${files[n].name}`) : e);
       let cmp = old?.components;
       if (!old) {
         emb = [new EmbedBuilder().setColor('#5865F2').setDescription(sk.text)];

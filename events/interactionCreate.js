@@ -33,6 +33,12 @@ module.exports = {
       return;
     }
 
+    if (interaction.isButton() && interaction.customId?.startsWith('ik_')) {
+      try { await inactive.handleApproval(interaction); }
+      catch(e){console.error('管理者キック承認エラー:',e);if(!interaction.deferred&&!interaction.replied)await interaction.reply({content:'操作できませんでした。',ephemeral:true}).catch(()=>null);}
+      return;
+    }
+
     if (interaction.isButton() && interaction.customId?.startsWith('ia_')) {
       try { await inactive.handleButton(interaction, client); } catch (e) {
         console.error('参加意思確認エラー:', e);

@@ -239,7 +239,7 @@ async function handleCore(i){
  if(id.startsWith('audit_prev_')||id.startsWith('audit_next_')){
   const direction=id.startsWith('audit_prev_')?-1:1;
   const n=Math.max(0,Math.min((st.get(i.guildId).managementLog||[]).length-1,(Number(id.split('_').at(-1))||0)+direction));
-  if(i.message?.flags?.has(MessageFlags.IsComponentsV2))return i.update(render('audit',mode,i.guildId,n));
+  const currentMode=isGI(i.guildId)||st.get(i.guildId).panelTestGenshin===true?'on':st.get(i.guildId).panelTestGenshin===false?'off':'pending';
   return i.update(require('./managementAudit').view(i.guildId,n));
  }
  const testMode=st.get(i.guildId).panelTestGenshin;
@@ -520,7 +520,7 @@ async function handleCore(i){
    d.inactiveSettings=old;
    return i.reply({content:'設定の保存に失敗しました。',flags:MessageFlags.Ephemeral});
   }
-  await i.update(render(field==='role'?'inrole':'inexclude',mode,i.guildId));
+  await i.update(render('inactive',mode,i.guildId));
   return true;
  }
  if(id==='months'){
@@ -535,7 +535,7 @@ async function handleCore(i){
    if(d.inactive)d.inactive.months=oldNested;
    return i.reply({content:'保存できませんでした。変更を取り消しました。',flags:MessageFlags.Ephemeral});
   }
-  await i.update(render('inmonths',mode,i.guildId));
+  await i.update(render('inactive',mode,i.guildId));
   return true;
  }
  if(id==='ranking_on'||id==='ranking_off'){

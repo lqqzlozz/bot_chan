@@ -165,7 +165,8 @@ function render(page='home',mode='pending',guildId=null) {
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('このサーバーで原神機能を有効化します。\n-# 設定は保存されます。'));
    container.addActionRowComponents(row(button('enable_genshin','原神設定を表示',ButtonStyle.Success)));
   }else if(page==='audit'){
-   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(require('./managementAudit').summary(guildId,15)));
+   container.addTextDisplayComponents(new TextDisplayBuilder().setContent(require('./managementAudit').summary(guildId,0)));
+   container.addActionRowComponents(row(button('audit_prev_0','← 新しいログ',ButtonStyle.Secondary).setDisabled(true),button('audit_next_0','古いログ →',ButtonStyle.Secondary).setDisabled((st.get(guildId).managementLog||[]).length<2)));
   }else if(page==='contact'){
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('不具合報告・デバッグの相談・機能のご要望などを制作者へ送信します。\n-# BOT管理用の #bot-config に非公開スレッドを作成し、管理者に通知します。'));
    container.addActionRowComponents(row(button('contact_write','お問い合わせを作成',ButtonStyle.Primary)));
@@ -233,6 +234,12 @@ async function handleCore(i){
   await i.reply({content:'この操作は #bot-config でサーバー管理者のみ実行できます。',flags:MessageFlags.Ephemeral});return true;
  }
  const id=i.customId.slice(ROOT.length);
+ if(id.startsWith('audit_prev_')||id.startsWith('audit_next_')){
+  const direction=id.startsWith('audit_prev_')?-1:1;
+  const n=Math.max(0,Math.min((st.get(i.guildId).managementLog||[]).length-1,(Number(id.split('_').at(-1))||0)+direction));
+  if(i.message?.components?.some(x=>JSON.stringify(x.toJSON?.()||x).includes('pt_pick'))){return i.update(render('audit',mode,i.guildId));}
+  return i.update(require('./managementAudit').view(i.guildId,n));
+ }
  const testMode=st.get(i.guildId).panelTestGenshin;
  const mode=isGI(i.guildId)||testMode===true?'on':testMode===false?'off':'pending';
  if(id==='ann_pick_channel'){

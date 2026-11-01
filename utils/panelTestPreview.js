@@ -185,7 +185,7 @@ function render(page='home',mode='pending',guildId=null) {
     '\n\n**ギフトコード**\n-# '+ch(d.giftP?.ch)
    ));
   }
-  const next=page==='other'?(guildId===testGuild?[['broadcast','📣 一斉配信','各サーバーの管理者向けに送信'],['official','📢 公式お知らせ','受信設定']]:[['official','📢 公式お知らせ','メインサーバーの #log を受信']]):page==='notifications'?[['vc','🔊 VC参加通知','参加通知を送るチャンネル'],['ranking','🏆 VCランキング','ランキングのON/OFF・投稿先'],['bump','🔔 Bump通知','通知先・リマインド設定']]:
+  const next=page==='other'?(guildId===testGuild?[['broadcast','📣 一斉配信','各サーバーの管理者向けに送信']]:[['official','📢 公式お知らせ','メインサーバーの #log を受信']]):page==='notifications'?[['vc','🔊 VC参加通知','参加通知を送るチャンネル'],['ranking','🏆 VCランキング','ランキングのON/OFF・投稿先'],['bump','🔔 Bump通知','通知先・リマインド設定']]:
     page==='genshin'?[['gnews','原神のお知らせ','表示先と通知ロール'],['uid','UID登録','登録先と任意の付与ロール'],['build','ビルドカード','パネルの表示先'],['gift','ギフトコード','表示先']]:
     page==='announce'?[]:
     page==='inactive'?[['inmonths','判定期間','1〜12か月'],['inrole','対象ロール','管理対象を指定'],['inexclude','除外ロール','対象外にするロール'],['inon','有効化・停止','7日間の確認猶予']]:
@@ -299,6 +299,7 @@ async function handle(i){
   return true;
  }
  if(id==='official_channel'||id==='official_on'||id==='official_off'){
+  if(i.guildId===testGuild)return i.reply({content:'メインサーバーは配信元のため、受信設定は利用できません。',flags:MessageFlags.Ephemeral});
   const data=st.get(i.guildId),old=data.officialFeed?{...data.officialFeed}:undefined;
   const next={enabled:old?.enabled||false,channelId:old?.channelId||null};
   if(id==='official_channel'){next.channelId=i.values?.[0]||null;next.enabled=true;}

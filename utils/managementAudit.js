@@ -82,7 +82,7 @@ function view(guildId,page=0){
    '**'+(index+1)+' / '+total+'**　<@'+entry.by+'>　<t:'+at+':f>\n'+detail(entry)
   ));
   const button=(key,label,disabled)=>new ButtonBuilder().setCustomId('pt_audit_'+key+'_'+index).setLabel(label).setStyle(ButtonStyle.Secondary).setDisabled(disabled);
-  box.addActionRowComponents(new ActionRowBuilder().addComponents(button('prev','最新へ →',index===0),button('next','← 過去へ',index===total-1)));
+  box.addActionRowComponents(new ActionRowBuilder().addComponents(button('next','← PREV（過去）',index===total-1),button('prev','NEXT（最新）→',index===0)));
  }
  return {content:null,components:[box],flags:MessageFlags.IsComponentsV2,allowedMentions:{parse:[]}};
 }

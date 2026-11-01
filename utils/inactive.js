@@ -25,7 +25,7 @@ async function restore(member, u, id) {
 async function restoreSuspended(guild, s) {
   let failed = 0;
   for(const u of Object.values(s.users||{})){
-   if(u.approvalMessage)await st.findCh(guild)?.messages.delete(u.approvalMessage).catch(()=>null);
+   if(u.approvalMessage)await (guild.channels.cache.get(s.approvalChannelId)||st.findCh(guild))?.messages.delete(u.approvalMessage).catch(()=>null);
    delete u.approvalMessage;delete u.approvalToken;
   }
   for (const [id, u] of Object.entries(s.users)) {
@@ -47,10 +47,17 @@ function buttons(gid, uid, token, confirm = false) {
 }
 
 function warning(guild, member, u) {
-  return {
-    embeds: [new EmbedBuilder().setColor('#BA7517').setTitle(`${guild.name}：参加意思の確認`).setDescription(`${u.warningMonths || 3}か月間、発言・VC参加を確認できていません。\n**参加を続ける**：管理者への確認予定を取り消し、押した日から${u.warningMonths || 3}か月を数え直します。\n**退出する**：確認画面を出し、確定後にキックします。\n発言・VC参加でも管理者への確認予定は取り消されます。\n操作も活動もない場合、<t:${Math.floor((u.warningAt + GRACE) / 1000)}:F>以降にサーバー管理者へ確認を依頼します。管理者の承認なしに自動でキックされることはありません。\nボタンの選択結果はサーバーの管理者用ログに記録されます。\nBotが閲覧できない場所での活動は確認できません。`).addFields(u.warningRole ? [{ name: "指定ロール", value: `<@&${u.warningRole}> を持っている場合は警告時に外します。「参加を続ける」で、元々持っていなくても付与します。` }] : [])],
-    components: buttons(guild.id, member.id, u.warningToken), allowedMentions: { parse: [] },
-  };
+ const months=u.warningMonths||3;
+ return {
+  embeds:[new EmbedBuilder().setColor('#BA7517').setTitle(guild.name+'：参加意思の確認').setDescription(
+   months+'か月間、発言・VC参加を確認できていません。\n当サーバーは一定の期間活動されない方を整理していく方針です。\n\n'+
+   '**参加を続ける**：参加継続の意思があるとみなします。今後の活動を楽しみにしています！\n'+
+   '**退出する**：確認画面を出し、確定後にキックします。\n\n'+
+   '発言・VC参加でもキックの確認予定は解除されます。\n\n'+
+   'このメッセージに反応がない場合、7日後にサーバー管理者へキックの確認通知が届きます。**管理者の承認なしに自動キックされることはありません。**'
+  )],
+  components:buttons(guild.id,member.id,u.warningToken),allowedMentions:{parse:[]}
+ };
 }
 
 // 月末は移動先の月末に丸める。日時は日本時間で扱う。
@@ -180,7 +187,7 @@ async function sweep(guild, now = Date.now()) {
       if (!eligible(m, s, now)) {
         if (s.users[m.id]) {
           if (s.users[m.id].suspendedRole) s.users[m.id].restoreRole = s.users[m.id].suspendedRole;
-          if(s.users[m.id].approvalMessage)st.findCh(guild)?.messages.delete(s.users[m.id].approvalMessage).catch(()=>null);
+          if(s.users[m.id].approvalMessage)(guild.channels.cache.get(s.approvalChannelId)||st.findCh(guild))?.messages.delete(s.users[m.id].approvalMessage).catch(()=>null);
           delete s.users[m.id].approvalMessage;delete s.users[m.id].approvalToken;
           clearWarning(s.users[m.id]);
         }
@@ -199,7 +206,7 @@ async function sweep(guild, now = Date.now()) {
       if (!await persist(guild, s)) return;
       if (!s.enabled || locked(guild.id, m.id) || !u.warningAt || !eligible(fresh, s, Date.now())) continue;
       if (!u.approvalToken) {
-        const channel = st.findCh(guild);
+        const channel = guild.channels.cache.get(s.approvalChannelId)||st.findCh(guild);
         if (!channel) continue;
         const token = randomBytes(8).toString('hex');
         u.approvalToken = token;

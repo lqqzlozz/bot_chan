@@ -7,7 +7,7 @@ const running = new Set(), flush = new Map();
 const buttonLocks = new Set();
 const locked = (gid, uid) => buttonLocks.has(`${gid}:${uid}`);
 function clearWarning(u) {
-  for (const key of ['warningAt', 'warningToken', 'warningJoinedAt', 'warningRole', 'confirmToken', 'confirmUntil', 'dmFailedAt']) delete u[key];
+  for (const key of ['warningAt', 'warningToken', 'warningJoinedAt', 'warningMonths', 'warningRole', 'confirmToken', 'confirmUntil', 'dmFailedAt']) delete u[key];
 }
 
 async function managedRole(guild, id) {
@@ -144,7 +144,7 @@ async function sweep(guild, now = Date.now()) {
     if (now - s.seenAt > 15 * 60000) {
       s.since = now;
       for (const u of Object.values(s.users)) { if (u.suspendedRole) u.restoreRole = u.suspendedRole; clearWarning(u); }
-      await log(guild, s, 'Botが15分以上活動を確認できなかったため、判定期間を今日から${s.months || 3}か月にリセットしました。');
+      await log(guild, s, `BOTが15分以上活動を確認できなかったため、判定期間を今日から${s.months || 3}か月にリセットしました。`);
     }
     s.seenAt = now;
     if (!await persist(guild, s)) return;
@@ -194,7 +194,7 @@ async function sweep(guild, now = Date.now()) {
       // ログ送信待ち中の活動も確認する。
       if (!s.enabled || locked(guild.id, m.id) || !u.warningAt || !eligible(fresh, s, Date.now())) continue;
       try {
-        await fresh.kick('${s.months || 3}か月発言・VC参加なし。警告DM送信後7日間活動なし。');
+        await fresh.kick(`${s.months || 3}か月発言・VC参加なし。警告DM送信後7日間活動なし。`);
         delete s.users[m.id];
         await log(guild, s, `<@${m.id}> をキックしました。`);
       } catch (e) { await log(guild, s, `<@${m.id}> のキックに失敗しました：${e.message.slice(0, 200)}`); }

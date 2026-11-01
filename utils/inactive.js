@@ -50,10 +50,10 @@ function warning(guild, member, u) {
  const months=u.warningMonths||3;
  return {
   embeds:[new EmbedBuilder().setColor('#BA7517').setTitle(guild.name+'：参加意思の確認').setDescription(
-   months+'か月間、発言・VC参加を確認できていません。\\n当サーバーは一定の期間活動されない方を整理していく方針です。\\n\\n'+
-   '**参加を続ける**：参加継続の意思があるとみなします。今後の活動を楽しみにしています！\\n'+
-   '**退出する**：確認画面を出し、確定後にキックします。\\n\\n'+
-   '発言・VC参加でもキックの確認予定は解除されます。\\n\\n'+
+   months+'か月間、発言・VC参加を確認できていません。\n当サーバーは一定の期間活動されない方を整理していく方針です。\n\n'+
+   '**参加を続ける**：参加継続の意思があるとみなします。今後の活動を楽しみにしています！\n'+
+   '**退出する**：確認画面を出し、確定後にキックします。\n\n'+
+   '発言・VC参加でもキックの確認予定は解除されます。\n\n'+
    'このメッセージに反応がない場合、7日後にサーバー管理者へキックの確認通知が届きます。**管理者の承認なしに自動キックされることはありません。**'
   )],
   components:buttons(guild.id,member.id,u.warningToken),allowedMentions:{parse:[]}

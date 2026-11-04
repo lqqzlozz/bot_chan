@@ -7,7 +7,28 @@ const art = require('./artifact');
 const { isGI } = require('./gi');
 const sessions = new Map();
 const locks = new Set();
-const TTL = 14 * 60 * 1000;
+const TTL = 5 * 60 * 1000;
+const DELETE_PREFIX = 'bc_delete_';
+const deleteControl = user => row(button(`${DELETE_PREFIX}${user}`, '🗑️', ButtonStyle.Danger));
+const finishedControls = s => s.embed && s.score && !s.list.find(a => String(a.avatarId) === s.aid)?.lim ? [links(s.uid)] : [];
+const enkaError = err => {
+  if (err === 429) return '【E003】Enka.Networkへのアクセスが集中しています。時間をおいて再度お試しください。';
+  if ([500, 502, 503, 504].includes(err)) return '【E002】Enka.Networkがメンテナンス中、または一時的に利用できません。時間をおいて再度お試しください。';
+  if (err === 404 || err === 400) return '【E004】UIDまたはプロフィール情報を確認できません。UIDと公開設定をご確認ください。';
+  if (err === 0 || err === 5030) return '【E001】Enka.Networkに接続できません。通信状態を確認し、時間をおいて再度お試しください。';
+  return '【E999】予期しないエラーが発生しました。時間をおいて再度お試しください。';
+};
+async function finishSession(s) {
+  if (s.busy || s.finished || !s.messageId) return;
+  s.finished = true;
+  try {
+    const ch = await s.client.channels.fetch(s.channel);
+    const msg = await ch.messages.fetch(s.messageId);
+    await msg.edit({ components: finishedControls(s) });
+  } catch (e) { console.error('ビルドカード自動終了に失敗:', e.message); }
+  sessions.delete(s.id);
+}
+
 const box = t => new EmbedBuilder().setColor('#8A8A8A').setDescription(t);
 const button = (id, label, style = ButtonStyle.Secondary) => new ButtonBuilder().setCustomId(id).setLabel(label).setStyle(style);
 const row = (...items) => new ActionRowBuilder().addComponents(...items);
@@ -59,6 +80,7 @@ function controls(s) {
   const rows = [row(menu)];
   if (s.score) rows.push(row(new StringSelectMenuBuilder().setCustomId(`bc_base_${s.id}`).setPlaceholder(t('criterion')).addOptions(Object.entries(art.BASES).map(([value, b]) => ({ label: i18n.basis(s.locale,value), value, default: value === s.base })))));
   rows.push(row(button(`bc_on_${s.id}`, t('scoreOn'), s.score ? ButtonStyle.Primary : ButtonStyle.Secondary), button(`bc_off_${s.id}`, t('scoreOff'), s.score ? ButtonStyle.Secondary : ButtonStyle.Primary), button(`bc_end_${s.id}`, t('finish'))));
+  rows.push(deleteControl(s.user));
   if (s.score && s.aid && !s.list.find(a => String(a.avatarId) === s.aid)?.lim) rows.push(links(s.uid));
   return rows;
 }
@@ -84,20 +106,30 @@ async function refresh(i, s) {
 async function handle(i) {
   if (!isGI(i.guildId)) return i.reply({ content: i18n.t(i.locale,'notAllowed'), ephemeral: true });
   // 放置した画面の画像バッファは解放する。
-  for (const [id, s] of sessions) if (Date.now() - s.at > TTL) sessions.delete(id);
+  for (const s of sessions.values()) if (Date.now() - s.at >= TTL) void finishSession(s);
   if (i.customId.startsWith('bc_open_')) {
     const uid = st.get(i.guildId).intro?.[i.user.id]?.uid;
     if (!uid) return i.reply({ content: i18n.t(i.locale,'noUid'), ephemeral: true });
     await i.deferReply();
-    const { p, raw } = await en.player(uid);
-    if (!p) return i.editReply(i18n.t(i.locale,'badUid'));
+    let result;
+    try { result = await en.player(uid); }
+    catch (e) { console.error('Enka API error:', e); return i.editReply('⚠️ '+enkaError(0)); }
+    const { p, raw, err } = result;
+    if (!p) return i.editReply('⚠️ '+enkaError(err));
     const list = raw?.length ? raw : (p.showAvatarInfoList || []).map(a => ({ ...a, lim: true }));
-    if (!list.length) return i.editReply(i18n.t(i.locale,'noCharacters'));
+    if (!list.length) return i.editReply('⚠️ 【E005】キャラクター情報を取得できません。ゲーム内プロフィールでキャラクターを公開しているかご確認ください。');
     for (const [id, old] of sessions) if (old.user === i.user.id && old.channel === i.channelId) sessions.delete(id);
     const s = { id: randomBytes(8).toString('hex'), user: i.user.id, name: i.member?.displayName || i.user.globalName || i.user.username, avatar: i.user.displayAvatarURL(), channel: i.channelId, guild: i.guildId, uid, list, names: await en.names(), score: i.customId.endsWith('score'), locale: i.locale || 'ja', base: null, aid: null, at: Date.now() };
     sessions.set(s.id, s);
+    s.client = i.client;
     await refresh(i, s);
+    s.messageId = (await i.fetchReply()).id;
     return place(i.channel);
+  }
+  if (i.customId.startsWith(DELETE_PREFIX)) {
+    if (i.user.id !== i.customId.slice(DELETE_PREFIX.length)) return i.reply({ content: i18n.t(i.locale,'onlyOwner'), ephemeral: true });
+    for (const [id, s] of sessions) if (s.messageId === i.message.id) sessions.delete(id);
+    return i.message.delete().catch(() => i.reply({ content: 'メッセージを削除できませんでした。BOTの権限をご確認ください。', ephemeral: true }));
   }
   const [, action, id] = i.customId.split('_');
   const s = sessions.get(id);
@@ -108,7 +140,7 @@ async function handle(i) {
   try {
     await i.deferUpdate();
     s.at = Date.now();
-    if (action === 'end') { sessions.delete(id); return i.editReply({ components: s.embed && s.score && !s.list.find(a => String(a.avatarId) === s.aid)?.lim ? [links(s.uid)] : [], ...(s.embed ? { embeds: [s.embed] } : {}) }); }
+    if (action === 'end') { sessions.delete(id); return i.editReply({ components: finishedControls(s), ...(s.embed ? { embeds: [s.embed] } : {}) }); }
     if (action === 'char' && s.list.some(a => String(a.avatarId) === i.values[0])) s.aid = i.values[0];
     if (action === 'base' && art.BASES[i.values[0]]) s.base = i.values[0];
     if (action === 'toggle') s.score = !s.score;
@@ -118,6 +150,6 @@ async function handle(i) {
   } finally { s.busy = false; }
 }
 
-const cleanup = setInterval(() => { for (const [id, s] of sessions) if (Date.now() - s.at > TTL) sessions.delete(id); }, 60000);
+const cleanup = setInterval(() => { for (const s of sessions.values()) if (Date.now() - s.at >= TTL) void finishSession(s); }, 15000);
 cleanup.unref();
 module.exports = { start, handle, place, panel };

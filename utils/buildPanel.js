@@ -10,7 +10,14 @@ const locks = new Set();
 const TTL = 5 * 60 * 1000;
 const DELETE_PREFIX = 'bc_delete_';
 const deleteControl = user => row(button(`${DELETE_PREFIX}${user}`, '🗑️', ButtonStyle.Danger));
-const finishedControls = s => [...(s.embed && s.score && !s.list.find(a => String(a.avatarId) === s.aid)?.lim ? [links(s.uid)] : []), deleteControl(s.user)];
+const finishedControls = s => s.embed && s.score && !s.list.find(a => String(a.avatarId) === s.aid)?.lim ? [links(s.uid)] : [];
+const enkaError = err => {
+  if (err === 429) return '【E003】Enka.Networkへのアクセスが集中しています。時間をおいて再度お試しください。';
+  if ([500, 502, 503, 504].includes(err)) return '【E002】Enka.Networkがメンテナンス中、または一時的に利用できません。時間をおいて再度お試しください。';
+  if (err === 404 || err === 400) return '【E004】UIDまたはプロフィール情報を確認できません。UIDと公開設定をご確認ください。';
+  if (err === 0 || err === 5030) return '【E001】Enka.Networkに接続できません。通信状態を確認し、時間をおいて再度お試しください。';
+  return '【E999】予期しないエラーが発生しました。時間をおいて再度お試しください。';
+};
 async function finishSession(s) {
   if (s.busy || s.finished || !s.messageId) return;
   s.finished = true;
@@ -106,11 +113,11 @@ async function handle(i) {
     await i.deferReply();
     let result;
     try { result = await en.player(uid); }
-    catch (e) { console.error('Enka API error:', e); return i.editReply('⚠️ Enka.Networkに接続できません。時間をおいて再度お試しください。'); }
+    catch (e) { console.error('Enka API error:', e); return i.editReply('⚠️ '+enkaError(0)); }
     const { p, raw, err } = result;
-    if (!p) return i.editReply([429, 500, 502, 503, 504].includes(err) ? '⚠️ Enka.Networkが現在利用できないか、アクセスが集中しています。時間をおいて再度お試しください。' : err === 404 ? 'キャラクター情報を取得できませんでした。UIDやゲーム内プロフィールの公開設定をご確認ください。' : i18n.t(i.locale,'badUid'));
+    if (!p) return i.editReply('⚠️ '+enkaError(err));
     const list = raw?.length ? raw : (p.showAvatarInfoList || []).map(a => ({ ...a, lim: true }));
-    if (!list.length) return i.editReply(i18n.t(i.locale,'noCharacters'));
+    if (!list.length) return i.editReply('⚠️ 【E005】キャラクター情報を取得できません。ゲーム内プロフィールでキャラクターを公開しているかご確認ください。');
     for (const [id, old] of sessions) if (old.user === i.user.id && old.channel === i.channelId) sessions.delete(id);
     const s = { id: randomBytes(8).toString('hex'), user: i.user.id, name: i.member?.displayName || i.user.globalName || i.user.username, avatar: i.user.displayAvatarURL(), channel: i.channelId, guild: i.guildId, uid, list, names: await en.names(), score: i.customId.endsWith('score'), locale: i.locale || 'ja', base: null, aid: null, at: Date.now() };
     sessions.set(s.id, s);

@@ -141,7 +141,17 @@ async function retryPending(client) {
     for (const guild of client.guilds.cache.values()) {
       const d = st.get(guild.id);
       for (const [userId, entry] of Object.entries(d.intro || {})) {
-        if (!entry.pending || !entry.uid || !entry.msg || !entry.ch) continue;
+        if (!entry.uid || !entry.msg || !entry.ch) continue;
+        // Migrate older UID cards that were posted while Enka was unavailable.
+        if (entry.pending === undefined) {
+          try {
+            const ch = await client.channels.fetch(entry.ch);
+            const msg = await ch.messages.fetch(entry.msg);
+            entry.pending = !msg.embeds[0]?.fields?.some(field => field.name === '冒険ランク');
+          } catch { entry.pending = false; }
+          st.saveLater(guild);
+        }
+        if (!entry.pending) continue;
         if (entry.retryAfter && Date.now() < entry.retryAfter) continue;
         const result = await en.player(entry.uid).catch(() => ({ err: 503 }));
         if (!result.p) {

@@ -2,39 +2,29 @@ const { EmbedBuilder } = require('discord.js');
 
 function genshinGuide() {
   return new EmbedBuilder().setColor('#1D9E75').setTitle('原神サーバーの使い方').setDescription([
-    '**まず管理者が準備するもの**',
-    '`/intro role:登録者用ロール`：実行チャンネルにUID登録の案内を設置します。',
-    '`/build-card`：実行チャンネルにビルドカード作成の案内を設置します。',
-    '`/giftcord`：ギフトコード共有の案内を設置します。',
-    '`/setgenshinnews`：実行チャンネルを原神のお知らせ配信先に設定します。',
+    '**管理者の設定**',
+    '非公開の #bot-config にある管理パネルから、UID登録・ビルドカード・ギフトコード・原神のお知らせを設定できます。',
     '', '**メンバーの使い方**',
-    'UID登録の案内ボタンから、自分のUIDを登録してください。',
-    'ビルドカードの「作成:スコア表示ON／OFF」から、キャラクターと計算基準を選択できます。',
-    '`/artifact`：展示キャラの聖遺物を、計算基準・部位を選んで紹介します。',
-    '原神側で「キャラ詳細を表示」をONにすると、装備・ステータス・スコアを表示できます。',
+    'UID登録の案内ボタンからUIDを登録してください。',
+    'ビルドカードの案内からキャラクターと計算基準を選択できます。',
+    '`/artifact`：展示キャラクターの聖遺物を紹介できます。',
+    '装備・ステータス・スコアを表示するには、原神側で「キャラ詳細を表示」をONにしてください。',
     '', '**設定の保存**',
-    '`#bot-config` に保存します。削除・改名せず、Botの閲覧・送信・履歴閲覧・ファイル添付の権限を残してください。',
-    '再度 `/setgenshin` を実行すると、登録の再同期とこの案内の再表示ができます。',
+    '#bot-config は削除・改名せず、BOTの閲覧・送信・履歴閲覧・ファイル添付の権限を維持してください。',
   ].join('\n'));
 }
 
 function generalGuide() {
-  return new EmbedBuilder().setColor('#5865F2').setTitle('Botの使い方').setDescription([
-    '**初めて使う管理者へ**',
-    '導入時に非公開の `#bot-config` を自動作成します。削除・改名しないでください。',
-    '原神用に使うサーバーは `/setgenshin` で登録します。',
-    '', '**サーバー管理者用**',
-    '`/announce`・`/announce-off`：アナウンスの投稿・常駐解除',
-    '`/alarm`・`/alarm-off`：毎日のアラーム設定・解除',
-    '`/setvc`：VC参加通知の送信先を設定',
-    '`/vcrank on:True／False`：週間VCランキングのON／OFF',
-    '`/setbump here:True／False`：bump案内を設定。@here通知のON／OFFを選べます（初回の省略時はOFF）。DISBOARD本体の `/bump` はDISBOARDアプリのコマンドを使用してください。',
-    '`/inactive enable log:ログ先 role:指定ロール exclude:除外ロール`：3か月活動がなければ参加意思確認DMを送信。警告時に指定ロールを解除し、「参加を続ける」で指定ロールを必ず付与して期間リセット、「退出する」は再確認後にキック。操作も活動もなければ7日後に自動キック。最初はOFFです。',
-    '`/inactive role role:指定ロール`：期間をリセットせずロール設定。`/inactive check`：候補確認（キックしません）。`/inactive status`：設定確認。`/inactive disable`：停止。',
-    '', '**Bot管理者本人専用**',
-    '`/servers`：Botが参加している全サーバーの名前・IDを公開投稿',
-    '', '`/help`：この案内を表示。原神サーバーでは専用コマンドの使い方も表示します。',
-    '設定系コマンドは、そのサーバーの「管理者」権限を持つ人、またはBot管理者本人が使えます。',
+  return new EmbedBuilder().setColor('#5865F2').setTitle('BOTの使い方').setDescription([
+    '**サーバー管理者へ**',
+    'BOTの設定・通知・アナウンス・原神機能は、非公開の #bot-config に自動設置される管理パネルから操作してください。',
+    '', '**スラッシュコマンド**',
+    '`/help`：この案内を表示',
+    '`/artifact`：原神サーバーで聖遺物を紹介',
+    '`/entry`：対応サーバー専用の大会エントリー',
+    '`/servers`：BOT所有者専用のサーバー一覧',
+    '', '**設定の保存**',
+    '#bot-config は削除・改名しないでください。',
   ].join('\n'));
 }
 module.exports = { genshinGuide, generalGuide };

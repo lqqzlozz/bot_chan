@@ -63,10 +63,34 @@ async function submit(i) {
   const uid = en.cleanUid(i.fields.getTextInputValue('uid'));
   if (!uid) return oops(i, errMsg[400]);
 
-  const { p, av, raw, err } = await en.player(uid);
+  const { p, av, raw, err } = await en.player(uid).catch(() => ({ err: 503 }));
   // UIDの打ち間違いだけはやり直してもらう
   if (!p && (err === 400 || err === 404)) return oops(i, errMsg[err]);
 
+  const { e, files, components } = await makeCard({ uid, p, av, raw, displayName: i.member.displayName, avatarURL: i.user.displayAvatarURL() });
+
+  // 前のカードがあれば差し替え
+  const d = st.get(i.guildId);
+  if (!d.intro) d.intro = {};
+  const old = d.intro[i.user.id];
+  if (old) {
+    const ch = await i.client.channels.fetch(old.ch).catch(() => null);
+    if (ch) await ch.messages.delete(old.msg).catch(() => null);
+  }
+  const m = await i.channel.send({ content: `<@${i.user.id}> がUIDを登録しました`, allowedMentions: { parse: [] }, embeds: [e], components, files });
+  d.intro[i.user.id] = { ch: i.channelId, msg: m.id, uid, pending: !p && retryable(err) };
+  st.saveLater(i.guild, 3000);
+
+  // A role is optional: UID registration must succeed without any role assignment.
+  const role = roleId && roleId !== 'none' ? await i.guild.roles.fetch(roleId).catch(() => null) : null;
+  const ok = role ? await i.member.roles.add(role).then(() => true).catch(() => false) : true;
+  if (!ok) await oops(i, 'ロールが付けられなかったので、管理者に連絡してね。');
+
+  await bump(i.channel);
+}
+
+
+async function makeCard({ uid, p, av, raw, displayName, avatarURL }) {
   const e = new EmbedBuilder()
     .setColor(COLOR)
     .setFooter({ text: `UID ${uid}` });
@@ -74,8 +98,8 @@ async function submit(i) {
 
   if (p) {
     await en.names();
-    const icon = en.pfpIcon(p.profilePicture) || i.user.displayAvatarURL();
-    e.setAuthor({ name: `${i.member.displayName} さんの自己紹介`, iconURL: icon })
+    const icon = en.pfpIcon(p.profilePicture) || avatarURL;
+    e.setAuthor({ name: `${displayName} さんの自己紹介`, iconURL: icon })
       .addFields(
         { name: '冒険ランク', value: String(p.level ?? '-'), inline: true },
         { name: '世界ランク', value: String(p.worldLevel ?? '-'), inline: true },
@@ -83,7 +107,7 @@ async function submit(i) {
       );
     // 名前は見出しで大きく（タイトルは文字サイズ変えられないので）
     const sg = p.signature?.trim();
-    e.setDescription(`## ${p.nickname?.trim() || i.member.displayName}` + (sg ? `\n「${sg}」` : ''));
+    e.setDescription(`## ${p.nickname?.trim() || displayName}` + (sg ? `\n「${sg}」` : ''));
 
     const sh = p.showAvatarInfoList || [];
     if (sh.length) {
@@ -95,8 +119,8 @@ async function submit(i) {
     }
   } else {
     // 取れなかった時は最低限で
-    e.setAuthor({ name: `${i.member.displayName} さんの自己紹介`, iconURL: i.user.displayAvatarURL() })
-      .setDescription(`## ${i.member.displayName}`);
+    e.setAuthor({ name: `${displayName} さんの自己紹介`, iconURL: avatarURL })
+      .setDescription(`## ${displayName}`);
   }
 
   const components = raw?.length ? [new ActionRowBuilder().addComponents(
@@ -104,24 +128,61 @@ async function submit(i) {
     new ButtonBuilder().setLabel('Akasha').setStyle(ButtonStyle.Link).setURL(`https://akasha.cv/profile/${uid}`)
   )] : [];
 
-  // 前のカードがあれば差し替え
-  const d = st.get(i.guildId);
-  if (!d.intro) d.intro = {};
-  const old = d.intro[i.user.id];
-  if (old) {
-    const ch = await i.client.channels.fetch(old.ch).catch(() => null);
-    if (ch) await ch.messages.delete(old.msg).catch(() => null);
-  }
-  const m = await i.channel.send({ content: `<@${i.user.id}> がUIDを登録しました`, allowedMentions: { parse: [] }, embeds: [e], components, files });
-  d.intro[i.user.id] = { ch: i.channelId, msg: m.id, uid };
-  st.saveLater(i.guild, 3000);
-
-  // A role is optional: UID registration must succeed without any role assignment.
-  const role = roleId && roleId !== 'none' ? await i.guild.roles.fetch(roleId).catch(() => null) : null;
-  const ok = role ? await i.member.roles.add(role).then(() => true).catch(() => false) : true;
-  if (!ok) await oops(i, 'ロールが付けられなかったので、管理者に連絡してね。');
-
-  await bump(i.channel);
+  return { e, files, components };
 }
 
-module.exports = { panel, place, bump, open, submit };
+// Retry only temporary Enka failures. Keep the pending UID in the saved server config.
+const retryable = err => err !== 400 && err !== 404;
+let retryBusy = false;
+async function retryPending(client) {
+  if (retryBusy) return;
+  retryBusy = true;
+  try {
+    for (const guild of client.guilds.cache.values()) {
+      const d = st.get(guild.id);
+      for (const [userId, entry] of Object.entries(d.intro || {})) {
+        if (!entry.uid || !entry.msg || !entry.ch) continue;
+        // Migrate older UID cards that were posted while Enka was unavailable.
+        if (entry.pending === undefined) {
+          try {
+            const ch = await client.channels.fetch(entry.ch);
+            const msg = await ch.messages.fetch(entry.msg);
+            entry.pending = !msg.embeds[0]?.fields?.some(field => field.name === '冒険ランク');
+          } catch { entry.pending = false; }
+          st.saveLater(guild);
+        }
+        if (!entry.pending) continue;
+        if (entry.retryAfter && Date.now() < entry.retryAfter) continue;
+        const result = await en.player(entry.uid).catch(() => ({ err: 503 }));
+        if (!result.p) {
+          if (!retryable(result.err)) {
+            entry.pending = false;
+          } else {
+            entry.retryAfter = Date.now() + 10 * 60 * 1000;
+          }
+          st.saveLater(guild);
+          continue;
+        }
+        try {
+          const ch = await client.channels.fetch(entry.ch);
+          const msg = await ch.messages.fetch(entry.msg);
+          const member = await guild.members.fetch(userId).catch(() => null);
+          await en.names();
+          const card = await makeCard({ uid: entry.uid, ...result, displayName: member?.displayName || msg.mentions.users.first()?.username || 'ユーザー', avatarURL: member?.user.displayAvatarURL() || client.user.displayAvatarURL() });
+          await msg.edit({ embeds: [card.e], components: card.components, files: card.files, attachments: [] });
+          entry.pending = false;
+          delete entry.retryAfter;
+          st.saveLater(guild);
+        } catch (error) {
+          // Deleted messages or unavailable channels cannot be restored automatically.
+          if (error.code === 10008 || error.code === 10003) entry.pending = false;
+          else entry.retryAfter = Date.now() + 10 * 60 * 1000;
+          st.saveLater(guild);
+          console.error('自己紹介再取得失敗:', guild.id, userId, error.message);
+        }
+      }
+    }
+  } finally { retryBusy = false; }
+}
+
+module.exports = { panel, place, bump, open, submit, retryPending };

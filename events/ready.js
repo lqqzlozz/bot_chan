@@ -41,6 +41,11 @@ module.exports = {
       }
     },15*60*1000);
 
+    // Retry pending UID profiles after Enka recovers, including across restarts.
+    const intro = require('../utils/intro');
+    setTimeout(() => intro.retryPending(client).catch(e => console.error('自己紹介再取得エラー:', e)), 30000);
+    setInterval(() => intro.retryPending(client).catch(e => console.error('自己紹介再取得エラー:', e)), 10 * 60000);
+
     analytics.initialize(client);
     setInterval(()=>analytics.tick(client),60000);
     await vr.init(client).catch(e => console.error('VC集計の初期化エラー:', e.message));

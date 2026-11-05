@@ -60,7 +60,8 @@ if (fs.existsSync(commandsPath)) {
 // Render・UptimeRobotの常時起動用HTTPサーバー（ポート3000）
 const PORT = process.env.PORT || 3000;
 http.createServer((req, res) => {
-  if (req.url === '/spec' || req.url === '/spec/') {
+  if (req.url?.startsWith('/api/spec-post?')) return require('./utils/specSessions').handle(req, res, client);
+  if (req.url?.split('?')[0] === '/spec' || req.url?.split('?')[0] === '/spec/') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" });
     return fs.createReadStream(path.join(__dirname, 'public', 'spec.html')).pipe(res);
   }

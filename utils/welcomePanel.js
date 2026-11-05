@@ -21,7 +21,7 @@ const validTime = v => /^([01]\d|2[0-3]):[0-5]\d$/.test(v);
 const normalizeName = s => s.trim().replace(/(さん|様)\s*$/,'').trim().replace(/\s+/g,'　')+'　様';
 function allReservations(guild) { const w=st.get(guild.id).welcome||{};return Object.entries(w).flatMap(([date,day])=>(day.guests||[]).map((r,i)=>({...r,date,id:r.id||`legacy:${date}:${i}`,ch:r.ch||day.ch,msg:r.msg||day.msg}))).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)); }
 async function ensure(guild) {
- if(guild.id!==GUILD)return;
+ if(!guild||guild.id!==GUILD)return;
  const channel=await guild.channels.fetch(CHANNEL).catch(()=>null);if(!channel?.send)return;
  const d=st.get(guild.id);const old=d.welcomePanel;
  if(old?.msg&&await channel.messages.fetch(old.msg).catch(()=>null))return;

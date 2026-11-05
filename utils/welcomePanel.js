@@ -40,10 +40,10 @@ function bookingStep(user) {
   const today=dateToday();
   const days=options(1,count,'日').filter(x=>`${s.year}-${s.month}-${x.value}`>=today);
   if(!days.length){s.step='month';return bookingStep(user);}
-  return {content:`**① 来場日を選択**\n${s.year}年${Number(s.month)}月｜日を選んでください。`,components:[menu('wel_day','1〜25日',days.slice(0,25)),...(days.length>25?[menu('wel_day','26日以降',days.slice(25))]:[])]};
+  return {content:`**① 来場日を選択**\n${s.year}年${Number(s.month)}月｜日を選んでください。`,components:[menu('wel_day','1〜25日',days.slice(0,25)),...(days.length>25?[menu('wel_day_extra','26日以降',days.slice(25))]:[])]};
  }
  if(s.step==='hour')return {content:`**② 来場時間を選択**\n${s.date}｜時を選んでください。`,components:[menu('wel_hour','時を選択',options(0,23,'時'))]};
- if(s.step==='minute')return {content:`**② 来場時間を選択**\n${s.date} ${s.hour}時｜分を選んでください。`,components:[menu('wel_minute','00〜19分',options(0,19,'分')),menu('wel_minute','20〜39分',options(20,39,'分')),menu('wel_minute','40〜59分',options(40,59,'分'))]};
+ if(s.step==='minute')return {content:`**② 来場時間を選択**\n${s.date} ${s.hour}時｜分を選んでください。`,components:[menu('wel_minute','00〜19分',options(0,19,'分')),menu('wel_minute_mid','20〜39分',options(20,39,'分')),menu('wel_minute_late','40〜59分',options(40,59,'分'))]};
 }
 function nameModal(){return new ModalBuilder().setCustomId('wel_submit').setTitle('お客様名を入力').addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('name').setLabel('お客様名（様は自動で付与）').setStyle(TextInputStyle.Short).setRequired(true)));}
 async function locked(guild, fn) {const prior=locks.get(guild.id)||Promise.resolve();const next=prior.catch(()=>{}).then(fn);locks.set(guild.id,next);try{return await next;}finally{if(locks.get(guild.id)===next)locks.delete(guild.id);}}
@@ -68,15 +68,15 @@ async function handle(interaction){
  const id=interaction.customId;
  if(id==='wel_create'){sessions.set(interaction.user.id,{items:[],date:dateToday(),step:'year'});return interaction.reply({...bookingStep(interaction.user.id),flags:MessageFlags.Ephemeral});}
  if(id==='wel_next'){const s=sessions.get(interaction.user.id);if(!s)return interaction.reply({content:'操作が期限切れです。最初から登録してください。',flags:MessageFlags.Ephemeral});s.step='hour';return interaction.update(bookingStep(interaction.user.id));}
- if(['wel_year','wel_month','wel_day','wel_hour','wel_minute'].includes(id)){
+ if(['wel_year','wel_month','wel_day','wel_day_extra','wel_hour','wel_minute','wel_minute_mid','wel_minute_late'].includes(id)){
   const s=sessions.get(interaction.user.id);
   if(!s)return interaction.reply({content:'操作が期限切れです。最初から登録してください。',flags:MessageFlags.Ephemeral});
   const value=interaction.values[0];
   if(id==='wel_year'){s.year=Number(value);s.step='month';}
   if(id==='wel_month'){s.month=value;s.step='day';}
-  if(id==='wel_day'){s.date=`${s.year}-${s.month}-${value}`;s.step='hour';}
+  if(id==='wel_day'||id==='wel_day_extra'){s.date=`${s.year}-${s.month}-${value}`;s.step='hour';}
   if(id==='wel_hour'){s.hour=value;s.step='minute';}
-  if(id==='wel_minute'){s.time=`${s.hour}:${value}`;return interaction.showModal(nameModal());}
+  if(id.startsWith('wel_minute')){s.time=`${s.hour}:${value}`;return interaction.showModal(nameModal());}
   return interaction.update(bookingStep(interaction.user.id));
  }
  if(id==='wel_submit'){

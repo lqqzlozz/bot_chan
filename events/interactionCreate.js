@@ -14,6 +14,11 @@ const inactive = require('../utils/inactive');
 module.exports = {
   name: 'interactionCreate',
   async execute(interaction, client) {
+    if ((interaction.isButton() || interaction.isStringSelectMenu() || interaction.isModalSubmit()) && interaction.customId?.startsWith('wel_')) {
+      try { await require('../utils/welcomePanel').handle(interaction); }
+      catch(e) { console.error('Welcome操作エラー:',e); const payload={content:'処理に失敗しました。もう一度お試しください。',components:[]}; if(interaction.deferred||interaction.replied) await interaction.editReply(payload).catch(()=>null); else await interaction.reply({...payload,ephemeral:true}).catch(()=>null); }
+      return;
+    }
     if (interaction.isChatInputCommand()) {
       const command = client.commands.get(interaction.commandName);
       if (!command) return;

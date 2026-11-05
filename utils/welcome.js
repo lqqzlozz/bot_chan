@@ -8,7 +8,7 @@ const REMIND = '08:15';
 // d.welcome = { 'YYYY-MM-DD': { ch, msg, ping, guests: [...], rem } }
 
 const nm = g => g.name.replace(/　様$/, '様');
-const mmdd = dt => dt.slice(5).replace('-', '');
+const mmdd = dt => dt;
 const todayStr = () => { const t = jstToday(); return `${t.y}-${String(t.m).padStart(2, '0')}-${String(t.d).padStart(2, '0')}`; };
 const nowHM = () => new Date().toLocaleTimeString('ja-JP', { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit', hour12: false });
 

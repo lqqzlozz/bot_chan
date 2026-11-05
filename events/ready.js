@@ -29,6 +29,8 @@ module.exports = {
       await require('../utils/managementAudit').publish(guild).catch(e=>console.error('管理ログの自動設置失敗:',guild.id,e.message));
     }
 
+    await require('../utils/welcomePanel').ensure(client.guilds.cache.get('1496054346385723472')).catch(e=>console.error('Welcomeパネル設置失敗:',e));
+
     await require('../utils/existingFollowNotice').scanAll(client).catch(e=>console.error('既存フォローの検出失敗:',e));
     await require('../utils/betaNoticeMigration').convertAll(client).catch(e=>console.error('ベータ案内のEmbed移行失敗:',e));
 

@@ -32,23 +32,21 @@ const opts = (values,suffix,current) => values.map(n=>({label:String(n)+suffix,v
 const menu = (id,placeholder,options) => new ActionRowBuilder().addComponents(new StringSelectMenuBuilder().setCustomId(id).setPlaceholder(placeholder).addOptions(options));
 function bookingStep(user) {
  const s=sessions.get(user),[year,month,day]=s.date.split('-').map(Number);
- if(s.step==='day'){
-  const count=new Date(year,month,0).getDate();
-  const days=Array.from({length:count},(_,i)=>i+1).filter(d=>year+'-'+pad(month)+'-'+pad(d)>=dateToday());
-  const rows=[];
-  if(days.some(d=>d<=25))rows.push(menu('wel_day_first','1〜25日',opts(days.filter(d=>d<=25),'日',day)));
-  if(days.some(d=>d>25))rows.push(menu('wel_day_last','26日以降',opts(days.filter(d=>d>25),'日',day)));
-  rows.push(new ActionRowBuilder().addComponents(button('wel_back','戻る',ButtonStyle.Secondary)));
-  return {content:'**来場日を変更**\n現在：'+s.date,components:rows};
- }
  const years=Array.from({length:4},(_,i)=>Number(dateToday().slice(0,4))+i);
- return {content:'**来場日時を設定**\n現在：**'+s.date+'　'+s.time+'**\n変更したい項目だけ選んでください。',components:[
- menu('wel_year','年',opts(years,'年',year)),
- menu('wel_month','月',opts(Array.from({length:12},(_,i)=>i+1),'月',month)),
- menu('wel_hour','時',opts(Array.from({length:13},(_,i)=>i+8),'時',Number(s.time.slice(0,2)))),
- menu('wel_minute','分',opts([0,15,30,45],'分',Number(s.time.slice(3)))),
- new ActionRowBuilder().addComponents(button('wel_day_open',day+'日を変更',ButtonStyle.Secondary),button('wel_name','この日時で決定',ButtonStyle.Success))
- ]};
+ const maxDay=new Date(year,month,0).getDate();
+ const allDays=Array.from({length:maxDay},(_,i)=>i+1).filter(d=>year+'-'+pad(month)+'-'+pad(d)>=dateToday());
+ const page=s.dayPage||0;
+ const dayOptions=allDays.filter(d=>page===0?d<=24:d>=25);
+ const dayMenu=new StringSelectMenuBuilder().setCustomId('wel_day').setPlaceholder('日').addOptions([...opts(dayOptions,'日',day),{label:page===0?'25〜31日を表示':'1〜24日を表示',value:'switch'}]);
+ const dateLabel=year+'年'+month+'月'+day+'日　'+s.time;
+ const selectContainer=new ContainerBuilder().addTextDisplayComponents(txt('### 来場日時を設定\n現在：**'+dateLabel+'**\n変更したい項目だけ選んでください。'))
+  .addActionRowComponents(menu('wel_year','年',opts(years,'年',year)))
+  .addActionRowComponents(menu('wel_month','月',opts(Array.from({length:12},(_,i)=>i+1),'月',month)))
+  .addActionRowComponents(new ActionRowBuilder().addComponents(dayMenu))
+  .addActionRowComponents(menu('wel_hour','時',opts(Array.from({length:13},(_,i)=>i+8),'時',Number(s.time.slice(0,2)))))
+  .addActionRowComponents(menu('wel_minute','分',opts([0,15,30,45],'分',Number(s.time.slice(3)))));
+ const actionContainer=new ContainerBuilder().addActionRowComponents(new ActionRowBuilder().addComponents(button('wel_name','この日時で決定',ButtonStyle.Success)));
+ return v2(selectContainer,actionContainer);
 }
 function nameModal(){return new ModalBuilder().setCustomId('wel_submit').setTitle('お客様名を入力').addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('name').setLabel('お客様名（敬称略）').setStyle(TextInputStyle.Short).setRequired(true)));}
 async function locked(guild, fn) {const prior=locks.get(guild.id)||Promise.resolve();const next=prior.catch(()=>{}).then(fn);locks.set(guild.id,next);try{return await next;}finally{if(locks.get(guild.id)===next)locks.delete(guild.id);}}
@@ -71,16 +69,14 @@ async function refresh(guild,date) {
 async function handle(interaction){
  if(interaction.guildId!==GUILD||interaction.channelId!==CHANNEL)return interaction.reply({content:'この機能は社内のWelcome専用チャンネルで使用してください。',flags:MessageFlags.Ephemeral});
  const id=interaction.customId;
- if(id==='wel_create'){sessions.set(interaction.user.id,{items:[],date:dateToday(),time:'10:00',step:'main'});return interaction.reply({...bookingStep(interaction.user.id),flags:MessageFlags.Ephemeral});}
+ if(id==='wel_create'){sessions.set(interaction.user.id,{items:[],date:dateToday(),time:'10:00',step:'main'});return interaction.reply({...bookingStep(interaction.user.id),flags:MessageFlags.IsComponentsV2|MessageFlags.Ephemeral});}
  if(id==='wel_next'){const s=sessions.get(interaction.user.id);if(!s)return interaction.reply({content:'操作が期限切れです。最初から登録してください。',flags:MessageFlags.Ephemeral});s.time='10:00';s.step='main';return interaction.update(bookingStep(interaction.user.id));}
- if(['wel_year','wel_month','wel_hour','wel_minute','wel_day_first','wel_day_last','wel_day_open','wel_back','wel_name'].includes(id)){
+ if(['wel_year','wel_month','wel_day','wel_hour','wel_minute','wel_name'].includes(id)){
   const s=sessions.get(interaction.user.id);if(!s)return interaction.reply({content:'操作が期限切れです。最初から登録してください。',flags:MessageFlags.Ephemeral});
   if(id==='wel_name')return interaction.showModal(nameModal());
-  if(id==='wel_day_open'){s.step='day';return interaction.update(bookingStep(interaction.user.id));}
-  if(id==='wel_back'){s.step='main';return interaction.update(bookingStep(interaction.user.id));}
-  const value=interaction.values[0];let [year,month,day]=s.date.split('-').map(Number);
+  const value=interaction.values[0];if(id==='wel_day'&&value==='switch'){s.dayPage=s.dayPage?0:1;return interaction.update(bookingStep(interaction.user.id));}let [year,month,day]=s.date.split('-').map(Number);
   if(id==='wel_year')year=Number(value);if(id==='wel_month')month=Number(value);
-  if(id==='wel_day_first'||id==='wel_day_last')day=Number(value);
+  if(id==='wel_day')day=Number(value);if(id==='wel_year'||id==='wel_month')s.dayPage=0;
   day=Math.min(day,new Date(year,month,0).getDate());s.date=year+'-'+pad(month)+'-'+pad(day);
   if(s.date<dateToday())s.date=dateToday();
   if(id==='wel_hour')s.time=value+':'+s.time.slice(3);

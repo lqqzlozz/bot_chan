@@ -40,10 +40,10 @@ function bookingStep(user) {
   const today=dateToday();
   const days=options(1,count,'日').filter(x=>`${s.year}-${s.month}-${x.value}`>=today);
   if(!days.length){s.step='month';return bookingStep(user);}
-  return {content:`**① 来場日を選択**\n${s.year}年${Number(s.month)}月｜日を選んでください。`,components:[menu('wel_day','日を選択',days)]};
+  return {content:`**① 来場日を選択**\n${s.year}年${Number(s.month)}月｜日を選んでください。`,components:[menu('wel_day','1〜25日',days.slice(0,25)),...(days.length>25?[menu('wel_day','26日以降',days.slice(25))]:[])]};
  }
  if(s.step==='hour')return {content:`**② 来場時間を選択**\n${s.date}｜時を選んでください。`,components:[menu('wel_hour','時を選択',options(0,23,'時'))]};
- if(s.step==='minute')return {content:`**② 来場時間を選択**\n${s.date} ${s.hour}時｜分を選んでください。`,components:[menu('wel_minute','分を選択',options(0,59,'分'))]};
+ if(s.step==='minute')return {content:`**② 来場時間を選択**\n${s.date} ${s.hour}時｜分を選んでください。`,components:[menu('wel_minute','00〜19分',options(0,19,'分')),menu('wel_minute','20〜39分',options(20,39,'分')),menu('wel_minute','40〜59分',options(40,59,'分'))]};
 }
 function nameModal(){return new ModalBuilder().setCustomId('wel_submit').setTitle('お客様名を入力').addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('name').setLabel('お客様名（様は自動で付与）').setStyle(TextInputStyle.Short).setRequired(true)));}
 async function locked(guild, fn) {const prior=locks.get(guild.id)||Promise.resolve();const next=prior.catch(()=>{}).then(fn);locks.set(guild.id,next);try{return await next;}finally{if(locks.get(guild.id)===next)locks.delete(guild.id);}}

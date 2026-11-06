@@ -8,6 +8,7 @@ const bump = require('../utils/bump');
 const buildPanel = require('../utils/buildPanel');
 const inactive = require('../utils/inactive');
 const wel = require('../utils/welcome');
+const eyesReaction = require('../utils/eyesReaction');
 const { parseVisitorMessage } = require('../utils/imageGenerator');
 
 // Welcomeは会社のサーバーだけ
@@ -17,6 +18,7 @@ const stickyLocks = new Set();
 module.exports = {
   name: 'messageCreate',
   async execute(message, client) {
+    await eyesReaction.onMessage(message);
     if (message.guild && !message.author.bot) inactive.record(message.guild, message.author);
     // DISBOARDのbump（botの発言なので先に見る）
     if (message.guild && message.author.id === '302050872383242240') {

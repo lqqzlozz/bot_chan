@@ -3,7 +3,7 @@ const st = require('../utils/store');
 const { isOwner, deny } = require('../utils/perm');
 
 // このサーバー専用
-const GUILD = '1480073192667091058';
+const { GUILD, isEnabled } = require('../utils/entryScope');
 
 module.exports = {
   guild: GUILD,
@@ -22,7 +22,7 @@ module.exports = {
     ),
 
   async execute(interaction, client) {
-    if (interaction.guildId !== GUILD) {
+    if (!isEnabled(interaction.guildId)) {
       return interaction.reply({ content: '❌ このサーバーではこのコマンドを使用できません。', ephemeral: true });
     }
     if (!isOwner(interaction)) return deny(interaction);

@@ -51,3 +51,5 @@ until the following 08:00. Past dates are not republished when selected again.
 On startup, the display migration edits existing stored posts in place to apply
 the updated units/job labels and remove repeated notice/basis fields. Reminder
 lines are migrated too, retaining all original message references and send IDs.
+Each dated post and reminder includes a Discord relative timestamp (`:R`) for
+08:00 JST on the event date; existing stored posts are updated in place.

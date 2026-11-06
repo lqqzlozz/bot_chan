@@ -21,6 +21,10 @@ async function save(guild) {
   if (!await st.save(guild)) throw new Error('日程・リマインドを保存できませんでした。設定チャンネルの権限を確認してから再実行してください。');
 }
 const marker = (date, part) => `シーズン日程｜${date}｜${part + 1}`;
+function relative(date, description) {
+  const seconds = Math.floor((schedule.parseDate(date) - 3600000) / 1000); // 08:00 JST
+  return `<t:${seconds}:R>\n\n` + description.replace(/^<t:\d+:R>\s*/, '');
+}
 function line(e) {
   return '・' + (schedule.categories[e.category] || translate(e.category)) + '：' + e.events.map(translate).map(escapeMarkdown).join('\n　');
 }
@@ -47,7 +51,7 @@ function buildDays(result, fallback) {
     }
     if (text) descriptions.push(text);
     return { date, entries, embeds: descriptions.map((description, part) => new EmbedBuilder().setColor('#D69A32')
-      .setTitle(date).setDescription(description)
+      .setTitle(date).setDescription(relative(date, description))
       .setURL('https://qenu.github.io/ethna-timeline/').setFooter({ text: marker(date, part) })) };
   });
 }
@@ -162,30 +166,30 @@ async function cleanup(channel, clientId, s, today) {
 }
 async function refresh(client, now = Date.now()) {
   const s = st.get(GUILD).seasonSchedulePosts;
-  if (!s || s.displayVersion === 2 || locks.has(GUILD)) return;
+  if (!s || s.displayVersion >= 3 || locks.has(GUILD)) return;
   locks.add(GUILD);
   try {
     const channel = await client.channels.fetch(CHANNEL_ID);
     if (channel?.id !== CHANNEL_ID || !isEnabled(channel.guild?.id)) return;
-    const update = async (id, key) => {
+    const update = async (id, key, date) => {
       const message = await fetchOwned(channel, client.user.id, id, key);
       if (!message) return;
       const embeds = message.embeds.map(e => {
         const raw = e.toJSON ? e.toJSON() : e;
-        return EmbedBuilder.from(raw).setDescription(translate(raw.description || ''))
+        return EmbedBuilder.from(raw).setDescription(relative(date, translate(raw.description || '')))
           .setFields((raw.fields || []).filter(f => !['表記について', '日程の基準'].includes(f.name)));
       });
       await message.edit({ embeds, allowedMentions: { parse: [] } });
     };
     for (const [date, record] of Object.entries(s.dates)) {
       if (date < gameClock(now).date) continue;
-      for (const [part, id] of record.ids.entries()) await update(id, marker(date, part));
+      for (const [part, id] of record.ids.entries()) await update(id, marker(date, part), date);
     }
     for (const job of Object.values(s.jobs)) {
       job.lines = job.lines.map(translate);
-      if (job.postDate >= gameClock(now).date && job.sentId) await update(job.sentId, reminderMarker(job));
+      if (job.postDate >= gameClock(now).date && job.sentId) await update(job.sentId, reminderMarker(job), job.targetDate);
     }
-    s.displayVersion = 2;
+    s.displayVersion = 3;
     await save(channel.guild);
     console.log('日程の表示更新完了');
   } finally { locks.delete(GUILD); }
@@ -215,7 +219,7 @@ async function tick(client, now = Date.now()) {
         job.pending = true;
         await save(channel.guild);
         const embed = new EmbedBuilder().setColor('#E8A338').setTitle(job.targetDate)
-          .setDescription('🔔 ' + job.kind + 'まで' + (job.label === '前日' ? 'あと1日' : job.label.replace('前', '')) + '\n' + job.lines.join('\n'))
+          .setDescription(relative(job.targetDate, '🔔 ' + job.kind + 'まで' + (job.label === '前日' ? 'あと1日' : job.label.replace('前', '')) + '\n' + job.lines.join('\n')))
           .setFooter({ text: key });
         sent = await original.reply({ embeds: [embed], allowedMentions: { parse: [], repliedUser: false } });
       }

@@ -52,6 +52,9 @@ test('each date is its own concise public post; next season stays in last-day no
   for (const day of days) for (const embed of day.embeds) {
     const e = embed.toJSON();
     assert.equal(e.title, day.date);
+    const relativeTime = e.description.match(/^<t:(\d+):R>/);
+    assert.ok(relativeTime);
+    assert.equal(Number(relativeTime[1]) * 1000, Date.parse(day.date + 'T08:00:00+09:00'));
     assert.ok(e.description.length <= 4096);
     assert.ok(JSON.stringify(e).length < 6000);
     assert.deepEqual(e.fields || [], []);
@@ -208,11 +211,13 @@ test('refresh updates existing posts and saved reminder lines without reposting;
   const job = Object.values(state.jobs)[0]; job.lines = ['七転：0.156B'];
   await posts.refresh(f.client, Date.parse('2026-11-06T08:00:00+09:00'));
   assert.equal(f.sent.length, count);
-  assert.equal(message.embeds[0].description, '6次職業（戦力: 160M）');
+  assert.match(message.embeds[0].description, /^<t:\d+:R>\n\n6次職業（戦力: 160M）$/);
   assert.deepEqual(message.embeds[0].fields || [], []);
   assert.deepEqual(job.lines, ['7次：156M']);
-  assert.equal(state.displayVersion, 2);
+  assert.equal(state.displayVersion, 3);
+  const migrated = message.embeds[0].description;
   await posts.refresh(f.client);
+  assert.equal(message.embeds[0].description, migrated);
   assert.equal(f.sent.length, count);
 }));
 

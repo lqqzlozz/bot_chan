@@ -5,7 +5,7 @@ const DAY = 86400000;
 const ANCHOR = '2026-11-11';
 const ANCHOR_DAY = 316;
 const names = { 森之國: '森の国', 山之國: '山の国', 澤之國: '沢の国', 龍之國: '龍の国', 羽之國: '羽の国', 哈帕迪: 'ハーパティ', 伊格尼斯: 'イグニス', 艾珀希: '艾珀希（原文）' };
-const categories = { 國度: '国度', 轉職: '転職', 副本: 'ダンジョン', 賽季地圖: 'シーズンマップ', 古遺物: '古遺物', 寵物: 'ペット', 幻獸: '幻獣', 內容: 'コンテンツ', 夥伴: '仲間', 活動: 'イベント' };
+const categories = { 國度: '国', 轉職: '転職', 副本: 'ダンジョン', 賽季地圖: 'シーズンマップ', 古遺物: '遺物', 寵物: 'ペット', 幻獸: '幻獣', 內容: 'コンテンツ', 夥伴: '仲間', 活動: 'イベント' };
 
 function parseDate(input) {
   const text = String(input).normalize('NFKC').trim().replace(/\//g, '-');
@@ -65,7 +65,8 @@ function range(input, data) {
     entries.push({ day: d, category: '活動', events });
   }
   entries.sort((a, b) => a.day - b.day);
-  return { start: dateAt(day), end: dateAt(end), season: names[starts[index].events[0]] || starts[index].events[0], entries };
+  return { start: dateAt(day), end: dateAt(end), season: names[starts[index].events[0]] || starts[index].events[0], entries,
+    nextSeason: { date: dateAt(starts[index + 1].day), name: starts[index + 1].events[0] } };
 }
 
 module.exports = { SOURCE, ANCHOR, parseDate, dateAt, validate, load, range, categories };

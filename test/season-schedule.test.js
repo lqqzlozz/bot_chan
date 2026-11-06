@@ -42,8 +42,8 @@ test('result pages fit Discord limits, retain every entry and show source/fallba
   const pages = panel.embeds(result, true).map(e => e.toJSON());
   assert.ok(pages.length > 0);
   assert.ok(pages.every(e => e.description.length <= 4096 && JSON.stringify(e).length < 6000));
-  assert.ok(pages.every(e => e.fields[0].value.includes('保存済み')));
-  const text = pages.map(e => e.description).join('\n');
+  assert.ok(pages.every(e => e.fields[1].value.includes('保存済み')));
+  const text = pages.map(e => e.title + '\n' + e.description).join('\n');
   for (const entry of result.entries) assert.ok(text.includes(schedule.dateAt(entry.day)));
 });
 
@@ -57,17 +57,23 @@ test('member button opens modal, rejects other guilds and rejects invalid dates 
   assert.match(payload.content, /存在/);
 });
 
-test('source failure uses snapshot and a valid modal returns private dated embeds', async () => {
+test('source failure uses snapshot and a valid modal publishes a public schedule', async () => {
   const original = global.fetch;
+  const posts = require('../utils/seasonPosts'), publish = posts.publish;
   global.fetch = async () => { throw new Error('offline'); };
   const replies = [];
+  posts.publish = async (_channel, _id, result, fallback) => {
+    assert.equal(result.end, '2027-02-19'); assert.equal(fallback, true);
+    return { days: 10 };
+  };
   try {
     await panel.handle({ guildId: GUILD, customId: 'season_date', isButton: () => false, isModalSubmit: () => true,
+      channelId: panel.CHANNEL_ID, client: { user: { id: 'bot' }, channels: { fetch: async () => ({}) } },
       fields: { getTextInputValue: () => '2026-12-01' }, deferReply: async p => replies.push(p), editReply: async p => replies.push(p), followUp: async p => replies.push(p) });
-    assert.equal(replies[0].flags, MessageFlags.Ephemeral);
-    assert.match(replies[1].embeds[0].toJSON().title, /2026-12-01〜2027-02-19/);
-    for (const p of replies.slice(2)) assert.equal(p.flags, MessageFlags.Ephemeral);
-  } finally { global.fetch = original; }
+    assert.equal(replies[0], undefined);
+    assert.match(replies[1].content, /2026-12-01〜2027-02-19/);
+    assert.match(replies[2].content, /10日分/);
+  } finally { global.fetch = original; posts.publish = publish; }
 });
 
 test('management panel has no schedule controls and public panel is reusable', () => {

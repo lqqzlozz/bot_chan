@@ -14,6 +14,16 @@ const inactive = require('../utils/inactive');
 module.exports = {
   name: 'interactionCreate',
   async execute(interaction, client) {
+    if ((interaction.isButton() || interaction.isModalSubmit()) && interaction.customId?.startsWith('season_')) {
+      try { await require('../utils/seasonPanel').handle(interaction); }
+      catch (error) {
+        console.error('日程表示エラー:', error);
+        const payload = { content: '日程を表示できませんでした。もう一度お試しください。' };
+        if (interaction.deferred || interaction.replied) await interaction.editReply(payload).catch(() => null);
+        else await interaction.reply({ ...payload, ephemeral: true }).catch(() => null);
+      }
+      return;
+    }
     if ((interaction.isButton() || interaction.isStringSelectMenu() || interaction.isModalSubmit()) && interaction.customId?.startsWith('wel_')) {
       try { await require('../utils/welcomePanel').handle(interaction); }
       catch(e) { console.error('Welcome操作エラー:',e); const payload={content:'処理に失敗しました。もう一度お試しください。',components:[]}; if(interaction.deferred||interaction.replied) await interaction.editReply(payload).catch(()=>null); else await interaction.reply({...payload,ephemeral:true}).catch(()=>null); }

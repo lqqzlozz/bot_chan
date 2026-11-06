@@ -2,7 +2,7 @@ const { EmbedBuilder, escapeMarkdown } = require('discord.js');
 const st = require('./store');
 const { GUILD, isEnabled } = require('./entryScope');
 const schedule = require('./seasonSchedule');
-const { translate, NOTICE } = require('./seasonText');
+const { translate } = require('./seasonText');
 const CHANNEL_ID = '1568107786376847501';
 const locks = new Set();
 const DAY = 86400000;
@@ -47,8 +47,7 @@ function buildDays(result, fallback) {
     }
     if (text) descriptions.push(text);
     return { date, entries, embeds: descriptions.map((description, part) => new EmbedBuilder().setColor('#D69A32')
-      .setTitle(date).setDescription(description).addFields({ name: '表記について', value: NOTICE })
-      .addFields({ name: '日程の基準', value: 'イグニス開始：2026-11-11。終了日は次シーズン開始前日の予定日です。' + (fallback ? '\n⚠️ 取得失敗のため保存済みデータを使用しています。' : '') })
+      .setTitle(date).setDescription(description)
       .setURL('https://qenu.github.io/ethna-timeline/').setFooter({ text: marker(date, part) })) };
   });
 }
@@ -79,14 +78,15 @@ async function recover(channel, clientId, key) {
   }
   throw new Error('送信済み投稿を確認できませんでした。重複防止のため停止しました。');
 }
-async function publish(channel, clientId, result, fallback) {
+async function publish(channel, clientId, result, fallback, now = Date.now()) {
   if (channel.id !== CHANNEL_ID || !isEnabled(channel.guild?.id)) throw new Error('日程の投稿先を確認してください。');
   if (locks.has(channel.guild.id)) throw new Error('日程を処理中です。少し待ってから再実行してください。');
   locks.add(channel.guild.id);
   try {
     const s = state(channel.guild.id);
+    const days = buildDays(result, fallback).filter(day => day.date >= gameClock(now).date);
     let posted = 0;
-    for (const day of buildDays(result, fallback)) {
+    for (const day of days) {
       const record = s.dates[day.date] ||= { ids: [], pending: null };
       for (const [part, embed] of day.embeds.entries()) {
         let message;
@@ -114,7 +114,7 @@ async function publish(channel, clientId, result, fallback) {
       }
       await save(channel.guild);
     }
-    return { posted, days: buildDays(result, fallback).length };
+    return { posted, days: days.length };
   } finally { locks.delete(channel.guild.id); }
 }
 function gameClock(now = Date.now()) {
@@ -123,6 +123,73 @@ function gameClock(now = Date.now()) {
   const date = new Date(jst.getTime() - (hour < 8 ? DAY : 0)).toISOString().slice(0, 10);
   return { date, hour };
 }
+const reminderMarker = job => `日程リマインド｜${job.postDate}｜${job.kind}｜${job.label}`;
+const matches = (message, clientId, key) => message.author.id === clientId && message.embeds?.some(e => e.footer?.text === key);
+async function fetchOwned(channel, clientId, id, key) {
+  if (!id) return null;
+  let message;
+  try { message = await channel.messages.fetch(id); }
+  catch (error) { if (error.code === 10008) return null; throw error; }
+  return matches(message, clientId, key) ? message : null;
+}
+async function removeOwned(channel, clientId, id, key) {
+  const message = await fetchOwned(channel, clientId, id, key);
+  if (message) {
+    try { await message.delete(); }
+    catch (error) { if (error.code !== 10008) throw error; }
+  }
+}
+async function cleanup(channel, clientId, s, today) {
+  for (const [date, record] of Object.entries(s.dates)) {
+    if (date >= today) continue;
+    for (const job of Object.values(s.jobs).filter(j => j.postDate === date)) {
+      if (job.pending && !job.sentId) {
+        const sent = await recover(channel, clientId, reminderMarker(job));
+        if (sent) job.sentId = sent.id;
+      }
+      await removeOwned(channel, clientId, job.sentId, reminderMarker(job));
+    }
+    if (record.pending !== null && record.pending !== undefined && !record.ids[record.pending]) {
+      const message = await recover(channel, clientId, marker(date, record.pending));
+      if (message) record.ids[record.pending] = message.id;
+    }
+    for (const [part, id] of record.ids.entries()) await removeOwned(channel, clientId, id, marker(date, part));
+    delete s.dates[date];
+    for (const [id, job] of Object.entries(s.jobs)) if (job.postDate === date) delete s.jobs[id];
+    await save(channel.guild);
+    console.log('過去の日程を削除:', date);
+  }
+}
+async function refresh(client, now = Date.now()) {
+  const s = st.get(GUILD).seasonSchedulePosts;
+  if (!s || s.displayVersion === 2 || locks.has(GUILD)) return;
+  locks.add(GUILD);
+  try {
+    const channel = await client.channels.fetch(CHANNEL_ID);
+    if (channel?.id !== CHANNEL_ID || !isEnabled(channel.guild?.id)) return;
+    const update = async (id, key) => {
+      const message = await fetchOwned(channel, client.user.id, id, key);
+      if (!message) return;
+      const embeds = message.embeds.map(e => {
+        const raw = e.toJSON ? e.toJSON() : e;
+        return EmbedBuilder.from(raw).setDescription(translate(raw.description || ''))
+          .setFields((raw.fields || []).filter(f => !['表記について', '日程の基準'].includes(f.name)));
+      });
+      await message.edit({ embeds, allowedMentions: { parse: [] } });
+    };
+    for (const [date, record] of Object.entries(s.dates)) {
+      if (date < gameClock(now).date) continue;
+      for (const [part, id] of record.ids.entries()) await update(id, marker(date, part));
+    }
+    for (const job of Object.values(s.jobs)) {
+      job.lines = job.lines.map(translate);
+      if (job.postDate >= gameClock(now).date && job.sentId) await update(job.sentId, reminderMarker(job));
+    }
+    s.displayVersion = 2;
+    await save(channel.guild);
+    console.log('日程の表示更新完了');
+  } finally { locks.delete(GUILD); }
+}
 async function tick(client, now = Date.now()) {
   if (locks.has(GUILD)) return;
   const s = st.get(GUILD).seasonSchedulePosts;
@@ -130,13 +197,15 @@ async function tick(client, now = Date.now()) {
   const clock = gameClock(now);
   // The game day runs from 08:00 JST until 07:59 JST the next calendar day.
   const due = Object.values(s.jobs).filter(j => !j.sentId && j.due === clock.date);
-  if (!due.length) return;
+  if (!due.length && !Object.keys(s.dates).some(date => date < clock.date)) return;
   locks.add(GUILD);
   try {
     const channel = await client.channels.fetch(CHANNEL_ID);
-    if (!channel || !isEnabled(channel.guild?.id)) return;
+    if (channel?.id !== CHANNEL_ID || !isEnabled(channel.guild?.id)) return;
+    await cleanup(channel, client.user.id, s, clock.date);
     for (const job of due) {
-      const key = `日程リマインド｜${job.postDate}｜${job.kind}｜${job.label}`;
+      if (!s.jobs[job.id]) continue;
+      const key = reminderMarker(job);
       let sent = job.pending && await recover(channel, client.user.id, key);
       if (!sent) {
         let original;
@@ -147,7 +216,7 @@ async function tick(client, now = Date.now()) {
         await save(channel.guild);
         const embed = new EmbedBuilder().setColor('#E8A338').setTitle(job.targetDate)
           .setDescription('🔔 ' + job.kind + 'まで' + (job.label === '前日' ? 'あと1日' : job.label.replace('前', '')) + '\n' + job.lines.join('\n'))
-          .addFields({ name: '表記について', value: NOTICE }).setFooter({ text: key });
+          .setFooter({ text: key });
         sent = await original.reply({ embeds: [embed], allowedMentions: { parse: [], repliedUser: false } });
       }
       job.sentId = sent.id;
@@ -157,4 +226,4 @@ async function tick(client, now = Date.now()) {
     }
   } finally { locks.delete(GUILD); }
 }
-module.exports = { CHANNEL_ID, buildDays, jobsFor, publish, tick, gameClock, monthBefore };
+module.exports = { CHANNEL_ID, buildDays, jobsFor, publish, tick, refresh, gameClock, monthBefore };

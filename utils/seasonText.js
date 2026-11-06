@@ -21,8 +21,10 @@ function translate(value) {
     const billions = /[億亿]/.test(unit);
     return Number((Number(n) * (billions ? 0.1 : 0.01)).toFixed(6)) + (billions ? 'B' : 'M');
   });
+  text = text.replace(/(\d+(?:\.\d+)?)B\b/g, (match, n) => Number(n) < 1 ? Number((Number(n) * 1000).toFixed(6)) + 'M' : match);
   text = [...text].map(c => characters[c] || c).join('');
   return text.replace(/戦力(?:需求|要求)/g, '戦力').replace(/等級(?:需求|要求)/g, 'レベル')
+    .replace(/([一二三四五六七八九十]|[0-9０-９]+)転/g, (_, n) => ({一:1,二:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9,十:10}[n] || n.normalize('NFKC')) + '次')
     .replace(/古遺物/g, '遺物').replace(/国度/g, '国')
     .replace(/普通/g, 'ノーマル').replace(/困難/g, 'ハード').replace(/悪夢/g, 'ナイトメア')
     .replace(/煉獄/g, 'ヘル').replace(/深淵/g, 'アビス').replace(/之/g, 'の');

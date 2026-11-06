@@ -37,12 +37,12 @@ test('weekly generated events follow original day 8 cadence through requested se
   assert.ok(weekly.every(e => (e.day - 8) % 7 === 0 && e.events.length === 2));
 });
 
-test('result pages fit Discord limits, retain every entry and show source/fallback', () => {
+test('result pages fit Discord limits and retain entries without repeated explanations', () => {
   const result = schedule.range('2026-11-11', data);
   const pages = panel.embeds(result, true).map(e => e.toJSON());
   assert.ok(pages.length > 0);
   assert.ok(pages.every(e => e.description.length <= 4096 && JSON.stringify(e).length < 6000));
-  assert.ok(pages.every(e => e.fields[1].value.includes('保存済み')));
+  assert.ok(pages.every(e => !e.fields?.length));
   const text = pages.map(e => e.title + '\n' + e.description).join('\n');
   for (const entry of result.entries) assert.ok(text.includes(schedule.dateAt(entry.day)));
 });
@@ -84,6 +84,9 @@ test('management panel has no schedule controls and public panel is reusable', (
   assert.ok(!other.includes('杖と剣の伝説'));
   assert.ok(!JSON.stringify(preview.render('season', 'off', GUILD)).includes('pt_season_channel'));
   assert.equal(panel.panel().components[0].toJSON().components[0].custom_id, 'season_open');
+  const guide = panel.panel().embeds[0].toJSON();
+  assert.doesNotMatch(guide.description, /リマインド|日前|08:00/);
+  assert.equal(guide.fields.length, 1);
 });
 
 test('installation stores the panel and repeats update it without duplicate posts', async () => {

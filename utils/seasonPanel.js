@@ -4,11 +4,13 @@ const schedule = require('./seasonSchedule');
 const st = require('./store');
 const CHANNEL_ID = '1568107786376847501';
 const posts = require('./seasonPosts');
+const { NOTICE } = require('./seasonText');
 
 function panel() {
   return {
     embeds: [new EmbedBuilder().setColor('#D69A32').setTitle('杖と剣の伝説｜シーズン日程')
-      .setDescription('下のボタンから開始日を指定してください。\n指定した日から、そのシーズンの最終日まで、日付ごとにこのチャンネルへ公開投稿します。同じ日付の投稿は再利用します。\n\nリマインドは各日付の投稿への返信で、日本時間08:00に届きます。\n・ダンジョン：7日前・2日前\n・遺物：10日前・3日前\n・次シーズン：1か月前・7日前・前日\n次シーズンの案内はシーズン最終日の投稿に添えます。')],
+      .setDescription('開始日を指定すると、そのシーズンの最終日までの日程を日付ごとに公開します。')
+      .addFields({ name: '表記について', value: NOTICE })],
     components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('season_open').setLabel('開始日を指定').setEmoji('📅').setStyle(ButtonStyle.Primary))],
     allowedMentions: { parse: [] },
   };
@@ -62,7 +64,7 @@ async function handle(i) {
     await i.editReply({ content: `${result.season}｜${result.start}〜${result.end} の日程を公開しています。` });
     const channel = await i.client.channels.fetch(CHANNEL_ID);
     const published = await posts.publish(channel, i.client.user.id, result, loaded.fallback);
-    return i.editReply({ content: `${result.season}｜${result.start}〜${result.end}\n${published.days}日分の日程を公開しました（同じ日付は更新）。対象の予定は日本時間08:00に、各日付の投稿へ返信してリマインドします。`, allowedMentions: { parse: [] } });
+    return i.editReply({ content: `${result.season}｜${result.start}〜${result.end}\n${published.days}日分の日程を公開しました（同じ日付は更新）。` + (loaded.fallback ? '\n⚠️ 取得失敗のため保存済みデータを使用しています。' : ''), allowedMentions: { parse: [] } });
   }
 }
 

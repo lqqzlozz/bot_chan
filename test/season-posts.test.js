@@ -13,6 +13,7 @@ function fixture() {
   let nextId = 0;
   function make(payload) {
     const m = { id: String(++nextId), author: { id: 'bot' }, embeds: payload.embeds.map(e => e.toJSON()),
+      delete: async () => { messages.delete(m.id); },
       edit: async p => { m.embeds = p.embeds.map(e => e.toJSON()); return m; },
       reply: async p => { const reply = make(p); replies.push({ originalId: m.id, payload: p, message: reply }); return reply; } };
     messages.set(m.id, m); return m;
@@ -33,13 +34,15 @@ async function withStore(run) {
 
 test('display rules preserve names while translating difficulty, labels and numeric magnitudes', () => {
   assert.equal(translate('起源之門-深淵(戰力需求: 18 億)'), '起源の門-アビス(戦力: 1.8B)');
-  assert.equal(translate('820萬 8200萬 1.56 億'), '8.2M 82M 0.156B');
+  assert.equal(translate('820萬 8200萬 1.56 億'), '8.2M 82M 156M');
+  assert.equal(translate('0.16B 0.156B 1B 1.8B'), '160M 156M 1B 1.8B');
+  assert.equal(translate('六轉職業 七転 八轉 ３転 二转'), '6次職業 7次 8次 3次 2次');
   assert.equal(translate('伊格尼斯 國度 古遺物 普通 困難 惡夢 煉獄'), 'イグニス 国 遺物 ノーマル ハード ナイトメア ヘル');
   assert.equal(translate('剑之门-普通(战力要求: 820万)'), '剣の門-ノーマル(戦力: 8.2M)');
   assert.match(NOTICE, /あんまちゃんが定めたルール/);
 });
 
-test('each date is its own public post with notice; next season stays in last-day note', () => {
+test('each date is its own concise public post; next season stays in last-day note', () => {
   const result = schedule.range('2026-11-11', data), days = posts.buildDays(result, false);
   assert.equal(new Set(days.map(d => d.date)).size, days.length);
   assert.ok(days.every(d => d.date >= result.start && d.date <= result.end));
@@ -51,7 +54,7 @@ test('each date is its own public post with notice; next season stays in last-da
     assert.equal(e.title, day.date);
     assert.ok(e.description.length <= 4096);
     assert.ok(JSON.stringify(e).length < 6000);
-    assert.equal(e.fields[0].value, NOTICE);
+    assert.deepEqual(e.fields || [], []);
     assert.doesNotMatch(e.description, /戰力需求|普通|困難|惡夢|煉獄|之/);
   }
 });
@@ -131,6 +134,10 @@ test('reminder recovers interrupted reply, skips deleted targets and never sends
   const f = fixture(), result = schedule.range('2027-02-01', data);
   await posts.publish(f.channel, 'bot', result, false);
   const time = Date.parse('2027-02-13T08:00:00+09:00');
+  // Isolate reply recovery from the independently tested expired-post cleanup.
+  const state = st.get(GUILD).seasonSchedulePosts;
+  for (const date of Object.keys(state.dates)) if (date < '2027-02-13') delete state.dates[date];
+  for (const [id, job] of Object.entries(state.jobs)) if (job.postDate < '2027-02-13') delete state.jobs[id];
   st.save = async () => false;
   await assert.rejects(posts.tick(f.client, time), /保存/);
   assert.equal(f.replies.length, 0);
@@ -145,4 +152,75 @@ test('reminder recovers interrupted reply, skips deleted targets and never sends
   f.messages.delete(job.messageId);
   await posts.tick(f.client, Date.parse('2027-02-19T08:00:00+09:00'));
   assert.equal(f.replies.length, 1);
+}));
+
+test('08:00 expires only old bot date posts and their reminders, retaining today and user posts', async () => withStore(async () => {
+  const f = fixture(), result = schedule.range('2026-11-11', data);
+  await posts.publish(f.channel, 'bot', result, false);
+  const state = st.get(GUILD).seasonSchedulePosts;
+  const originalId = state.dates['2026-11-11'].ids[0];
+  await posts.tick(f.client, Date.parse('2026-11-09T08:00:00+09:00'));
+  const replyId = f.replies[0].message.id;
+  await posts.tick(f.client, Date.parse('2026-11-12T07:59:59+09:00'));
+  assert.ok(f.messages.has(originalId));
+  assert.ok(f.messages.has(replyId));
+  let touched = false;
+  f.messages.set('user-post', { id: 'user-post', author: { id: 'human' }, embeds: [], delete: async () => { touched = true; } });
+  const futureId = state.dates['2027-02-19'].ids[0];
+  await posts.tick(f.client, Date.parse('2026-11-12T08:00:00+09:00'));
+  assert.ok(!f.messages.has(originalId));
+  assert.ok(!f.messages.has(replyId));
+  assert.ok(!state.dates['2026-11-11']);
+  assert.ok(!Object.values(state.jobs).some(j => j.postDate === '2026-11-11'));
+  assert.ok(f.messages.has(futureId));
+  assert.equal(touched, false);
+  await posts.tick(f.client, Date.parse('2026-11-12T08:01:00+09:00'));
+  assert.ok(f.messages.has(futureId));
+}));
+
+test('cleanup refuses to delete other authors or unrelated bot messages and retries transient failures', async () => withStore(async () => {
+  const f = fixture(), result = schedule.range('2026-11-11', data);
+  await posts.publish(f.channel, 'bot', result, false);
+  const state = st.get(GUILD).seasonSchedulePosts, id = state.dates['2026-11-11'].ids[0];
+  const original = f.messages.get(id), remove = original.delete;
+  original.delete = async () => { throw new Error('temporary'); };
+  const time = Date.parse('2026-11-12T08:00:00+09:00');
+  await assert.rejects(posts.tick(f.client, time), /temporary/);
+  assert.ok(state.dates['2026-11-11']);
+  original.delete = remove;
+  let unrelatedDeleted = false;
+  f.messages.set('unrelated', { author: { id: 'bot' }, embeds: [], delete: async () => { unrelatedDeleted = true; } });
+  state.dates['2026-11-10'] = { ids: ['unrelated', 'human'], pending: null };
+  f.messages.set('human', { author: { id: 'human' }, embeds: [{ footer: { text: 'シーズン日程｜2026-11-10｜2' } }], delete: async () => { unrelatedDeleted = true; } });
+  await posts.tick(f.client, time);
+  assert.equal(unrelatedDeleted, false);
+  assert.ok(!f.messages.has(id));
+}));
+
+test('refresh updates existing posts and saved reminder lines without reposting; removes repeated fields', async () => withStore(async () => {
+  const f = fixture(), result = schedule.range('2026-11-11', data);
+  await posts.publish(f.channel, 'bot', result, false);
+  const count = f.sent.length, state = st.get(GUILD).seasonSchedulePosts;
+  const id = state.dates['2026-11-11'].ids[0];
+  const message = f.messages.get(id);
+  message.embeds[0].description = '六転職業（戦力: 0.16B）';
+  message.embeds[0].fields = [{ name: '表記について', value: NOTICE }, { name: '日程の基準', value: 'old' }];
+  const job = Object.values(state.jobs)[0]; job.lines = ['七転：0.156B'];
+  await posts.refresh(f.client, Date.parse('2026-11-06T08:00:00+09:00'));
+  assert.equal(f.sent.length, count);
+  assert.equal(message.embeds[0].description, '6次職業（戦力: 160M）');
+  assert.deepEqual(message.embeds[0].fields || [], []);
+  assert.deepEqual(job.lines, ['7次：156M']);
+  assert.equal(state.displayVersion, 2);
+  await posts.refresh(f.client);
+  assert.equal(f.sent.length, count);
+}));
+
+test('past requested dates are not republished while the current game day is retained', async () => withStore(async () => {
+  const f = fixture(), result = schedule.range('2026-11-11', data);
+  await posts.publish(f.channel, 'bot', result, false, Date.parse('2026-11-12T07:59:59+09:00'));
+  assert.ok(st.get(GUILD).seasonSchedulePosts.dates['2026-11-11']);
+  const f2 = fixture(); st.db.delete(GUILD);
+  await posts.publish(f2.channel, 'bot', result, false, Date.parse('2026-11-12T08:00:00+09:00'));
+  assert.ok(!st.get(GUILD).seasonSchedulePosts.dates['2026-11-11']);
 }));

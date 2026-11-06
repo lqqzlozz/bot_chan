@@ -14,7 +14,9 @@ next season are not guessed. If server dates change, update the anchor in
 `utils/seasonSchedule.js`. `utils/seasonText.js` applies the user's explicit
 substitutions and Japanese character forms rather than official localization.
 Numerical magnitudes are preserved: 820萬 becomes 8.2M, 18億 becomes 1.8B.
-Every date and reminder includes the requested localization notice.
+Values below 1B use M (0.16B becomes 160M). Numbered job transitions use
+「6次」「7次」 instead of 「六転」「七転」. The localization notice appears
+only in the button panel, not on every dated post and reminder.
 
 Recurring events are generated independently using the site's day-8 start and
 seven-day cadence, four reward slots, and three supplemental event rotations.
@@ -41,3 +43,11 @@ sends are recovered by their footer markers before any retry sends a message.
 A failed configuration write prevents a new send. The game day ends at the
 following calendar day's 07:59 JST, allowing recovery within that game day;
 older missed reminders are not sent in a burst after an extended outage.
+
+At the 08:00 JST game-day transition, expired dated bot posts and their reminder
+replies are deleted. Only stored message IDs whose author and footer match
+the bot's schedule/reminder are eligible. The current game day remains visible
+until the following 08:00. Past dates are not republished when selected again.
+On startup, the display migration edits existing stored posts in place to apply
+the updated units/job labels and remove repeated notice/basis fields. Reminder
+lines are migrated too, retaining all original message references and send IDs.

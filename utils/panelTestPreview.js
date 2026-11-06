@@ -22,7 +22,6 @@ const st = require('./store');
 const button=(id,label,style=ButtonStyle.Secondary)=>new ButtonBuilder().setCustomId(ROOT+id).setLabel(label).setStyle(style);
 const row=(...items)=>new ActionRowBuilder().addComponents(...items);
 const screen={
- season:['📅 杖と剣の伝説・日程','開始日を指定して、そのシーズン最終日までの予定を確認できるパネルを設置します。'],
  announce:['📢 アナウンスを作る','投稿先・本文・画像・通知ロールの設定画面（プレビューのみ）'],
  notifications:['🛎️ 通知設定','VC参加通知・VCランキング・Bump通知'],
  vc:['🔊 VC参加通知','通知先の設定画面（プレビューのみ）'],
@@ -57,7 +56,6 @@ const screen={
 };
 function choices(mode,guildId){
  return [
-  ...(require('./entryScope').isEnabled(guildId)?[['season','📅 杖と剣の伝説・日程','メンバー用の日程パネルを設置']]:[]),
   ['announce','📢 アナウンスを作る','本文・画像・常駐の管理'],
   ['notifications','🛎️ 通知設定','VC通知・Bump・アラーム'],
   ['analytics','📊 サーバー分析','メンバー数とVC活動の推移'],
@@ -98,10 +96,7 @@ function render(page='home',mode='pending',guildId=null,auditPage=0,graph=false)
   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('-# BOTの更新情報・不具合報告・ご要望は [サポートサーバー](https://discord.gg/9vgM8kB324) へ'));
 
  }else{
-  if(page==='season'){
-   container.addTextDisplayComponents(new TextDisplayBuilder().setContent('メンバーが「開始日を指定」ボタンから日付を入力すると、その日から同じシーズンの最終日までの日程を表示します。\n基準：イグニス開始 2026-11-11\n通常の投稿として設置します（最下部への貼り直しなし）。'));
-   container.addActionRowComponents(row(new ChannelSelectMenuBuilder().setCustomId(ROOT+'season_channel').setPlaceholder('日程パネルの設置先を選択').addChannelTypes(ChannelType.GuildText)));
-  }else if(page==='other'){
+  if(page==='other'){
    const d=st.get(guildId);
    container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**原神機能**：'+(mode==='on'?'ON':mode==='off'?'OFF':'初期設定待ち')+'\n**BOTのお知らせ**：'+(guildId===testGuild?'配信元サーバー':d.officialFeed?.enabled?'受信 ON':'受信 OFF')+'\n\n-# 各項目から詳細設定を変更できます。'));
   }else if(page==='broadcast'){
@@ -291,10 +286,6 @@ async function handleCore(i){
   await i.reply({content:'この操作は #bot-config でサーバー管理者のみ実行できます。',flags:MessageFlags.Ephemeral});return true;
  }
  const id=i.customId.slice(ROOT.length);
- if(id==='season_channel'){
-  try{return await require('./seasonPanel').place(i);}
-  catch(error){console.error('日程パネル設置エラー:',error);const payload={content:'パネルを設置できませんでした。投稿先の閲覧・送信・Embed権限を確認してください。'};return i.deferred?i.editReply(payload):i.reply({...payload,flags:MessageFlags.Ephemeral});}
- }
  if(id.startsWith('audit_prev_')||id.startsWith('audit_next_')){
   const direction=id.startsWith('audit_prev_')?-1:1;
   const n=Math.max(0,Math.min((st.get(i.guildId).managementLog||[]).length-1,(Number(id.split('_').at(-1))||0)+direction));

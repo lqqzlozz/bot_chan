@@ -17,6 +17,7 @@ module.exports = {
 
     // 設定を先に戻し、登録済み原神サーバーのコマンドも復元する。
     await st.loadAll(client);
+    await require('../utils/seasonPanel').ensure(client).catch(e => console.error('日程パネルの自動設置失敗:', e.message));
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
     try {
       await syncAll(client, rest);

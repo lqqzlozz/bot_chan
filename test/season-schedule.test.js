@@ -70,13 +70,13 @@ test('source failure uses snapshot and a valid modal returns private dated embed
   } finally { global.fetch = original; }
 });
 
-test('management panel offers schedule only in Entry guild and public panel is reusable', () => {
+test('management panel has no schedule controls and public panel is reusable', () => {
   const preview = require('../utils/panelTestPreview');
   const own = JSON.stringify(preview.render('home', 'off', GUILD));
   const other = JSON.stringify(preview.render('home', 'off', 'other'));
-  assert.ok(own.includes('杖と剣の伝説'));
+  assert.ok(!own.includes('杖と剣の伝説'));
   assert.ok(!other.includes('杖と剣の伝説'));
-  assert.ok(JSON.stringify(preview.render('season', 'off', GUILD)).includes('pt_season_channel'));
+  assert.ok(!JSON.stringify(preview.render('season', 'off', GUILD)).includes('pt_season_channel'));
   assert.equal(panel.panel().components[0].toJSON().components[0].custom_id, 'season_open');
 });
 
@@ -85,14 +85,35 @@ test('installation stores the panel and repeats update it without duplicate post
   const original = st.save;
   let sends = 0, edits = 0;
   const message = { id: 'panel', author: { id: 'bot' }, edit: async () => { edits++; } };
-  const channel = { id: 'schedule', isTextBased: () => true, messages: { fetch: async () => message }, send: async () => { sends++; return message; } };
-  const i = { guildId: GUILD, guild: { channels: { fetch: async () => channel } }, values: ['schedule'], client: { user: { id: 'bot' } }, deferReply: async () => {}, editReply: async () => {} };
+  const channel = { id: panel.CHANNEL_ID, guild: { id: GUILD }, isTextBased: () => true, messages: { fetch: async arg => typeof arg === 'string' ? message : { find: () => undefined } }, send: async () => { sends++; return message; } };
+  const client = { channels: { fetch: async id => { assert.equal(id, '1568107786376847501'); return channel; } }, user: { id: 'bot' } };
   st.save = async () => true;
   try {
-    await panel.place(i);
-    await panel.place(i);
+    await panel.ensure(client);
+    await panel.ensure(client);
     assert.equal(sends, 1);
     assert.equal(edits, 1);
-    assert.deepEqual(st.get(GUILD).seasonPanel, { channelId: 'schedule', messageId: 'panel' });
+    assert.deepEqual(st.get(GUILD).seasonPanel, { channelId: panel.CHANNEL_ID, messageId: 'panel' });
   } finally { st.save = original; st.db.delete(GUILD); }
+});
+
+test('startup recovers a panel from history when metadata is absent and fails closed on history errors', async () => {
+  const { Collection } = require('discord.js');
+  const st = require('../utils/store'), save = st.save;
+  let sent = 0, edited = 0;
+  const message = { id: 'recovered', author: { id: 'bot' }, components: [{ components: [{ customId: 'season_open' }] }], edit: async () => { edited++; } };
+  const channel = { guild: { id: GUILD }, isTextBased: () => true, send: async () => { sent++; }, messages: { fetch: async () => new Collection([['recovered', message]]) } };
+  const client = { user: { id: 'bot' }, channels: { fetch: async () => channel } };
+  st.save = async () => true;
+  try {
+    await panel.ensure(client);
+    assert.equal(edited, 1);
+    assert.equal(sent, 0);
+    st.db.delete(GUILD);
+    channel.messages.fetch = async () => { throw new Error('missing permissions'); };
+    await assert.rejects(panel.ensure(client), /missing permissions/);
+    assert.equal(sent, 0);
+    channel.guild.id = 'other';
+    await assert.rejects(panel.ensure(client), /設置先/);
+  } finally { st.save = save; st.db.delete(GUILD); }
 });

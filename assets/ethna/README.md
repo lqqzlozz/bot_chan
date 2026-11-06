@@ -19,8 +19,10 @@ seven-day cadence, four reward slots, and three supplemental event rotations.
 Reward slots are summaries rather than exact item lists. This is a community
 schedule, not an official Japanese-server calendar; the result explains that.
 
-Installation: in the existing management panel in #bot-config, choose
-「杖と剣の伝説・日程」 and select the posting channel. The ordinary persistent
+Installation: on startup, the bot installs or updates the panel only in channel
+`1568107786376847501` in the Entry guild. It recovers the existing panel from
+saved metadata or recent history to avoid duplicates. The management panel
+has no season-schedule controls. The ordinary persistent
 message has a reusable date button. Results are ephemeral Embeds and span the
 requested date through that season's projected last day. No slash command,
 automatic notification, or sticky reposting is added.

@@ -2,6 +2,7 @@ const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder
 const { isEnabled } = require('./entryScope');
 const schedule = require('./seasonSchedule');
 const st = require('./store');
+const CHANNEL_ID = '1568107786376847501';
 
 function panel() {
   return {
@@ -35,24 +36,28 @@ function embeds(result, fallback) {
     .setFooter({ text: `出典：那由多 杖劍時間軸 ｜ ${index + 1}/${chunks.length}` }));
 }
 
-async function place(i) {
-  if (!isEnabled(i.guildId)) return i.reply({ content: 'このサーバーでは利用できません。', flags: MessageFlags.Ephemeral });
-  await i.deferReply({ flags: MessageFlags.Ephemeral });
-  const channel = await i.guild.channels.fetch(i.values[0]).catch(() => null);
-  if (!channel?.isTextBased() || !channel.send) return i.editReply({ content: '投稿可能なテキストチャンネルを選択してください。' });
-  const data = st.get(i.guildId), old = data.seasonPanel;
-  const existing = old?.channelId === channel.id && await channel.messages.fetch(old.messageId).catch(() => null);
-  if (existing && existing.author.id === i.client.user.id) {
-    await existing.edit(panel());
-    return i.editReply({ content: '日程パネルを更新しました。投稿先：<#' + channel.id + '>' });
+async function ensure(client) {
+  const channel = await client.channels.fetch(CHANNEL_ID);
+  if (!channel?.guild || !isEnabled(channel.guild.id) || !channel.isTextBased() || !channel.send) throw new Error('日程パネルの設置先を確認できません。');
+  const data = st.get(channel.guild.id), old = data.seasonPanel;
+  let message;
+  if (old?.channelId === CHANNEL_ID && old.messageId) {
+    try { message = await channel.messages.fetch(old.messageId); }
+    catch (error) { if (error.code !== 10008) throw error; }
   }
-  const message = await channel.send(panel());
-  data.seasonPanel = { channelId: channel.id, messageId: message.id };
-  if (!await st.save(i.guild)) {
-    data.seasonPanel = old;
-    return i.editReply({ content: 'パネルは投稿しましたが、設置情報を保存できませんでした。設定チャンネルの権限を確認してください。' });
+  if (!message || message.author.id !== client.user.id) {
+    // Recover after lost config metadata. A history failure must not create duplicates.
+    const recent = await channel.messages.fetch({ limit: 100 });
+    message = recent.find(m => m.author.id === client.user.id && m.components?.some(row => row.components?.some(c => c.customId === 'season_open')));
   }
-  return i.editReply({ content: '日程パネルを設置しました。投稿先：<#' + channel.id + '>\n会話に合わせた最下部への貼り直しは行いません。' });
+  if (message) await message.edit(panel());
+  else message = await channel.send(panel());
+  if (old?.channelId !== CHANNEL_ID || old?.messageId !== message.id) {
+    data.seasonPanel = { channelId: CHANNEL_ID, messageId: message.id };
+    if (!await st.save(channel.guild)) console.error('日程パネル設置情報を保存できませんでした。');
+  }
+  console.log('日程パネル設置完了:', CHANNEL_ID, message.id);
+  return message;
 }
 
 async function handle(i) {
@@ -77,4 +82,4 @@ async function handle(i) {
   }
 }
 
-module.exports = { panel, embeds, place, handle };
+module.exports = { CHANNEL_ID, panel, embeds, ensure, handle };

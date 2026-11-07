@@ -1,4 +1,4 @@
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder, MessageFlags, ContainerBuilder, TextDisplayBuilder } = require('discord.js');
 const st = require('../utils/store');
 const { annRows } = require('../utils/annRows');
 const intro = require('../utils/intro');
@@ -26,7 +26,15 @@ module.exports = {
     }
     if ((interaction.isButton() || interaction.isStringSelectMenu() || interaction.isModalSubmit()) && interaction.customId?.startsWith('wel_')) {
       try { await require('../utils/welcomePanel').handle(interaction); }
-      catch(e) { console.error('Welcome操作エラー:',e); const payload={content:'処理に失敗しました。もう一度お試しください。',components:[]}; if(interaction.deferred||interaction.replied) await interaction.editReply(payload).catch(()=>null); else await interaction.reply({...payload,ephemeral:true}).catch(()=>null); }
+      catch(e) {
+        console.error('Welcome操作エラー:',e);
+        const text='処理に失敗しました。もう一度お試しください。';
+        const privateV2=interaction.message?.flags?.has(MessageFlags.Ephemeral)&&interaction.message.flags.has(MessageFlags.IsComponentsV2);
+        const payload=privateV2?{components:[new ContainerBuilder().addTextDisplayComponents(new TextDisplayBuilder().setContent(text))],flags:MessageFlags.IsComponentsV2}:{content:text,components:[]};
+        if(interaction.deferred||interaction.replied)await interaction.editReply(payload).catch(()=>null);
+        else if(privateV2)await interaction.update(payload).catch(()=>null);
+        else await interaction.reply({...payload,flags:MessageFlags.Ephemeral}).catch(()=>null);
+      }
       return;
     }
     if (interaction.isChatInputCommand()) {

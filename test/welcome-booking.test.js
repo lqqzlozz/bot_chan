@@ -29,7 +29,7 @@ function fixture() {
   function make(payload, author = 'bot') {
     const p = typeof payload === 'string' ? { content: payload } : payload;
     const m = { id: String(++sequence), guildId: guild.id, channelId: channel.id, channel, guild, client,
-      author: { id: author, bot: author === 'bot' }, components: p.components || [], payload: p,
+      author: { id: author, bot: author === 'bot' }, content: p.content, components: p.components || [], payload: p,
       delete: async () => { deletes.push(m.id); messages.delete(m.id); },
       edit: async value => { m.payload = value; m.components = value.components || m.components; return m; },
       reply: async value => channel.send(value),
@@ -44,11 +44,15 @@ async function isolated(run) {
   try { await run(); } finally { st.save = save; st.db.delete(panel.GUILD); imageFails = false; }
 }
 function interaction(f, id) {
-  const responses = [];
-  return { customId: id, guildId: f.guild.id, guild: f.guild, channelId: f.channel.id, channel: f.channel,
+  const responses = [], calls = [];
+  const i = { customId: id, guildId: f.guild.id, guild: f.guild, channelId: f.channel.id, channel: f.channel,
     user: { id: 'staff' }, fields: { getTextInputValue: () => '山田' }, responses,
-    reply: async p => responses.push(p), update: async p => responses.push(p), editReply: async p => responses.push(p), deferUpdate: async () => {},
+    calls, isFromMessage: () => true,
+    reply: async p => { calls.push('reply'); responses.push(p); }, update: async p => { calls.push('update'); responses.push(p); },
+    editReply: async p => { calls.push('editReply'); responses.push(p); }, deferUpdate: async () => { calls.push('deferUpdate'); },
+    deleteReply: async () => { calls.push('deleteReply'); i.closed = true; },
   };
+  return i;
 }
 
 test('Welcome panel returns to the bottom once for concurrent bumps without losing the working controls', async () => isolated(async () => {
@@ -98,7 +102,8 @@ test('panel booking registration and deletion are text-only while keeping daily 
   await panel.handle(interaction(f, 'wel_create'));
   const submit = interaction(f, 'wel_submit');
   await panel.handle(submit);
-  assert.doesNotMatch(submit.responses[0].content, /画像/);
+  assert.doesNotMatch(JSON.stringify(submit.responses[0]), /画像/);
+  assert.deepEqual(submit.calls, ['update']);
   const finish = interaction(f, 'wel_finish');
   await panel.handle(finish);
   assert.equal(imageCalls, 0);
@@ -107,12 +112,61 @@ test('panel booking registration and deletion are text-only while keeping daily 
   assert.equal(day.guests[0].name, '山田　様');
   assert.equal(day.rem, false);
   assert.ok(f.sends.every(p => !p.files?.length));
-  assert.doesNotMatch(finish.responses[0].content, /画像/);
+  assert.equal(f.sends.length, 1);
+  assert.ok(!day.msg);
+  assert.equal(finish.closed, true);
+  assert.deepEqual(finish.calls, ['deferUpdate', 'deleteReply']);
   const remove = interaction(f, 'wel_confirm:' + day.guests[0].id);
   await panel.handle(remove);
   assert.equal(imageCalls, 0);
   assert.ok(!st.get(f.guild.id).welcome['2026-11-07']);
-  assert.doesNotMatch(remove.responses[0].content, /画像/);
+  assert.equal(remove.closed, true);
+  assert.deepEqual(remove.calls, ['deferUpdate', 'deleteReply']);
+}));
+
+test('additional guests reuse one private V2 screen and starting again removes the old private view', async () => isolated(async () => {
+  const f = fixture();
+  const create = interaction(f, 'wel_create');
+  await panel.handle(create);
+  const restart = interaction(f, 'wel_create');
+  await panel.handle(restart);
+  assert.equal(create.closed, true);
+  assert.equal(restart.calls.filter(c => c === 'reply').length, 1);
+  const submit = interaction(f, 'wel_submit');
+  await panel.handle(submit);
+  assert.deepEqual(submit.calls, ['update']);
+  assert.ok(submit.responses[0].flags & MessageFlags.IsComponentsV2);
+  const next = interaction(f, 'wel_next');
+  await panel.handle(next);
+  assert.deepEqual(next.calls, ['update']);
+  const second = interaction(f, 'wel_submit');
+  second.fields.getTextInputValue = () => '佐藤';
+  await panel.handle(second);
+  assert.deepEqual(second.calls, ['update']);
+  assert.match(JSON.stringify(second.responses[0]), /入力中：2組/);
+  const finish = interaction(f, 'wel_finish');
+  await panel.handle(finish);
+  assert.equal(f.sends.length, 2);
+  assert.equal(st.get(f.guild.id).welcome['2026-11-07'].guests.length, 2);
+  assert.equal(finish.closed, true);
+}));
+
+test('startup removes existing redundant lists but preserves booking cards, legacy posts and stored guests', async () => isolated(async () => {
+  const f = fixture();
+  const card = f.make({ content: 'reservation card' });
+  const redundant = f.make({ content: '**Welcome｜2026-11-12**\n• 13:30　山田　様　予約を見る' });
+  const legacy = f.make({ content: 'old text registration' });
+  const d = st.get(f.guild.id);
+  d.welcome['2026-11-12'] = { ch: f.channel.id, msg: redundant.id, guests: [{ id: 'a', msg: card.id, name: '山田　様', time: '13:30' }], rem: false };
+  d.welcome['2026-11-13'] = { ch: f.channel.id, msg: legacy.id, guests: [{ name: '佐藤　様', time: '10:00' }], rem: false };
+  await panel.ensure(f.guild);
+  assert.ok(!f.messages.has(redundant.id));
+  assert.ok(f.messages.has(card.id));
+  assert.ok(f.messages.has(legacy.id));
+  assert.equal(d.welcome['2026-11-12'].guests.length, 1);
+  assert.equal(d.welcome['2026-11-12'].msg, undefined);
+  assert.equal(d.welcome['2026-11-13'].msg, legacy.id);
+  assert.ok(f.sends.every(p => !p.content?.includes('予約を見る')));
 }));
 
 test('legacy text registration no longer generates an image, but 08:15 daily summary still does', async () => isolated(async () => {

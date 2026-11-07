@@ -60,7 +60,7 @@ async function handle(message, parsed) {
     if (old) {
       const ch = await message.client.channels.fetch(old.ch).catch(() => null);
       if (ch) {
-        await ch.messages.delete(old.msg).catch(() => null);
+        if (old.msg) await ch.messages.delete(old.msg).catch(() => null);
         if (old.ping) await ch.messages.delete(old.ping).catch(() => null);
       }
     }

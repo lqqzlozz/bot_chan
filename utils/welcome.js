@@ -4,6 +4,7 @@ const st = require('./store');
 
 const ROLE = '1496147336043298866';
 const REMIND = '08:15';
+const reminding = new Set();
 
 // d.welcome = { 'YYYY-MM-DD': { ch, msg, ping, guests: [...], rem } }
 
@@ -48,13 +49,11 @@ async function handle(message, parsed) {
     let txt = `<@${message.author.id}> がWelcomeを作成しました\n` + nw.map(line).join('\n');
     if (prev.length) txt += `\n${prev.map(nm).join('・')}と同日のためWelcomeを統合しました`;
 
-    const file = await img(dt, all);
     const emb = new EmbedBuilder()
       .setColor(color)
-      .setDescription(txt)
-      .setImage(`attachment://${mmdd(dt)}.jpg`);
+      .setDescription(txt);
 
-    const m1 = await message.reply({ embeds: [emb], files: [file] });
+    const m1 = await message.reply({ embeds: [emb] });
     const m2 = await message.channel.send(`<@&${ROLE}>`);
 
     // 前のは消す
@@ -88,19 +87,23 @@ async function tick(client, now) {
       if (dt < td) { delete d.welcome[dt]; dirty = true; continue; }
       if (dt !== td || w.rem || now < REMIND) continue;
 
-      w.rem = true;
-      dirty = true;
-      const ch = await client.channels.fetch(w.ch).catch(() => null);
-      if (!ch) continue;
-
+      const key = gid + ':' + dt;
+      if (reminding.has(key)) continue;
+      reminding.add(key);
       try {
+        const ch = await client.channels.fetch(w.ch).catch(() => null);
+        if (!ch) continue;
         await ch.send({
           content: `<@&${ROLE}> 今日は ${w.guests.map(nm).join('・')} がご来社予定だよ！`,
           files: [await img(dt, w.guests)],
-          reply: { messageReference: w.msg, failIfNotExists: false },
+          ...(w.msg ? { reply: { messageReference: w.msg, failIfNotExists: false } } : {}),
         });
+        w.rem = true;
+        dirty = true;
       } catch (e) {
         console.error('リマインド失敗:', e.message);
+      } finally {
+        reminding.delete(key);
       }
     }
 

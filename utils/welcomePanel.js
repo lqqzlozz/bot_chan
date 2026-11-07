@@ -1,14 +1,14 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder, AttachmentBuilder } = require('discord.js');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ContainerBuilder, TextDisplayBuilder, MessageFlags, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder } = require('discord.js');
 const st = require('./store');
-const { generateWelcomeImage, jstToday } = require('./imageGenerator');
+const { jstToday } = require('./imageGenerator');
 
 const GUILD = '1496054346385723472';
 const CHANNEL = '1496130366145298473';
-const ROLE = '1496147336043298866';
 const sessions = new Map();
 const locks = new Map();
+const stickyJobs = new Map();
+const stickyTimers = new Map();
 const dateToday = () => { const t = jstToday(); return `${t.y}-${String(t.m).padStart(2,'0')}-${String(t.d).padStart(2,'0')}`; };
-const file = async (date, guests) => new AttachmentBuilder(await generateWelcomeImage({ guests },1920,1080),{name:`${date}.jpg`});
 const jump = (guild, channel, id) => `https://discord.com/channels/${guild}/${channel}/${id}`;
 const v2 = (...components) => ({components, flags: MessageFlags.IsComponentsV2, allowedMentions:{parse:[]}});
 const txt = s => new TextDisplayBuilder().setContent(s);
@@ -22,10 +22,53 @@ const normalizeName = s => s.trim().replace(/(?:[\s　]*(?:様|さん))+\s*$/u,'
 function allReservations(guild) { const w=st.get(guild.id).welcome||{};return Object.entries(w).flatMap(([date,day])=>(day.guests||[]).map((r,i)=>({...r,date,id:r.id||`legacy:${date}:${i}`,ch:r.ch||day.ch,msg:r.msg||day.msg}))).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)); }
 async function ensure(guild) {
  if(!guild||guild.id!==GUILD)return;
- const channel=await guild.channels.fetch(CHANNEL).catch(()=>null);if(!channel?.send)return;
- const d=st.get(guild.id);const old=d.welcomePanel;
- if(old?.msg&&await channel.messages.fetch(old.msg).catch(()=>null))return;
- const m=await channel.send(v2(panel()));d.welcomePanel={ch:CHANNEL,msg:m.id};await st.save(guild);
+ const channel=await guild.channels.fetch(CHANNEL);if(!channel?.send)return;
+ return bump(channel);
+}
+const isPanel = message => message.components?.some(c=>JSON.stringify(c.toJSON?.()||c).includes('"wel_create"'));
+async function bump(channel) {
+ if(channel.id!==CHANNEL||channel.guild?.id!==GUILD)return;
+ const active=stickyJobs.get(channel.id);
+ if(active){active.again=true;return active.promise;}
+ const job={again:false};
+ stickyJobs.set(channel.id,job);
+ job.promise=(async()=>{
+  do{
+   job.again=false;
+   const d=st.get(GUILD),me=channel.client.user.id;
+   let old;
+   if(d.welcomePanel?.msg){
+    try{old=await channel.messages.fetch(d.welcomePanel.msg);}
+    catch(e){if(e.code!==10008)throw e;}
+   }
+   if(!old||old.author.id!==me||!isPanel(old)){
+    const recent=await channel.messages.fetch({limit:100});
+    old=recent.find(m=>m.author.id===me&&isPanel(m));
+   }
+   const latest=(await channel.messages.fetch({limit:1})).first();
+   if(old&&latest?.id===old.id){
+    if(d.welcomePanel?.msg!==old.id){d.welcomePanel={ch:CHANNEL,msg:old.id};await st.save(channel.guild);}
+    continue;
+   }
+   // Send first, so a failed repost never removes the working controls.
+   const message=await channel.send({...v2(panel()),flags:MessageFlags.IsComponentsV2|MessageFlags.SuppressNotifications});
+   d.welcomePanel={ch:CHANNEL,msg:message.id};
+   if(old)await old.delete().catch(e=>{if(e.code!==10008)throw e;});
+   await st.save(channel.guild);
+   console.log('Welcome操作パネルを最下部へ移動:',CHANNEL,message.id);
+  }while(job.again);
+ })();
+ try{return await job.promise;}finally{if(stickyJobs.get(channel.id)===job)stickyJobs.delete(channel.id);}
+}
+function schedule(message,client){
+ if(message.guildId!==GUILD||message.channelId!==CHANNEL)return;
+ if(message.author.id===client.user.id&&isPanel(message))return;
+ clearTimeout(stickyTimers.get(CHANNEL));
+ const timer=setTimeout(()=>{
+  stickyTimers.delete(CHANNEL);
+  bump(message.channel).catch(e=>console.error('Welcomeパネル追従エラー:',e.message));
+ },500);
+ timer.unref?.();stickyTimers.set(CHANNEL,timer);
 }
 const pad = n => String(n).padStart(2,'0');
 const opts = (values,suffix,current) => values.map(n=>({label:String(n)+suffix,value:pad(n),default:pad(n)===pad(current)}));
@@ -60,8 +103,7 @@ async function refresh(guild,date) {
    delete d.welcome[date];return;
  }
  const links=guests.map(r=>`• ${r.time}　${r.name}　${r.msg?`[予約を見る](${jump(guild.id,r.ch||CHANNEL,r.msg)})`:'（旧形式の予約）'}`).join('\n');
- const attachment=await file(date,guests);
- const payload={content:`**Welcome｜${date}**\n${links}`,files:[attachment],allowedMentions:{parse:[]}};
+ const payload={content:`**Welcome｜${date}**\n${links}`,embeds:[],files:[],allowedMentions:{parse:[]}};
  const old=day.msg&&await channel.messages.fetch(day.msg).catch(()=>null);
  if(old){await old.edit({...payload,attachments:[]});}
  else {const m=await channel.send(payload);day.msg=m.id;day.ch=CHANNEL;}
@@ -90,7 +132,7 @@ async function handle(interaction){
   if(!validDate(s.date)||s.date<dateToday()||!validTime(s.time)||!raw.trim()||raw.trim().length>60)return interaction.reply({content:'お客様名を確認して、もう一度登録してください。',flags:MessageFlags.Ephemeral});
   s.items.push({date:s.date,time:s.time,name:normalizeName(raw)});
   const rows=s.items.map(x=>`${x.date} ${x.time}　${x.name}`).join('\n');
-  return interaction.reply({content:`**入力中：${s.items.length}組**\n${rows}\n\n続けて登録するか、完了して画像を作成してください。`,components:[new ActionRowBuilder().addComponents(button('wel_next','＋ 続けて登録',ButtonStyle.Secondary),button('wel_finish','完了',ButtonStyle.Success),button('wel_cancel','キャンセル',ButtonStyle.Danger))],flags:MessageFlags.Ephemeral});
+  return interaction.reply({content:`**入力中：${s.items.length}組**\n${rows}\n\n続けて登録するか、完了して予約を登録してください。`,components:[new ActionRowBuilder().addComponents(button('wel_next','＋ 続けて登録',ButtonStyle.Secondary),button('wel_finish','完了',ButtonStyle.Success),button('wel_cancel','キャンセル',ButtonStyle.Danger))],flags:MessageFlags.Ephemeral});
  }
  if(id==='wel_cancel'){sessions.delete(interaction.user.id);return interaction.update({content:'登録をキャンセルしました。',components:[]});}
  if(id==='wel_finish'){
@@ -108,7 +150,7 @@ async function handle(interaction){
    for(const date of new Set(s.items.map(x=>x.date)))await refresh(interaction.guild,date);
    await st.save(interaction.guild);
   });
-  sessions.delete(interaction.user.id);return interaction.editReply({content:'来場予約を登録し、Welcome画像を更新しました。',components:[]});
+  sessions.delete(interaction.user.id);return interaction.editReply({content:'来場予約を登録しました。',components:[]});
  }
  if(id==='wel_delete'){
   const list=allReservations(interaction.guild).filter(x=>x.date>=dateToday());
@@ -127,7 +169,7 @@ async function handle(interaction){
   const r=allReservations(interaction.guild).find(x=>x.id===rid);
   if(!r)return interaction.reply({content:'予約が見つかりません。',flags:MessageFlags.Ephemeral});
   const row=new ActionRowBuilder().addComponents(button(`wel_confirm:${rid}`,'削除する',ButtonStyle.Danger),button('wel_abort','戻る',ButtonStyle.Secondary));
-  const p={content:`**この予約を削除しますか？**\n${r.date} ${r.time}　${r.name}\n削除後、統合画像も自動更新されます。`,components:[row]};
+  const p={content:`**この予約を削除しますか？**\n${r.date} ${r.time}　${r.name}\n削除後、予約一覧も自動更新されます。`,components:[row]};
   if(id==='wel_pick')return interaction.update(p);
   return interaction.reply({...p,flags:MessageFlags.Ephemeral});
  }
@@ -146,7 +188,7 @@ async function handle(interaction){
     await refresh(interaction.guild,date);await st.save(interaction.guild);break;
    }
   });
-  return interaction.editReply({content:removed?'予約を削除し、Welcome画像を更新しました。':'予約はすでに削除されています。',components:[]});
+  return interaction.editReply({content:removed?'予約を削除しました。':'予約はすでに削除されています。',components:[]});
  }
 }
-module.exports={ensure,handle,GUILD,CHANNEL};
+module.exports={ensure,handle,bump,schedule,GUILD,CHANNEL};

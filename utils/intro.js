@@ -91,7 +91,7 @@ async function submit(i) {
 
 
 // UID card: artwork only in images, all useful data as copyable Components V2 text.
-const safe = value => String(value ?? '').replace(/[\\`*_~|>\\[\\]\\(\\)]/g, '\\\\\\$&').replace(/@/g, '@\u200b');
+const safe = value => String(value ?? '').replace(/@/g, '＠').replace(/[\r\n]/g, ' ').replace(/[\x60*_~|>\[\]()]/g, '');
 async function makeCard({ uid, p, av, raw, displayName, avatarURL }) {
   const container = new ContainerBuilder().setAccentColor(0x1D9E75);
   const files = [];
@@ -178,7 +178,14 @@ async function retryPending(client) {
           const member = await guild.members.fetch(userId).catch(() => null);
           await en.names();
           const card = await makeCard({ uid: entry.uid, ...result, displayName: member?.displayName || msg.mentions.users.first()?.username || 'ユーザー', avatarURL: member?.user.displayAvatarURL() || client.user.displayAvatarURL() });
-          await msg.edit({ components: card.components, files: card.files, attachments: [], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } });
+          if (msg.flags.has(MessageFlags.IsComponentsV2)) {
+            await msg.edit({ components: card.components, files: card.files, attachments: [], allowedMentions: { parse: [] } });
+          } else {
+            // Legacy Embed posts cannot reliably be converted to Components V2 in place.
+            const replacement = await ch.send(card);
+            entry.msg = replacement.id;
+            await msg.delete().catch(() => null);
+          }
           entry.pending = false;
           delete entry.retryAfter;
           st.saveLater(guild);

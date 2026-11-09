@@ -119,7 +119,7 @@ async function handle(i) {
     const list = raw?.length ? raw : (p.showAvatarInfoList || []).map(a => ({ ...a, lim: true }));
     if (!list.length) return i.editReply('⚠️ 【E005】キャラクター情報を取得できません。ゲーム内プロフィールでキャラクターを公開しているかご確認ください。');
     for (const [id, old] of sessions) if (old.user === i.user.id && old.channel === i.channelId) sessions.delete(id);
-    const s = { id: randomBytes(8).toString('hex'), user: i.user.id, name: i.member?.displayName || i.user.globalName || i.user.username, avatar: i.user.displayAvatarURL(), channel: i.channelId, guild: i.guildId, uid, list, names: await en.names(), score: i.customId.endsWith('score'), locale: i.locale || 'ja', base: null, aid: null, at: Date.now() };
+    const s = { id: randomBytes(8).toString('hex'), user: i.user.id, name: i.member?.displayName || i.user.globalName || i.user.username, avatar: i.user.displayAvatarURL(), channel: i.channelId, guild: i.guildId, uid, list, names: await en.names(), score: i.customId.endsWith('score'), locale: i.locale || 'ja', base: 'atk', aid: null, at: Date.now() };
     sessions.set(s.id, s);
     s.client = i.client;
     await refresh(i, s);

@@ -115,6 +115,8 @@ async function makeCard({ uid, p, av, raw, displayName, avatarURL }) {
     ));
     const showcased = p.showAvatarInfoList || [];
     if (showcased.length) {
+      container.addSeparatorComponents(new SeparatorBuilder().setDivider(false).setSpacing(1));
+      container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**キャラクター展示**'));
       if (!raw?.length) container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
         '-# キャラクター詳細は非公開のため、凸数を取得できない場合があります'
       ));
@@ -123,8 +125,6 @@ async function makeCard({ uid, p, av, raw, displayName, avatarURL }) {
       }))).catch(() => null);
       if (strip) {
         files.push(new AttachmentBuilder(strip, { name: 'uid-characters.png' }));
-        container.addSeparatorComponents(new SeparatorBuilder().setDivider(false).setSpacing(1));
-        container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**キャラクター展示**'));
         container.addMediaGalleryComponents(
           new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL('attachment://uid-characters.png'))
         );

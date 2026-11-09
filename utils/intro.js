@@ -91,7 +91,7 @@ async function submit(i) {
 
 
 // UID card: artwork only in images, all useful data as copyable Components V2 text.
-const safe = value => String(value ?? '').replace(/[\\`*_~|>\\[\\]\\(\\)]/g, '\\\\$&').replace(/@/g, '@\\u200b');
+const safe = value => String(value ?? '').replace(/[\\`*_~|>\\[\\]\\(\\)]/g, '\\\\\\$&').replace(/@/g, '@\u200b');
 async function makeCard({ uid, p, av, raw, displayName, avatarURL }) {
   const container = new ContainerBuilder().setAccentColor(0x1D9E75);
   const files = [];
@@ -106,10 +106,10 @@ async function makeCard({ uid, p, av, raw, displayName, avatarURL }) {
       );
     }
     const nickname = safe(p.nickname?.trim() || displayName).slice(0, 80);
-    const signature = p.signature?.trim() ? '\\n' + safe(p.signature.trim()).slice(0, 250) : '';
+    const signature = p.signature?.trim() ? '\n' + safe(p.signature.trim()).slice(0, 250) : '';
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-      '## ' + nickname + signature + '\\n' +
-      '**UID** \`' + uid + '\` [↗](https://enka.network/u/' + uid + '/)\\n' +
+      '## ' + nickname + signature + '\n' +
+      '**UID** \`' + uid + '\` [↗](https://enka.network/u/' + uid + '/)\n' +
       '**冒険ランク** ' + (p.level ?? '—') + '　│　**世界ランク** ' + (p.worldLevel ?? '—') +
       '　│　**アチーブメント** ' + (p.finishAchievementNum ?? '—')
     ));
@@ -129,7 +129,7 @@ async function makeCard({ uid, p, av, raw, displayName, avatarURL }) {
     }
   } else {
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-      '## ' + safe(displayName).slice(0, 80) + '\\n**UID** \`' + uid + '\`\\n-# プロフィールを取得できませんでした。後ほど再取得します。'
+      '## ' + safe(displayName).slice(0, 80) + '\n**UID** \`' + uid + '\`\n-# プロフィールを取得できませんでした。後ほど再取得します。'
     ));
   }
   // Link buttons belong to the same container; no extra message or duplicate UID footer.

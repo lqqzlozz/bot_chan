@@ -9,7 +9,6 @@ const DOLL = { '10000117': 'MannequinBoy', '10000118': 'MannequinGirl' };
 const uiPath = value => {
   if (!value || value === 'None') return null;
   let path = String(value);
-  if (path.startsWith('/ui/')) path = path.slice(4);
   if (/^https?:\/\//.test(path)) return path;
   if (path.startsWith('/ui/')) path = path.slice(4);
   return `${UI}${/\.(png|jpg|jpeg|webp)$/i.test(path) ? path : `${path}.png`}`;

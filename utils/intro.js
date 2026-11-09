@@ -98,7 +98,7 @@ async function makeCard({ uid, p, av, raw, displayName, avatarURL }) {
   if (p) {
     await en.names();
     const icon = en.pfpIcon(p.profilePicture) || avatarURL;
-    const header = await profileHeader(en.namecardImage(p.nameCardId), icon).catch(() => null);
+    const header = await profileHeader(en.namecardImages(p.nameCardId), icon).catch(() => null);
     if (header) {
       files.push(new AttachmentBuilder(header, { name: 'uid-header.png' }));
       container.addMediaGalleryComponents(

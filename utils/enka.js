@@ -94,6 +94,14 @@ function namecardImage(id) {
   return path ? uiPath(/\.(png|jpg|jpeg|webp)$/i.test(String(path)) ? path : `${path}.jpg`) : null;
 }
 
+// 横長のナビゲーション名刺を優先。存在しない名刺は通常背景へフォールバック。
+function namecardImages(id) {
+  const primary = namecardImage(id);
+  if (!primary) return [];
+  const alpha = primary.replace(/_P\.(?:jpg|jpeg|png|webp)$/i, '_Alpha.png');
+  return alpha === primary ? [primary] : [alpha, primary];
+}
+
 // 全角数字もOKにしてUIDだけ取り出す
 function cleanUid(s) {
   const t = String(s).replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/\D/g, '');
@@ -136,4 +144,4 @@ function relicSet(e, language = 'ja') {
   return { id: String(setId || hash || e.itemId), name: loc(hash, language) || loc(relicSets[setId]?.Name, language) || `セット ${setId || hash || '不明'}` };
 }
 
-module.exports = { names, name, cleanUid, player, charIcon, charSideIcon, pfpIcon, namecardImage, loc, char, relicSet, UI, doll, uiPath };
+module.exports = { names, name, cleanUid, player, charIcon, charSideIcon, pfpIcon, namecardImage, namecardImages, loc, char, relicSet, UI, doll, uiPath };

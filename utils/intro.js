@@ -108,17 +108,15 @@ async function makeCard({ uid, p, av, raw, displayName, avatarURL }) {
     // 名前は見出しで大きく（タイトルは文字サイズ変えられないので）
     const sg = p.signature?.trim();
     e.setDescription(`## ${p.nickname?.trim() || displayName}` + (sg ? `\n「${sg}」` : ''));
-    // ゲーム内アイコンはauthor、名刺はthumbnailで同時表示。未取得時は既存レイアウトを維持。
-    const namecard = en.namecardImage(p.nameCardId);
-    if (namecard) e.setThumbnail(namecard);
-
+    // UID・ランク・自己紹介はコピー可能なEmbedテキストのまま。
+    e.addFields({ name: 'UID', value: '\`' + uid + '\`', inline: false });
     const sh = p.showAvatarInfoList || [];
-    if (sh.length) {
-      const buf = await charRow(sh.map(a => ({ url: en.charIcon(a), lv: a.level, c: av?.[a.avatarId] }))).catch(() => null);
-      if (buf) {
-        files.push(new AttachmentBuilder(buf, { name: 'chars.png' }));
-        e.addFields({ name: 'キャラ展示', value: '​' }).setImage('attachment://chars.png');
-      }
+    const buf = await charRow(sh.map(a => ({
+      url: en.charSideIcon(a), lv: a.level, c: av?.[a.avatarId]
+    })), { namecard: en.namecardImage(p.nameCardId), avatar: icon }).catch(() => null);
+    if (buf) {
+      files.push(new AttachmentBuilder(buf, { name: 'profile.png' }));
+      e.setImage('attachment://profile.png');
     }
   } else {
     // 取れなかった時は最低限で

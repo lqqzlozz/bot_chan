@@ -91,7 +91,7 @@ async function submit(i) {
 
 
 // UID card: artwork only in images, all useful data as copyable Components V2 text.
-const safe = value => String(value ?? '').replace(/@/g, '＠').replace(/[\r\n]/g, ' ').replace(/[\x60*_~|>\[\]()]/g, '');
+const safe = value => String(value ?? '').replace(/@/g, '＠').replace(/[\r\n]/g, ' ').replace(/([\\\x60*_~|>\[\]()])/g, '\\$1');
 async function makeCard({ uid, p, av, raw, displayName, avatarURL }) {
   const container = new ContainerBuilder().setAccentColor(0x1D9E75);
   const files = [];

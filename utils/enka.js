@@ -10,8 +10,9 @@ const uiPath = value => {
   if (!value || value === 'None') return null;
   let path = String(value);
   if (path.startsWith('/ui/')) path = path.slice(4);
-  if (path.endsWith('.png')) path = path.slice(0, -4);
-  return `${UI}${path}.png`;
+  if (/^https?:\/\//.test(path)) return path;
+  if (path.startsWith('/ui/')) path = path.slice(4);
+  return `${UI}${/\.(png|jpg|jpeg|webp)$/i.test(path) ? path : `${path}.png`}`;
 };
 const baseAvatarId = id => String(id).split('-')[0];
 
@@ -89,8 +90,9 @@ function pfpIcon(pp) {
 function namecardImage(id) {
   if (id == null) return null;
   const card = namecards[String(id)] || namecards.Namecards?.[String(id)];
-  const path = card?.icon || card?.Icon || card?.iconPath || card?.IconPath || card?.picPath || card?.PicPath || card?.image || card?.Image || card?.iconName || card?.IconName;
-  return uiPath(path);
+  const path = card?.Icon || card?.icon || card?.iconPath || card?.IconPath || card?.picPath || card?.PicPath || card?.image || card?.Image || card?.iconName || card?.IconName;
+  // NameCardPic assets are JPEGs; forcing .png causes the blank blue fallback.
+  return path ? uiPath(/\.(png|jpg|jpeg|webp)$/i.test(String(path)) ? path : `${path}.jpg`) : null;
 }
 
 // 全角数字もOKにしてUIDだけ取り出す

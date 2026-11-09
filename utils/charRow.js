@@ -1,55 +1,89 @@
 const { createCanvas, loadImage } = require('@napi-rs/canvas');
 
-// 画像は名刺・アイコンと展示キャラのみ。UIDやランクなどはDiscord Embedに残す。
-async function image(url) {
+// Separate compact image assets for Components V2. All copyable information stays as text.
+async function load(url) {
   if (!url) return null;
   try {
-    const response = await fetch(url, { signal: AbortSignal.timeout(7000) });
+    const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!response.ok) return null;
-    return loadImage(Buffer.from(await response.arrayBuffer()));
-  } catch { return null; }
+    return await loadImage(Buffer.from(await response.arrayBuffer()));
+  } catch (error) {
+    console.warn('UID画像取得失敗:', String(url).slice(0, 140), error.message);
+    return null;
+  }
 }
-function rounded(ctx,x,y,w,h,r) {
-  ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.clip();
+function cover(ctx, image, x, y, w, h) {
+  const scale = Math.max(w / image.width, h / image.height);
+  ctx.drawImage(image, x + (w - image.width * scale) / 2, y + (h - image.height * scale) / 2,
+    image.width * scale, image.height * scale);
 }
-async function charRow(list, options = {}) {
+function rounded(ctx, x, y, w, h, radius) {
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, radius);
+  ctx.clip();
+}
+async function profileHeader(namecardUrl, avatarUrl) {
+  const [banner, avatar] = await Promise.all([load(namecardUrl), load(avatarUrl)]);
+  const W = 640, H = 156;
+  const canvas = createCanvas(W, H), ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#31384a';
+  ctx.fillRect(0, 0, W, H);
+  if (banner) cover(ctx, banner, 0, 0, W, H);
+  // Preserve the original namecard artwork; only shade behind the avatar for contrast.
+  const gradient = ctx.createLinearGradient(0, 0, 220, 0);
+  gradient.addColorStop(0, 'rgba(14,19,31,.38)');
+  gradient.addColorStop(1, 'rgba(14,19,31,0)');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 220, H);
+  if (avatar) {
+    const size = 112, x = 22, y = 22;
+    ctx.save();
+    rounded(ctx, x, y, size, size, size / 2);
+    cover(ctx, avatar, x, y, size, size);
+    ctx.restore();
+    ctx.strokeStyle = '#f4e1b8';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x + size / 2, y + size / 2, size / 2 + 2, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  return canvas.toBuffer('image/png');
+}
+
+// Five narrow side portraits per row, no cards or large blank right-hand area.
+async function charRow(list) {
   const entries = list.slice(0, 12);
-  const cols = 4, size = 94, gap = 12, cellH = 120;
-  const width = 640, headerH = options.namecard || options.avatar ? 168 : 0;
-  const rows = Math.ceil(entries.length / cols);
-  const height = headerH + (rows ? 30 + rows * cellH + 12 : 0);
-  if (!height) return null;
-  const cv = createCanvas(width, height), ctx = cv.getContext('2d');
-  const [banner, avatar, ...icons] = await Promise.all([image(options.namecard),image(options.avatar),...entries.map(e=>image(e.url))]);
-  ctx.fillStyle = '#20232d';ctx.fillRect(0,0,width,height);
-  if (headerH) {
-    if (banner) {
-      const scale = Math.max(width/banner.width,headerH/banner.height);
-      ctx.drawImage(banner,(width-banner.width*scale)/2,(headerH-banner.height*scale)/2,banner.width*scale,banner.height*scale);
-    } else {
-      ctx.fillStyle = '#34465c';ctx.fillRect(0,0,width,headerH);
+  if (!entries.length) return null;
+  const columns = 5, W = 640, side = 96, gap = 24, left = 32;
+  const rows = Math.ceil(entries.length / columns), rowHeight = 121;
+  const H = rows * rowHeight + 4;
+  const canvas = createCanvas(W, H), ctx = canvas.getContext('2d');
+  const images = await Promise.all(entries.map(entry => load(entry.url)));
+  // Transparent background blends into Discord's dark/light surfaces.
+  ctx.clearRect(0, 0, W, H);
+  entries.forEach((entry, index) => {
+    const x = left + (index % columns) * (side + gap);
+    const y = Math.floor(index / columns) * rowHeight;
+    const icon = images[index];
+    if (icon) {
+      const scale = Math.min(side / icon.width, side / icon.height);
+      const w = icon.width * scale, h = icon.height * scale;
+      ctx.drawImage(icon, x + (side - w) / 2, y + (side - h) / 2, w, h);
     }
-    ctx.fillStyle='rgba(13,19,30,.28)';ctx.fillRect(0,0,width,headerH);
-    if (avatar) {
-      ctx.save();rounded(ctx,24,24,120,120,60);
-      ctx.drawImage(avatar,24,24,120,120);ctx.restore();
-      ctx.strokeStyle='#f0dba8';ctx.lineWidth=4;ctx.beginPath();ctx.arc(84,84,62,0,Math.PI*2);ctx.stroke();
-    }
-  }
-  if (rows) {
-    ctx.fillStyle='#e6e8ee';ctx.font='bold 19px "NotoSansJP-Black", sans-serif';ctx.textAlign='left';
-    ctx.fillText('キャラクター展示',20,headerH+24);
-    entries.forEach((entry,i)=>{
-      const x=20+(i%cols)*(size+gap),y=headerH+35+Math.floor(i/cols)*cellH;
-      ctx.fillStyle='#333c4b';ctx.beginPath();ctx.roundRect(x,y,size,size,12);ctx.fill();
-      const icon=icons[i];
-      if(icon){ctx.save();rounded(ctx,x,y,size,size,12);ctx.drawImage(icon,x,y,size,size);ctx.restore();}
-      ctx.fillStyle='#e6e8ee';ctx.font='bold 15px "NotoSansJP-Black", sans-serif';ctx.textAlign='center';
-      const level=entry.lv!=null?'Lv.'+entry.lv:'Lv.?';
-      const constellation=entry.c!=null?' C'+entry.c:'';
-      ctx.fillText(level+constellation,x+size/2,y+size+18);
-    });
-  }
-  return cv.toBuffer('image/png');
+    // Dark translucent pill keeps labels legible on both Discord themes.
+    const label = 'Lv.' + (entry.lv ?? '?') + (entry.c == null ? '' : '  C' + entry.c);
+    ctx.font = 'bold 17px "NotoSansJP-Black", sans-serif';
+    const textW = ctx.measureText(label).width;
+    const pillW = Math.min(114, Math.max(80, textW + 12));
+    const center = x + side / 2;
+    ctx.fillStyle = 'rgba(20,24,35,.87)';
+    ctx.beginPath();
+    ctx.roundRect(center - pillW / 2, y + 95, pillW, 23, 8);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, center, y + 112);
+  });
+  return canvas.toBuffer('image/png');
 }
-module.exports = { charRow };
+module.exports = { profileHeader, charRow };

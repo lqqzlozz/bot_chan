@@ -17,7 +17,7 @@ const baseAvatarId = id => String(id).split('-')[0];
 
 
 let nm = null, nmAt = 0;
-let chr = {}, pfp = {}, ja = {}, locs = {};
+let chr = {}, pfp = {}, namecards = {}, ja = {}, locs = {};
 let relicSets = {}, relicItems = {};
 const cache = new Map();  // uid -> { at, ttl, p, av, raw }
 
@@ -27,7 +27,8 @@ async function names() {
   try {
     // 古いstoreは新キャラ・新武器が抜けてるので gi/ と合わせる（セット名は古い方にしか無い）
     const get = f => fetch(RAW + f).then(r => r.json()).catch(() => ({}));
-    const [c0, c1, l0, l1, pf, relicData] = await Promise.all(['characters.json', 'gi/avatars.json', 'loc.json', 'gi/locs.json', 'pfps.json', 'gi/relics.json'].map(get));
+    const [c0, c1, l0, l1, pf, relicData, nc0, nc1] = await Promise.all(['characters.json', 'gi/avatars.json', 'loc.json', 'gi/locs.json', 'pfps.json', 'gi/relics.json', 'namecards.json', 'gi/namecards.json'].map(get));
+    namecards = { ...nc0, ...nc1 };
     relicSets = relicData.Sets || {};
     relicItems = relicData.Items || {};
     locs = Object.fromEntries(['ja','en','zh-CN','zh-TW'].map(lang => { const code = {'zh-CN':'zh-cn','zh-TW':'zh-tw'}[lang] || lang; return [lang, { ...(l0[code] || {}), ...(l1[code] || {}) }]; }));
@@ -78,6 +79,14 @@ function pfpIcon(pp) {
   return null;
 }
 
+// プレイヤーの名刺背景。Enkaの名前札データから実際のUIアセット名を参照する。
+function namecardImage(id) {
+  if (id == null) return null;
+  const card = namecards[String(id)];
+  const path = card?.icon || card?.Icon || card?.iconPath || card?.IconPath || card?.picPath || card?.PicPath || card?.image || card?.Image;
+  return uiPath(path);
+}
+
 // 全角数字もOKにしてUIDだけ取り出す
 function cleanUid(s) {
   const t = String(s).replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/\D/g, '');
@@ -120,4 +129,4 @@ function relicSet(e, language = 'ja') {
   return { id: String(setId || hash || e.itemId), name: loc(hash, language) || loc(relicSets[setId]?.Name, language) || `セット ${setId || hash || '不明'}` };
 }
 
-module.exports = { names, name, cleanUid, player, charIcon, pfpIcon, loc, char, relicSet, UI, doll, uiPath };
+module.exports = { names, name, cleanUid, player, charIcon, pfpIcon, namecardImage, loc, char, relicSet, UI, doll, uiPath };

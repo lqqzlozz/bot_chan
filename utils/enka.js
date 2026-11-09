@@ -72,6 +72,12 @@ function charIcon(a) {
 }
 
 // プロフィールアイコンのURL（新しい形式はid、古いのはavatarId）
+function charSideIcon(a) {
+  const c = chr[String(a.avatarId)] || chr[baseAvatarId(a.avatarId)];
+  const side = c?.SideIconName;
+  return side ? uiPath(side) : charIcon(a);
+}
+
 function pfpIcon(pp) {
   if (!pp) return null;
   if (pp.id && pfp[String(pp.id)]) return `${UI}${pfp[String(pp.id)].iconPath}.png`;
@@ -82,8 +88,8 @@ function pfpIcon(pp) {
 // プレイヤーの名刺背景。Enkaの名前札データから実際のUIアセット名を参照する。
 function namecardImage(id) {
   if (id == null) return null;
-  const card = namecards[String(id)];
-  const path = card?.icon || card?.Icon || card?.iconPath || card?.IconPath || card?.picPath || card?.PicPath || card?.image || card?.Image;
+  const card = namecards[String(id)] || namecards.Namecards?.[String(id)];
+  const path = card?.icon || card?.Icon || card?.iconPath || card?.IconPath || card?.picPath || card?.PicPath || card?.image || card?.Image || card?.iconName || card?.IconName;
   return uiPath(path);
 }
 
@@ -129,4 +135,4 @@ function relicSet(e, language = 'ja') {
   return { id: String(setId || hash || e.itemId), name: loc(hash, language) || loc(relicSets[setId]?.Name, language) || `セット ${setId || hash || '不明'}` };
 }
 
-module.exports = { names, name, cleanUid, player, charIcon, pfpIcon, namecardImage, loc, char, relicSet, UI, doll, uiPath };
+module.exports = { names, name, cleanUid, player, charIcon, charSideIcon, pfpIcon, namecardImage, loc, char, relicSet, UI, doll, uiPath };

@@ -10,7 +10,7 @@ async function ensureConfig(guild) {
       role.id !== guild.roles.everyone.id && role.permissions.has(P.Administrator));
     ch = await guild.channels.create({
       name: st.CH_NAME, type: ChannelType.GuildText,
-      topic: 'Botの設定保存専用。削除・改名しないでください。使い方は /help。',
+      topic: 'Botの設定保存専用。削除・改名しないでください。操作は #bot-config の管理パネルから行ってください。',
       permissionOverwrites: [
         { id: guild.roles.everyone.id, deny: [P.ViewChannel] },
         { id: me.id, allow: [P.ViewChannel, P.SendMessages, P.ReadMessageHistory, P.AttachFiles, P.EmbedLinks] },

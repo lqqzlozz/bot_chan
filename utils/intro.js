@@ -108,6 +108,9 @@ async function makeCard({ uid, p, av, raw, displayName, avatarURL }) {
     // 名前は見出しで大きく（タイトルは文字サイズ変えられないので）
     const sg = p.signature?.trim();
     e.setDescription(`## ${p.nickname?.trim() || displayName}` + (sg ? `\n「${sg}」` : ''));
+    // ゲーム内アイコンはauthor、名刺はthumbnailで同時表示。未取得時は既存レイアウトを維持。
+    const namecard = en.namecardImage(p.nameCardId);
+    if (namecard) e.setThumbnail(namecard);
 
     const sh = p.showAvatarInfoList || [];
     if (sh.length) {

@@ -1,7 +1,7 @@
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder, MessageFlags } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder, MessageFlags, ContainerBuilder, TextDisplayBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder, SeparatorBuilder } = require('discord.js');
 const st = require('./store');
 const en = require('./enka');
-const { charRow } = require('./charRow');
+const { charRow, profileHeader } = require('./charRow');
 
 const COLOR = '#1D9E75';
 const busy = new Map();
@@ -67,7 +67,7 @@ async function submit(i) {
   // UIDの打ち間違いだけはやり直してもらう
   if (!p && (err === 400 || err === 404)) return oops(i, errMsg[err]);
 
-  const { e, files, components } = await makeCard({ uid, p, av, raw, displayName: i.member.displayName, avatarURL: i.user.displayAvatarURL() });
+  const card = await makeCard({ uid, p, av, raw, displayName: i.member.displayName, avatarURL: i.user.displayAvatarURL() });
 
   // 前のカードがあれば差し替え
   const d = st.get(i.guildId);
@@ -77,7 +77,7 @@ async function submit(i) {
     const ch = await i.client.channels.fetch(old.ch).catch(() => null);
     if (ch) await ch.messages.delete(old.msg).catch(() => null);
   }
-  const m = await i.channel.send({ content: `<@${i.user.id}> がUIDを登録しました`, allowedMentions: { parse: [] }, embeds: [e], components, files });
+  const m = await i.channel.send(card);
   d.intro[i.user.id] = { ch: i.channelId, msg: m.id, uid, pending: !p && retryable(err) };
   st.saveLater(i.guild, 3000);
 
@@ -90,46 +90,54 @@ async function submit(i) {
 }
 
 
+// UID card: artwork only in images, all useful data as copyable Components V2 text.
+const safe = value => String(value ?? '').replace(/[\\`*_~|>\\[\\]\\(\\)]/g, '\\\\$&').replace(/@/g, '@\\u200b');
 async function makeCard({ uid, p, av, raw, displayName, avatarURL }) {
-  const e = new EmbedBuilder()
-    .setColor(COLOR)
-    .setFooter({ text: `UID ${uid}` });
+  const container = new ContainerBuilder().setAccentColor(0x1D9E75);
   const files = [];
-
   if (p) {
     await en.names();
     const icon = en.pfpIcon(p.profilePicture) || avatarURL;
-    e.setAuthor({ name: `${displayName} さんの自己紹介`, iconURL: icon })
-      .addFields(
-        { name: '冒険ランク', value: String(p.level ?? '-'), inline: true },
-        { name: '世界ランク', value: String(p.worldLevel ?? '-'), inline: true },
-        { name: 'アチーブメント', value: String(p.finishAchievementNum ?? '-'), inline: true },
+    const header = await profileHeader(en.namecardImage(p.nameCardId), icon).catch(() => null);
+    if (header) {
+      files.push(new AttachmentBuilder(header, { name: 'uid-header.png' }));
+      container.addMediaGalleryComponents(
+        new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL('attachment://uid-header.png'))
       );
-    // 名前は見出しで大きく（タイトルは文字サイズ変えられないので）
-    const sg = p.signature?.trim();
-    e.setDescription(`## ${p.nickname?.trim() || displayName}` + (sg ? `\n「${sg}」` : ''));
-    // UID・ランク・自己紹介はコピー可能なEmbedテキストのまま。
-    e.addFields({ name: 'UID', value: '\`' + uid + '\`', inline: false });
-    const sh = p.showAvatarInfoList || [];
-    const buf = await charRow(sh.map(a => ({
-      url: en.charSideIcon(a), lv: a.level, c: av?.[a.avatarId]
-    })), { namecard: en.namecardImage(p.nameCardId), avatar: icon }).catch(() => null);
-    if (buf) {
-      files.push(new AttachmentBuilder(buf, { name: 'profile.png' }));
-      e.setImage('attachment://profile.png');
+    }
+    const nickname = safe(p.nickname?.trim() || displayName).slice(0, 80);
+    const signature = p.signature?.trim() ? '\\n' + safe(p.signature.trim()).slice(0, 250) : '';
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
+      '## ' + nickname + signature + '\\n' +
+      '**UID** \`' + uid + '\` [↗](https://enka.network/u/' + uid + '/)\\n' +
+      '**冒険ランク** ' + (p.level ?? '—') + '　│　**世界ランク** ' + (p.worldLevel ?? '—') +
+      '　│　**アチーブメント** ' + (p.finishAchievementNum ?? '—')
+    ));
+    const showcased = p.showAvatarInfoList || [];
+    if (showcased.length) {
+      const strip = await charRow(showcased.map(a => ({
+        url: en.charSideIcon(a), lv: a.level, c: av?.[a.avatarId]
+      }))).catch(() => null);
+      if (strip) {
+        files.push(new AttachmentBuilder(strip, { name: 'uid-characters.png' }));
+        container.addSeparatorComponents(new SeparatorBuilder().setDivider(false).setSpacing(1));
+        container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**キャラクター展示**'));
+        container.addMediaGalleryComponents(
+          new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL('attachment://uid-characters.png'))
+        );
+      }
     }
   } else {
-    // 取れなかった時は最低限で
-    e.setAuthor({ name: `${displayName} さんの自己紹介`, iconURL: avatarURL })
-      .setDescription(`## ${displayName}`);
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
+      '## ' + safe(displayName).slice(0, 80) + '\\n**UID** \`' + uid + '\`\\n-# プロフィールを取得できませんでした。後ほど再取得します。'
+    ));
   }
-
-  const components = raw?.length ? [new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setLabel('Enka').setStyle(ButtonStyle.Link).setURL(`https://enka.network/u/${uid}/`),
-    new ButtonBuilder().setLabel('Akasha').setStyle(ButtonStyle.Link).setURL(`https://akasha.cv/profile/${uid}`)
-  )] : [];
-
-  return { e, files, components };
+  // Link buttons belong to the same container; no extra message or duplicate UID footer.
+  container.addActionRowComponents(new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setLabel('Enka').setStyle(ButtonStyle.Link).setURL('https://enka.network/u/' + uid + '/'),
+    new ButtonBuilder().setLabel('Akasha').setStyle(ButtonStyle.Link).setURL('https://akasha.cv/profile/' + uid)
+  ));
+  return { components: [container], files, flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 
 // Retry only temporary Enka failures. Keep the pending UID in the saved server config.
@@ -170,7 +178,7 @@ async function retryPending(client) {
           const member = await guild.members.fetch(userId).catch(() => null);
           await en.names();
           const card = await makeCard({ uid: entry.uid, ...result, displayName: member?.displayName || msg.mentions.users.first()?.username || 'ユーザー', avatarURL: member?.user.displayAvatarURL() || client.user.displayAvatarURL() });
-          await msg.edit({ embeds: [card.e], components: card.components, files: card.files, attachments: [] });
+          await msg.edit({ components: card.components, files: card.files, attachments: [], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } });
           entry.pending = false;
           delete entry.retryAfter;
           st.saveLater(guild);

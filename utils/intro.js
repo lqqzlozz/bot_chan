@@ -120,9 +120,29 @@ async function makeCard({ uid, p, av, raw, displayName, avatarURL }) {
       if (!raw?.length) container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
         '-# キャラクター詳細は非公開のため、凸数を取得できない場合があります'
       ));
-      const strip = await charRow(showcased.map(a => ({
-        url: en.charSideIcon(a), lv: a.level, c: av?.[a.avatarId]
-      }))).catch(() => null);
+      const details = new Map((raw || []).map(a => [String(a.avatarId), a]));
+      const strip = await charRow(showcased.map(a => {
+        const detail = details.get(String(a.avatarId));
+        const equips = detail?.equipList || [];
+        const weapon = equips.find(e => e.weapon);
+        const counts = new Map();
+        const icons = new Map();
+        for (const e of equips) {
+          if (e.weapon || !e.reliquary) continue;
+          const set = en.relicSet(e);
+          const key = set.id;
+          counts.set(key, (counts.get(key) || 0) + 1);
+          if (!icons.has(key)) icons.set(key, en.uiPath(e.flat?.icon));
+        }
+        const sets = [...counts].filter(([, count]) => count >= 2)
+          .sort((a, b) => b[1] - a[1]).slice(0, 2)
+          .map(([id]) => icons.get(id)).filter(Boolean);
+        return {
+          url: en.charSideIcon(a), lv: a.level, c: detail ? (detail.talentIdList || []).length : null,
+          weapon: weapon ? en.uiPath(weapon.flat?.icon) : null,
+          artifacts: sets, private: !detail
+        };
+      })).catch(() => null);
       if (strip) {
         files.push(new AttachmentBuilder(strip, { name: 'uid-characters.png' }));
         container.addMediaGalleryComponents(

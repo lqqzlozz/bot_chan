@@ -24,7 +24,7 @@ function rounded(ctx, x, y, w, h, radius) {
 }
 async function profileHeader(namecardUrl, avatarUrl) {
   const [banner, avatar] = await Promise.all([load(namecardUrl), load(avatarUrl)]);
-  const W = 640, H = 156;
+  const W = 640, H = 205;
   const canvas = createCanvas(W, H), ctx = canvas.getContext('2d');
   ctx.fillStyle = '#31384a';
   ctx.fillRect(0, 0, W, H);
@@ -36,7 +36,7 @@ async function profileHeader(namecardUrl, avatarUrl) {
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, 220, H);
   if (avatar) {
-    const size = 112, x = 22, y = 22;
+    const size = 132, x = 25, y = 36;
     ctx.save();
     rounded(ctx, x, y, size, size, size / 2);
     cover(ctx, avatar, x, y, size, size);
@@ -54,8 +54,8 @@ async function profileHeader(namecardUrl, avatarUrl) {
 async function charRow(list) {
   const entries = list.slice(0, 12);
   if (!entries.length) return null;
-  const columns = 5, W = 640, side = 96, gap = 24, left = 32;
-  const rows = Math.ceil(entries.length / columns), rowHeight = 121;
+  const columns = 4, W = 640, side = 112, gap = 42, left = 33;
+  const rows = Math.ceil(entries.length / columns), rowHeight = 141;
   const H = rows * rowHeight + 4;
   const canvas = createCanvas(W, H), ctx = canvas.getContext('2d');
   const images = await Promise.all(entries.map(entry => load(entry.url)));
@@ -70,19 +70,12 @@ async function charRow(list) {
       const w = icon.width * scale, h = icon.height * scale;
       ctx.drawImage(icon, x + (side - w) / 2, y + (side - h) / 2, w, h);
     }
-    // Dark translucent pill keeps labels legible on both Discord themes.
-    const label = 'Lv.' + (entry.lv ?? '?') + (entry.c == null ? '' : '  C' + entry.c);
-    ctx.font = 'bold 17px "NotoSansJP-Black", sans-serif';
-    const textW = ctx.measureText(label).width;
-    const pillW = Math.min(114, Math.max(80, textW + 12));
-    const center = x + side / 2;
-    ctx.fillStyle = 'rgba(20,24,35,.87)';
-    ctx.beginPath();
-    ctx.roundRect(center - pillW / 2, y + 95, pillW, 23, 8);
-    ctx.fill();
-    ctx.fillStyle = '#ffffff';
+    // Plain white text, no badge background.
+    const label = 'Lv.' + (entry.lv ?? '?') + (entry.c == null ? '' : ' C' + entry.c);
+    ctx.font = 'bold 19px "NotoSansJP-Black", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(label, center, y + 112);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(label, x + side / 2, y + 130);
   });
   return canvas.toBuffer('image/png');
 }

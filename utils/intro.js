@@ -42,11 +42,11 @@ async function bump(ch) {
 async function open(i) {
   const roleId = i.customId.slice(11);
   const m = new ModalBuilder().setCustomId(`intro_mdl_${roleId}`).setTitle('自己紹介');
-  m.addComponents(
-    new ActionRowBuilder().addComponents(
-      new TextInputBuilder().setCustomId('uid').setLabel('UID').setStyle(TextInputStyle.Short).setMinLength(9).setMaxLength(12).setRequired(true)
-    ),
-  );
+  const input = new TextInputBuilder().setCustomId('uid').setLabel('UID')
+    .setStyle(TextInputStyle.Short).setMinLength(9).setMaxLength(12).setRequired(true);
+  const previousUid = st.get(i.guildId).intro?.[i.user.id]?.uid;
+  if (previousUid && en.cleanUid(previousUid)) input.setValue(previousUid);
+  m.addComponents(new ActionRowBuilder().addComponents(input));
   return i.showModal(m);
 }
 
@@ -110,11 +110,11 @@ async function makeCard({ uid, p, av, raw, displayName, avatarURL }) {
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
       '## ' + nickname + signature + '\n' +
       '**UID** \`' + uid + '\` [↗](https://enka.network/u/' + uid + '/)\n' +
-      '**冒険ランク** ' + (p.level ?? '—') + '　│　**世界ランク** ' + (p.worldLevel ?? '—') +
-      '　│　**アチーブメント** ' + (p.finishAchievementNum ?? '—')
+      '-# 冒険ランク ' + (p.level ?? '—') + '　│　世界ランク ' + (p.worldLevel ?? '—') +
+      '　│　アチーブメント ' + (p.finishAchievementNum ?? '—')
     ));
     const showcased = p.showAvatarInfoList || [];
-    if (showcased.length) {
+    if (showcased.length && raw?.length) {
       const strip = await charRow(showcased.map(a => ({
         url: en.charSideIcon(a), lv: a.level, c: av?.[a.avatarId]
       }))).catch(() => null);
@@ -126,6 +126,10 @@ async function makeCard({ uid, p, av, raw, displayName, avatarURL }) {
           new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL('attachment://uid-characters.png'))
         );
       }
+    } else {
+      container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
+        '**キャラクター展示**\\n-# 非公開（ゲーム内でキャラクター詳細の公開を有効にすると表示されます）'
+      ));
     }
   } else {
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(

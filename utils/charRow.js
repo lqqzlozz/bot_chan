@@ -22,13 +22,25 @@ function rounded(ctx, x, y, w, h, radius) {
   ctx.roundRect(x, y, w, h, radius);
   ctx.clip();
 }
-async function profileHeader(namecardUrl, avatarUrl) {
-  const [banner, avatar] = await Promise.all([load(namecardUrl), load(avatarUrl)]);
+async function profileHeader(namecardUrls, avatarUrl) {
+  const candidates = Array.isArray(namecardUrls) ? namecardUrls : [namecardUrls];
+  const avatarPromise = load(avatarUrl);
+  let banner = null;
+  for (const url of candidates) {
+    banner = await load(url);
+    if (banner) break;
+  }
+  const avatar = await avatarPromise;
   const W = 640, H = 205;
   const canvas = createCanvas(W, H), ctx = canvas.getContext('2d');
   ctx.fillStyle = '#31384a';
   ctx.fillRect(0, 0, W, H);
-  if (banner) cover(ctx, banner, 0, 0, W, H);
+  if (banner) {
+    // 横長素材を拡大・トリミングせず、縦横比を保って中央配置。
+    const scale = Math.min(1, W / banner.width, H / banner.height);
+    const w = banner.width * scale, h = banner.height * scale;
+    ctx.drawImage(banner, (W - w) / 2, (H - h) / 2, w, h);
+  }
   // Preserve the original namecard artwork; only shade behind the avatar for contrast.
   const gradient = ctx.createLinearGradient(0, 0, 220, 0);
   gradient.addColorStop(0, 'rgba(14,19,31,.38)');

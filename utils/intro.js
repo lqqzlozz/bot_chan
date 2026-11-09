@@ -114,7 +114,10 @@ async function makeCard({ uid, p, av, raw, displayName, avatarURL }) {
       '　│　アチーブメント ' + (p.finishAchievementNum ?? '—')
     ));
     const showcased = p.showAvatarInfoList || [];
-    if (showcased.length && raw?.length) {
+    if (showcased.length) {
+      if (!raw?.length) container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
+        '-# キャラクター詳細は非公開のため、凸数を取得できない場合があります'
+      ));
       const strip = await charRow(showcased.map(a => ({
         url: en.charSideIcon(a), lv: a.level, c: av?.[a.avatarId]
       }))).catch(() => null);
@@ -128,7 +131,7 @@ async function makeCard({ uid, p, av, raw, displayName, avatarURL }) {
       }
     } else {
       container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-        '**キャラクター展示**\\n-# 非公開（ゲーム内でキャラクター詳細の公開を有効にすると表示されます）'
+        '**キャラクター展示**\n-# 非公開または未設定（ゲーム内のプロフィール公開設定をご確認ください）'
       ));
     }
   } else {

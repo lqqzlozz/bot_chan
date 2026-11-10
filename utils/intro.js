@@ -2,7 +2,7 @@ const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder
 const st = require('./store');
 const en = require('./enka');
 const { profileHeader } = require('./charRow');
-const { characterEmoji } = require('./introEmoji');
+const { characterEmoji, statEmoji } = require('./introEmoji');
 
 const COLOR = '#1D9E75';
 const busy = new Map();
@@ -98,12 +98,13 @@ function showcaseStats(a, detail) {
 }
 
 const showcaseName = a => en.name(a.avatarId) || 'キャラクター ' + a.avatarId;
+const emojiText = emoji => emoji ? '<:' + emoji.name + ':' + emoji.id + '>' : '';
 
 async function showcaseLine(showcased, emojis) {
   const items = await Promise.all(showcased.slice(0, 12).map(async avatar => {
     const url = en.charIcon(avatar) || en.charSideIcon(avatar);
     const emoji = await characterEmoji(emojis, url);
-    return emoji ? '<:' + emoji.name + ':' + emoji.id + '>' : safe(showcaseName(avatar));
+    return emojiText(emoji) || safe(showcaseName(avatar));
   }));
   return items.join(' ');
 }
@@ -168,10 +169,16 @@ async function makeCard({ uid, p, displayName, avatarURL, emojis }) {
   if (p) {
     await en.names();
     const icon = en.pfpIcon(p.profilePicture) || avatarURL;
-    const [header, showcase] = await Promise.all([
+    const [header, showcase, statIcons] = await Promise.all([
       profileHeader(en.namecardImages(p.nameCardId), icon).catch(() => null),
-      showcaseLine(p.showAvatarInfoList || [], emojis)
+      showcaseLine(p.showAvatarInfoList || [], emojis),
+      Promise.all(['adventure', 'world', 'achievement'].map(stat => statEmoji(emojis, stat)))
     ]);
+    const stats = [
+      '冒険ランク ' + (p.level ?? '—'),
+      '世界ランク ' + (p.worldLevel ?? '—'),
+      'アチーブメント ' + (p.finishAchievementNum ?? '—')
+    ].map((label, index) => statIcons[index] ? emojiText(statIcons[index]) + ' ' + label : label).join('　│　');
     if (header) {
       files.push(new AttachmentBuilder(header, { name: 'uid-header.png' }));
       container.addMediaGalleryComponents(
@@ -183,8 +190,7 @@ async function makeCard({ uid, p, displayName, avatarURL, emojis }) {
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
       '## ' + nickname + signature + '\n' +
       uidBlock + '\n' +
-      '-# 冒険ランク ' + (p.level ?? '—') + '　│　世界ランク ' + (p.worldLevel ?? '—') +
-      '　│　アチーブメント ' + (p.finishAchievementNum ?? '—')
+      '-# ' + stats
     ));
     if (showcase) {
       // A heading gives inline icons more room without adding a gallery.

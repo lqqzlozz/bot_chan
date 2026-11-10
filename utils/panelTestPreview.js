@@ -445,7 +445,7 @@ async function handleCore(i){
   await i.deferUpdate();
   try{
    if(next.enabled){const result=await feed.follow(i.client,i.guild,next.channelId);if(result.already&&result.channelId)next.channelId=result.channelId;}
-   else if(old?.channelId)await feed.unfollow(i.client,i.guild,old.channelId);
+   else await feed.unfollow(i.client,i.guild,old?.channelId);
    data.officialFeed=next;
    if(!await st.save(i.guild))throw Error('設定を保存できませんでした');
    if(next.enabled&&!data.betaPanelNoticeSent){
@@ -455,7 +455,8 @@ async function handleCore(i){
     data.betaPanelNoticeSent={messageId:posted.id,channelId:next.channelId};
     if(!await st.save(i.guild))console.error('ベータ版案内の送信記録保存失敗',i.guildId);
    }
-   await i.editReply(render('home',mode,i.guildId));
+   await i.editReply(render('official',mode,i.guildId));
+   await i.followUp({content:next.enabled?'お知らせの受信をONにしました。':'お知らせの受信をOFFにしました。',flags:MessageFlags.Ephemeral});
   }catch(e){
    data.officialFeed=old;
    await i.followUp({content:'公式お知らせの設定に失敗しました：'+e.message,flags:MessageFlags.Ephemeral});

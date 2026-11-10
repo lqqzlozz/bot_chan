@@ -48,11 +48,20 @@ test('talent icons follow talent level order in both Enka formats and private pr
   } finally { en.names = original.names; en.char = original.char; }
 });
 
-test('UID cards show character icons and public stats without a select menu', async t => {
+test('UID cards show even rows of character icons and public stats without a select menu', async t => {
+  const { createCanvas, loadImage } = require('@napi-rs/canvas');
+  const icon = createCanvas(128, 128);
+  const iconContext = icon.getContext('2d');
+  iconContext.fillStyle = '#ff0000';
+  iconContext.fillRect(0, 0, 128, 128);
+  const iconBuffer = icon.toBuffer('image/png');
   t.mock.method(en, 'names', async () => ({}));
   t.mock.method(en, 'charIcon', a => en.uiPath('UI_AvatarIcon_' + a.avatarId));
   t.mock.method(st, 'saveLater', () => {});
-  t.mock.method(globalThis, 'fetch', async () => ({ ok: false }));
+  t.mock.method(globalThis, 'fetch', async url => ({
+    ok: String(url).includes('UI_AvatarIcon_'),
+    arrayBuffer: async () => iconBuffer
+  }));
   const p = { nickname: 'ゲーム内の名前', showAvatarInfoList: [{ avatarId: 1, level: 90 }, { avatarId: 2, level: 80 }] };
   const raw = [{ avatarId: 1, equipList: [
     { weapon: {}, flat: { icon: 'UI_EquipIcon_Test' } },
@@ -71,12 +80,11 @@ test('UID cards show character icons and public stats without a select menu', as
     assert.equal(output.content, undefined);
     assert.equal(output.embeds, undefined);
     assert.deepEqual(output.allowedMentions.parse, []);
-    assert.deepEqual(output.files.map(file => file.name), ['uid-header.png']);
+    assert.deepEqual(output.files.map(file => file.name), ['uid-header.png', 'uid-icons-1.png']);
     const components = output.components[0].toJSON().components;
     assert.match(components[1].content, /ゲーム内の名前/);
     assert.ok(components[1].content.includes('**UID**\n```\n123456789\n```'));
-    assert.deepEqual(components[3].items.map(item => item.media.url),
-      ['UI_AvatarIcon_1', 'UI_AvatarIcon_2'].map(en.uiPath));
+    assert.equal(components[3].items[0].media.url, 'attachment://uid-icons-1.png');
     assert.match(components[4].content, /キャラクター 1 Lv\.90 C0/);
     assert.match(components[4].content, /キャラクター 2$/);
     assert.doesNotMatch(components[4].content, /Lv\.80/);
@@ -105,11 +113,22 @@ test('UID cards show character icons and public stats without a select menu', as
     st.db.clear();
     await intro.submit(i);
     const full = output.components[0].toJSON().components;
-    assert.equal(full.length, 8);
-    assert.equal(full[3].items.length, 6);
-    assert.equal(full[5].items.length, 6);
-    assert.match(full[6].content, /キャラクター 12$/);
+    assert.equal(full.length, 10);
+    assert.deepEqual(full.filter(component => component.type === 12).slice(1).map(component => component.items[0].media.url),
+      ['attachment://uid-icons-1.png', 'attachment://uid-icons-2.png', 'attachment://uid-icons-3.png']);
+    assert.match(full[8].content, /キャラクター 12$/);
     assert.equal(full.filter(component => component.type === 1).length, 1);
+    for (const file of output.files.slice(1)) {
+      const strip = await loadImage(file.attachment);
+      assert.deepEqual([strip.width, strip.height], [640, 120]);
+      const canvas = createCanvas(strip.width, strip.height);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(strip, 0, 0);
+      for (const x of [80, 240, 400, 560]) {
+        assert.equal(ctx.getImageData(x, 60, 1, 1).data[3], 255);
+      }
+      assert.equal(ctx.getImageData(160, 60, 1, 1).data[3], 0);
+    }
 
     player.mock.mockImplementation(async () => ({ err: 503 }));
     st.db.clear();

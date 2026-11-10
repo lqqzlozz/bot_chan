@@ -60,4 +60,24 @@ async function profileHeader(namecardUrls, avatarUrl) {
   return canvas.toBuffer('image/png');
 }
 
-module.exports = { profileHeader };
+async function characterIconStrip(urls) {
+  const icons = await Promise.all(urls.map(load));
+  if (!icons.some(Boolean)) return null;
+
+  const slotWidth = 160;
+  const size = 112;
+  const canvas = createCanvas(slotWidth * 4, 120);
+  const ctx = canvas.getContext('2d');
+  const start = (canvas.width - slotWidth * icons.length) / 2;
+  icons.forEach((icon, index) => {
+    if (!icon) return;
+    const scale = size / Math.max(icon.width, icon.height);
+    const width = icon.width * scale;
+    const height = icon.height * scale;
+    const x = start + slotWidth * (index + 0.5) - width / 2;
+    ctx.drawImage(icon, x, (canvas.height - height) / 2, width, height);
+  });
+  return canvas.toBuffer('image/png');
+}
+
+module.exports = { profileHeader, characterIconStrip };

@@ -2,6 +2,7 @@ const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder
 const st = require('./store');
 const en = require('./enka');
 const { profileHeader } = require('./charRow');
+const { characterEmoji } = require('./introEmoji');
 
 const COLOR = '#1D9E75';
 const busy = new Map();
@@ -67,7 +68,7 @@ async function submit(i) {
   // UIDの打ち間違いだけはやり直してもらう
   if (!p && (err === 400 || err === 404)) return oops(i, errMsg[err]);
 
-  const card = await makeCard({ uid, p, displayName: i.member.displayName, avatarURL: i.user.displayAvatarURL() });
+  const card = await makeCard({ uid, p, displayName: i.member.displayName, avatarURL: i.user.displayAvatarURL(), emojis: i.client?.application?.emojis });
 
   // 前のカードがあれば差し替え
   const d = st.get(i.guildId);
@@ -98,16 +99,13 @@ function showcaseStats(a, detail) {
 
 const showcaseName = a => en.name(a.avatarId) || 'キャラクター ' + a.avatarId;
 
-function addShowcase(container, showcased) {
-  const items = showcased.slice(0, 12).flatMap(avatar => {
+async function showcaseLine(showcased, emojis) {
+  const items = await Promise.all(showcased.slice(0, 12).map(async avatar => {
     const url = en.charIcon(avatar) || en.charSideIcon(avatar);
-    return url ? [new MediaGalleryItemBuilder().setURL(url).setDescription(showcaseName(avatar))] : [];
-  });
-  if (!items.length) return;
-  const groupSize = Math.ceil(items.length / Math.ceil(items.length / 6));
-  for (let start = 0; start < items.length; start += groupSize) {
-    container.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(...items.slice(start, start + groupSize)));
-  }
+    const emoji = await characterEmoji(emojis, url);
+    return emoji ? '<:' + emoji.name + ':' + emoji.id + '>' : safe(showcaseName(avatar));
+  }));
+  return items.join(' ');
 }
 
 // Older posted cards still have a character menu.
@@ -163,14 +161,17 @@ async function showCharacter(i) {
   }
 }
 
-async function makeCard({ uid, p, displayName, avatarURL }) {
+async function makeCard({ uid, p, displayName, avatarURL, emojis }) {
   const container = new ContainerBuilder().setAccentColor(0x1D9E75);
   const files = [];
   const uidBlock = '**UID**\n```\n' + uid + '\n```';
   if (p) {
     await en.names();
     const icon = en.pfpIcon(p.profilePicture) || avatarURL;
-    const header = await profileHeader(en.namecardImages(p.nameCardId), icon).catch(() => null);
+    const [header, showcase] = await Promise.all([
+      profileHeader(en.namecardImages(p.nameCardId), icon).catch(() => null),
+      showcaseLine(p.showAvatarInfoList || [], emojis)
+    ]);
     if (header) {
       files.push(new AttachmentBuilder(header, { name: 'uid-header.png' }));
       container.addMediaGalleryComponents(
@@ -185,12 +186,12 @@ async function makeCard({ uid, p, displayName, avatarURL }) {
       '-# 冒険ランク ' + (p.level ?? '—') + '　│　世界ランク ' + (p.worldLevel ?? '—') +
       '　│　アチーブメント ' + (p.finishAchievementNum ?? '—')
     ));
+    if (showcase) container.addTextDisplayComponents(new TextDisplayBuilder().setContent(showcase));
   } else {
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
       '## ' + safe(displayName).slice(0, 80) + '\n' + uidBlock + '\n-# プロフィールを取得できませんでした。後ほど再取得します。'
     ));
   }
-  addShowcase(container, p?.showAvatarInfoList || []);
   container.addActionRowComponents(new ActionRowBuilder().addComponents(
     new ButtonBuilder().setLabel('Enka').setStyle(ButtonStyle.Link).setURL('https://enka.network/u/' + uid + '/'),
     new ButtonBuilder().setLabel('Akasha').setStyle(ButtonStyle.Link).setURL('https://akasha.cv/profile/' + uid)
@@ -235,7 +236,7 @@ async function retryPending(client) {
           const msg = await ch.messages.fetch(entry.msg);
           const member = await guild.members.fetch(userId).catch(() => null);
           await en.names();
-          const card = await makeCard({ uid: entry.uid, ...result, displayName: member?.displayName || msg.mentions.users.first()?.username || 'ユーザー', avatarURL: member?.user.displayAvatarURL() || client.user.displayAvatarURL() });
+          const card = await makeCard({ uid: entry.uid, ...result, displayName: member?.displayName || msg.mentions.users.first()?.username || 'ユーザー', avatarURL: member?.user.displayAvatarURL() || client.user.displayAvatarURL(), emojis: client.application?.emojis });
           if (msg.flags.has(MessageFlags.IsComponentsV2)) {
             await msg.edit({ components: card.components, files: card.files, attachments: [], allowedMentions: { parse: [] } });
           } else {

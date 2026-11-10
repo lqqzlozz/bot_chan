@@ -48,11 +48,26 @@ test('talent icons follow talent level order in both Enka formats and private pr
   } finally { en.names = original.names; en.char = original.char; }
 });
 
-test('UID cards display original showcase icons above the link buttons', async t => {
+test('UID cards display and reuse individual character emoji above the link buttons', async t => {
   t.mock.method(en, 'names', async () => ({}));
   t.mock.method(en, 'charIcon', a => en.uiPath('UI_AvatarIcon_' + a.avatarId));
   t.mock.method(st, 'saveLater', () => {});
-  t.mock.method(globalThis, 'fetch', async () => ({ ok: false }));
+  const icon = require('@napi-rs/canvas').createCanvas(128, 128).toBuffer('image/png');
+  t.mock.method(globalThis, 'fetch', async url => ({
+    ok: String(url).includes('UI_AvatarIcon_'),
+    arrayBuffer: async () => icon
+  }));
+  const emojis = {
+    cache: new Collection(),
+    fetch: t.mock.fn(async () => {}),
+    create: t.mock.fn(async ({ name, attachment }) => {
+      assert.ok(attachment.length < 256 * 1024);
+      const id = String(100000000000000000n + BigInt(emojis.cache.size));
+      const emoji = { id, name };
+      emojis.cache.set(id, emoji);
+      return emoji;
+    })
+  };
   const p = { nickname: 'ゲーム内の名前', showAvatarInfoList: [{ avatarId: 1, level: 90 }, { avatarId: 2, level: 80 }] };
   const raw = [{ avatarId: 1, equipList: [
     { weapon: {}, flat: { icon: 'UI_EquipIcon_Test' } },
@@ -62,6 +77,7 @@ test('UID cards display original showcase icons above the link buttons', async t
   const player = t.mock.method(en, 'player', async () => ({ p, raw }));
   let output;
   const i = { guildId: 'intro-test', channelId: 'c', customId: 'intro_mdl_role',
+    client: { application: { emojis } },
     user: { id: '123456789', displayAvatarURL: () => 'https://example.com/avatar.png' },
     member: { displayName: 'Discordの名前' }, deferUpdate: async () => {}, fields: { getTextInputValue: () => '123456789' },
     guild: { roles: { fetch: async () => null } }, channel: { send: async p => { output = p; return { id: 'msg' }; } } };
@@ -76,9 +92,9 @@ test('UID cards display original showcase icons above the link buttons', async t
     assert.match(components[1].content, /ゲーム内の名前/);
     assert.ok(components[1].content.includes('**UID**\n```\n123456789\n```'));
     assert.equal(output.components.length, 1);
-    assert.deepEqual(components.map(component => component.type), [12, 10, 12, 1]);
-    assert.deepEqual(components[2].items.map(item => item.media.url),
-      ['UI_AvatarIcon_1', 'UI_AvatarIcon_2'].map(en.uiPath));
+    assert.deepEqual(components.map(component => component.type), [12, 10, 10, 1]);
+    assert.match(components[2].content, /^<:uid_[a-f0-9]+:\d+> <:uid_[a-f0-9]+:\d+>$/);
+    assert.equal(emojis.create.mock.callCount(), 2);
     assert.equal(components.filter(component => component.type === 1).length, 1);
     assert.deepEqual(components.at(-1).components.map(b => b.url), ['https://enka.network/u/123456789/', 'https://akasha.cv/profile/123456789']);
 
@@ -105,13 +121,12 @@ test('UID cards display original showcase icons above the link buttons', async t
       st.db.clear();
       await intro.submit(i);
       const card = output.components[0].toJSON().components;
-      assert.deepEqual(card.map(component => component.type), [12, 10, 12, 12, 1]);
-      const galleries = card.slice(2, -1);
-      assert.deepEqual(galleries.map(gallery => gallery.items.length), [count / 2, count / 2]);
-      assert.deepEqual(galleries.flatMap(gallery => gallery.items.map(item => item.media.url)),
-        p.showAvatarInfoList.map(en.charIcon));
+      assert.deepEqual(card.map(component => component.type), [12, 10, 10, 1]);
+      assert.equal(card[2].content.match(/<:uid_[a-f0-9]+:\d+>/g).length, count);
+      assert.equal(emojis.create.mock.callCount(), count);
       assert.deepEqual(output.files.map(file => file.name), ['uid-header.png']);
     }
+    assert.equal(emojis.fetch.mock.callCount(), 1);
 
     player.mock.mockImplementation(async () => ({ err: 503 }));
     st.db.clear();

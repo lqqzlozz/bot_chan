@@ -93,7 +93,7 @@ test('UID cards display and reuse individual character emoji above the link butt
     assert.ok(components[1].content.includes('**UID**\n```\n123456789\n```'));
     assert.equal(output.components.length, 1);
     assert.deepEqual(components.map(component => component.type), [12, 10, 10, 1]);
-    assert.match(components[2].content, /^<:uid_[a-f0-9]+:\d+> <:uid_[a-f0-9]+:\d+>$/);
+    assert.match(components[2].content, /^# <:uid_[a-f0-9]+:\d+> <:uid_[a-f0-9]+:\d+>$/);
     assert.equal(emojis.create.mock.callCount(), 2);
     assert.equal(components.filter(component => component.type === 1).length, 1);
     assert.deepEqual(components.at(-1).components.map(b => b.url), ['https://enka.network/u/123456789/', 'https://akasha.cv/profile/123456789']);

@@ -48,20 +48,11 @@ test('talent icons follow talent level order in both Enka formats and private pr
   } finally { en.names = original.names; en.char = original.char; }
 });
 
-test('UID cards show even rows of character icons and public stats without a select menu', async t => {
-  const { createCanvas, loadImage } = require('@napi-rs/canvas');
-  const icon = createCanvas(128, 128);
-  const iconContext = icon.getContext('2d');
-  iconContext.fillStyle = '#ff0000';
-  iconContext.fillRect(0, 0, 128, 128);
-  const iconBuffer = icon.toBuffer('image/png');
+test('UID cards display original showcase icons in a separate container', async t => {
   t.mock.method(en, 'names', async () => ({}));
   t.mock.method(en, 'charIcon', a => en.uiPath('UI_AvatarIcon_' + a.avatarId));
   t.mock.method(st, 'saveLater', () => {});
-  t.mock.method(globalThis, 'fetch', async url => ({
-    ok: String(url).includes('UI_AvatarIcon_'),
-    arrayBuffer: async () => iconBuffer
-  }));
+  t.mock.method(globalThis, 'fetch', async () => ({ ok: false }));
   const p = { nickname: 'ゲーム内の名前', showAvatarInfoList: [{ avatarId: 1, level: 90 }, { avatarId: 2, level: 80 }] };
   const raw = [{ avatarId: 1, equipList: [
     { weapon: {}, flat: { icon: 'UI_EquipIcon_Test' } },
@@ -80,14 +71,17 @@ test('UID cards show even rows of character icons and public stats without a sel
     assert.equal(output.content, undefined);
     assert.equal(output.embeds, undefined);
     assert.deepEqual(output.allowedMentions.parse, []);
-    assert.deepEqual(output.files.map(file => file.name), ['uid-header.png', 'uid-icons.png']);
+    assert.deepEqual(output.files.map(file => file.name), ['uid-header.png']);
     const components = output.components[0].toJSON().components;
     assert.match(components[1].content, /ゲーム内の名前/);
     assert.ok(components[1].content.includes('**UID**\n```\n123456789\n```'));
-    assert.equal(components[3].items[0].media.url, 'attachment://uid-icons.png');
-    assert.match(components[4].content, /キャラクター 1 Lv\.90 C0/);
-    assert.match(components[4].content, /キャラクター 2$/);
-    assert.doesNotMatch(components[4].content, /Lv\.80/);
+    assert.equal(output.components.length, 2);
+    assert.equal(components.length, 3);
+    const showcase = output.components[1].toJSON().components;
+    assert.deepEqual(showcase.map(component => component.type), [10, 12]);
+    assert.equal(showcase[0].content, '### キャラクター展示');
+    assert.deepEqual(showcase[1].items.map(item => item.media.url),
+      ['UI_AvatarIcon_1', 'UI_AvatarIcon_2'].map(en.uiPath));
     assert.equal(components.filter(component => component.type === 1).length, 1);
     assert.deepEqual(components.at(-1).components.map(b => b.url), ['https://enka.network/u/123456789/', 'https://akasha.cv/profile/123456789']);
 
@@ -113,28 +107,17 @@ test('UID cards show even rows of character icons and public stats without a sel
       p.showAvatarInfoList = Array.from({ length: count }, (_, n) => ({ avatarId: n + 1, level: 90 }));
       st.db.clear();
       await intro.submit(i);
-      const full = output.components[0].toJSON().components;
-      assert.equal(full.length, 6);
-      assert.equal(full[4].content.split('\n').length, 2);
-      assert.ok(full[4].content.endsWith('キャラクター ' + count));
-      assert.equal(full.filter(component => component.type === 1).length, 1);
-      const grid = await loadImage(output.files[1].attachment);
-      assert.deepEqual([grid.width, grid.height], [640, 208]);
-      const canvas = createCanvas(grid.width, grid.height);
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(grid, 0, 0);
-      const columns = count / 2;
-      for (let column = 0; column < columns; column++) {
-        const x = Math.floor(640 * (column + 0.5) / columns);
-        assert.equal(ctx.getImageData(x, 52, 1, 1).data[3], 255);
-        assert.equal(ctx.getImageData(x, 156, 1, 1).data[3], 255);
-      }
-      assert.equal(ctx.getImageData(64, 104, 1, 1).data[3], 0);
+      const galleries = output.components[1].toJSON().components.slice(1);
+      assert.deepEqual(galleries.map(gallery => gallery.items.length), [count / 2, count / 2]);
+      assert.deepEqual(galleries.flatMap(gallery => gallery.items.map(item => item.media.url)),
+        p.showAvatarInfoList.map(en.charIcon));
+      assert.deepEqual(output.files.map(file => file.name), ['uid-header.png']);
     }
 
     player.mock.mockImplementation(async () => ({ err: 503 }));
     st.db.clear();
     await intro.submit(i);
+    assert.equal(output.components.length, 1);
     assert.deepEqual(output.files, []);
     assert.match(output.components[0].toJSON().components[0].content, /123456789/);
     assert.equal(st.get(i.guildId).intro[i.user.id].pending, true);

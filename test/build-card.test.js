@@ -150,7 +150,11 @@ test('bulk UID refresh edits the original posts once and retries temporary failu
   t.mock.method(st, 'saveLater', () => {});
   t.mock.method(globalThis, 'fetch', async () => ({ ok: false }));
   const p = { nickname: 'テスト', level: 60 };
-  const player = t.mock.method(en, 'player', async uid => uid === '123456782' ? { err: 503 } : { p });
+  const player = t.mock.method(en, 'player', async uid => {
+    if (uid === '123456782') return { err: 503 };
+    if (uid === '123456783') return { p: { ...p, profilePicture: { id: 11800 } } };
+    return { p };
+  });
   const guildId = 'uid-migration';
   const entry = (msg, uid = '123456789') => ({ uid, msg, ch: 'channel', pending: false });
   const records = {
@@ -158,13 +162,15 @@ test('bulk UID refresh edits the original posts once and retries temporary failu
     modern: entry('old-components'),
     missing: entry('deleted'),
     waiting: entry('temporarily-unavailable', '123456782'),
-    current: { ...entry('already-current'), cardVersion: 1 }
+    unaffected: { ...entry('unaffected'), cardVersion: 1 },
+    odette: { ...entry('odette', '123456783'), cardVersion: 1 },
+    current: { ...entry('already-current'), cardVersion: 2 }
   };
   st.get(guildId).intro = records;
   const edits = new Map();
   const channel = { messages: { fetch: async id => {
     if (id === 'deleted') throw Object.assign(new Error('Unknown Message'), { code: 10008 });
-    assert.notEqual(id, 'already-current');
+    assert.ok(!['unaffected', 'already-current'].includes(id));
     return {
       author: { id: 'bot' },
       flags: { bitfield: id === 'old-embed' ? 0 : MessageFlags.IsComponentsV2,
@@ -182,23 +188,24 @@ test('bulk UID refresh edits the original posts once and retries temporary failu
     user: { id: 'bot', displayAvatarURL: () => 'https://example.com/avatar.png' } };
   try {
     await intro.retryPending(client);
-    assert.deepEqual([...edits.keys()], ['old-embed', 'old-components']);
+    assert.deepEqual([...edits.keys()], ['old-embed', 'old-components', 'odette']);
     assert.equal(edits.get('old-embed').content, null);
     assert.deepEqual(edits.get('old-embed').embeds, []);
     assert.equal(edits.get('old-embed').flags, MessageFlags.IsComponentsV2);
     assert.deepEqual(edits.get('old-components').attachments, []);
     assert.equal(records.legacy.msg, 'old-embed');
-    assert.equal(records.legacy.cardVersion, 1);
-    assert.equal(records.missing.cardSkippedVersion, 1);
+    assert.equal(records.legacy.cardVersion, 2);
+    assert.equal(records.unaffected.cardVersion, 2);
+    assert.equal(records.missing.cardSkippedVersion, 2);
     assert.ok(records.waiting.retryAfter > Date.now());
     await intro.retryPending(client);
-    assert.equal(player.mock.callCount(), 4);
+    assert.equal(player.mock.callCount(), 6);
 
     records.waiting.retryAfter = 0;
     player.mock.mockImplementation(async () => ({ p }));
     await intro.retryPending(client);
     assert.ok(edits.has('temporarily-unavailable'));
-    assert.equal(records.waiting.cardVersion, 1);
+    assert.equal(records.waiting.cardVersion, 2);
   } finally { st.db.clear(); }
 });
 

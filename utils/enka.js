@@ -17,7 +17,7 @@ const baseAvatarId = id => String(id).split('-')[0];
 
 
 let nm = null, nmAt = 0;
-let chr = {}, pfp = {}, namecards = {}, ja = {}, locs = {};
+let chr = {}, pfp = {}, newerPfp = {}, namecards = {}, ja = {}, locs = {};
 let relicSets = {}, relicItems = {};
 const cache = new Map();  // uid -> { at, ttl, p, av, raw }
 
@@ -27,7 +27,7 @@ async function names() {
   try {
     // 古いstoreは新キャラ・新武器が抜けてるので gi/ と合わせる（セット名は古い方にしか無い）
     const get = f => fetch(RAW + f).then(r => r.json()).catch(() => ({}));
-    const [c0, c1, l0, l1, pf, relicData, nc0, nc1] = await Promise.all(['characters.json', 'gi/avatars.json', 'loc.json', 'gi/locs.json', 'pfps.json', 'gi/relics.json', 'namecards.json', 'gi/namecards.json'].map(get));
+    const [c0, c1, l0, l1, pf, relicData, nc0, nc1, pfNew] = await Promise.all(['characters.json', 'gi/avatars.json', 'loc.json', 'gi/locs.json', 'pfps.json', 'gi/relics.json', 'namecards.json', 'gi/namecards.json', 'gi/pfps.json'].map(get));
     namecards = { ...nc0, ...nc1 };
     relicSets = relicData.Sets || {};
     relicItems = relicData.Items || {};
@@ -53,6 +53,7 @@ async function names() {
     nm = m;
     chr = c;
     pfp = pf;
+    newerPfp = pfNew;
     nmAt = Date.now();
   } catch (e) {
     console.error('キャラデータの取得失敗:', e.message);
@@ -80,7 +81,9 @@ function charSideIcon(a) {
 
 function pfpIcon(pp) {
   if (!pp) return null;
-  if (pp.id && pfp[String(pp.id)]) return `${UI}${pfp[String(pp.id)].iconPath}.png`;
+  const id = String(pp.id);
+  const icon = uiPath(newerPfp[id]?.IconPath) || uiPath(pfp[id]?.iconPath);
+  if (icon) return icon;
   if (pp.avatarId) return charIcon({ avatarId: pp.avatarId, costumeId: pp.costumeId });
   return null;
 }

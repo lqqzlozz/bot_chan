@@ -1,7 +1,7 @@
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder, MessageFlags, ContainerBuilder, TextDisplayBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder, SeparatorBuilder } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder, MessageFlags, ContainerBuilder, TextDisplayBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder, SectionBuilder, ThumbnailBuilder } = require('discord.js');
 const st = require('./store');
 const en = require('./enka');
-const { charRow, profileHeader } = require('./charRow');
+const { profileHeader } = require('./charRow');
 
 const COLOR = '#1D9E75';
 const busy = new Map();
@@ -63,11 +63,11 @@ async function submit(i) {
   const uid = en.cleanUid(i.fields.getTextInputValue('uid'));
   if (!uid) return oops(i, errMsg[400]);
 
-  const { p, av, raw, err } = await en.player(uid).catch(() => ({ err: 503 }));
+  const { p, raw, err } = await en.player(uid).catch(() => ({ err: 503 }));
   // UIDの打ち間違いだけはやり直してもらう
   if (!p && (err === 400 || err === 404)) return oops(i, errMsg[err]);
 
-  const card = await makeCard({ uid, p, av, raw, displayName: i.member.displayName, avatarURL: i.user.displayAvatarURL() });
+  const card = await makeCard({ uid, p, raw, displayName: i.member.displayName, avatarURL: i.user.displayAvatarURL() });
 
   // 前のカードがあれば差し替え
   const d = st.get(i.guildId);
@@ -92,9 +92,66 @@ async function submit(i) {
 
 // UID card: artwork only in images, all useful data as copyable Components V2 text.
 const safe = value => String(value ?? '').replace(/@/g, '＠').replace(/[\r\n]/g, ' ').replace(/([\\\x60*_~|>\[\]()])/g, '\\$1');
-async function makeCard({ uid, p, av, raw, displayName, avatarURL }) {
+function addShowcase(container, showcased, raw) {
+  const details = new Map((raw || []).map(a => [String(a.avatarId), a]));
+  const rows = showcased.slice(0, 12).map(a => {
+    const detail = details.get(String(a.avatarId));
+    const name = en.name(a.avatarId) || 'キャラクター ' + a.avatarId;
+    const portrait = en.charIcon(a) || en.charSideIcon(a);
+    const constellation = detail ? 'C' + (detail.talentIdList || []).length : '凸数 非公開';
+    const stats = '**' + safe(name) + '**\nLv.' + (a.level ?? '?') + ' │ ' + constellation;
+    const equips = detail?.equipList || [];
+    const weapon = equips.find(e => e.weapon);
+    const equipment = weapon ? [{
+      label: '武器 ' + (en.loc(weapon.flat?.nameTextMapHash) || '名称不明'),
+      url: en.uiPath(weapon.flat?.icon)
+    }] : [];
+    const sets = new Map();
+    for (const e of equips) {
+      if (!e.reliquary) continue;
+      const set = en.relicSet(e);
+      const entry = sets.get(set.id) || { name: set.name, count: 0 };
+      entry.count++;
+      entry.url ||= en.uiPath(e.flat?.icon);
+      sets.set(set.id, entry);
+    }
+    for (const set of sets.values()) {
+      if (set.count >= 2) equipment.push({ label: set.name + ' ×' + set.count, url: set.url });
+    }
+    return { name, portrait, stats, equipment };
+  });
+
+  // Reserve the container, existing header, showcase title, link row and buttons,
+  // and one text component per character. A Section and its Thumbnail cost two more.
+  let remaining = 40 - (1 + container.components.length + 1 + 3 + rows.length);
+  const galleriesFit = remaining >= rows.reduce((cost, row) => cost +
+    (row.portrait ? 2 : 0) + (row.equipment.some(item => item.url) ? 1 : 0), 0);
+  container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### キャラクター展示'));
+  for (const { name, portrait, stats, equipment } of rows) {
+    const thumbnail = portrait && remaining >= 2;
+    const equipmentText = equipment.length ? '\n-# ' + equipment.map(item => safe(item.label)).join(' │ ') : '';
+    const portraitLink = portrait && !thumbnail ? '\n-# [キャラ画像](' + portrait + ')' : '';
+    const text = new TextDisplayBuilder().setContent(stats + equipmentText + portraitLink);
+    if (thumbnail) {
+      container.addSectionComponents(new SectionBuilder().addTextDisplayComponents(text)
+        .setThumbnailAccessory(new ThumbnailBuilder().setURL(portrait).setDescription(name)));
+      remaining -= 2;
+    } else {
+      container.addTextDisplayComponents(text);
+    }
+    const images = equipment.filter(item => item.url);
+    if (galleriesFit && images.length) {
+      container.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(...images.map(item =>
+        new MediaGalleryItemBuilder().setURL(item.url).setDescription(item.label)
+      )));
+    }
+  }
+}
+
+async function makeCard({ uid, p, raw, displayName, avatarURL }) {
   const container = new ContainerBuilder().setAccentColor(0x1D9E75);
   const files = [];
+  const uidBlock = '**UID**\n```\n' + uid + '\n```';
   if (p) {
     await en.names();
     const icon = en.pfpIcon(p.profilePicture) || avatarURL;
@@ -109,46 +166,13 @@ async function makeCard({ uid, p, av, raw, displayName, avatarURL }) {
     const signature = p.signature?.trim() ? '\n' + safe(p.signature.trim()).slice(0, 250) : '';
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
       '## ' + nickname + signature + '\n' +
-      '**UID** \`' + uid + '\` [↗](https://enka.network/u/' + uid + '/)\n' +
+      uidBlock + '\n' +
       '-# 冒険ランク ' + (p.level ?? '—') + '　│　世界ランク ' + (p.worldLevel ?? '—') +
       '　│　アチーブメント ' + (p.finishAchievementNum ?? '—')
     ));
     const showcased = p.showAvatarInfoList || [];
     if (showcased.length) {
-      container.addSeparatorComponents(new SeparatorBuilder().setDivider(false).setSpacing(1));
-      container.addTextDisplayComponents(new TextDisplayBuilder().setContent('**キャラクター展示**'));
-      if (!raw?.length) container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-        '-# キャラクター詳細は非公開のため、凸数を取得できない場合があります'
-      ));
-      const details = new Map((raw || []).map(a => [String(a.avatarId), a]));
-      const strip = await charRow(showcased.map(a => {
-        const detail = details.get(String(a.avatarId));
-        const equips = detail?.equipList || [];
-        const weapon = equips.find(e => e.weapon);
-        const counts = new Map();
-        const icons = new Map();
-        for (const e of equips) {
-          if (e.weapon || !e.reliquary) continue;
-          const set = en.relicSet(e);
-          const key = set.id;
-          counts.set(key, (counts.get(key) || 0) + 1);
-          if (!icons.has(key)) icons.set(key, en.uiPath(e.flat?.icon));
-        }
-        const sets = [...counts].filter(([, count]) => count >= 2)
-          .sort((a, b) => b[1] - a[1]).slice(0, 2)
-          .map(([id]) => icons.get(id)).filter(Boolean);
-        return {
-          url: en.charSideIcon(a), lv: a.level, c: detail ? (detail.talentIdList || []).length : null,
-          weapon: weapon ? en.uiPath(weapon.flat?.icon) : null,
-          artifacts: sets, private: !detail
-        };
-      })).catch(() => null);
-      if (strip) {
-        files.push(new AttachmentBuilder(strip, { name: 'uid-characters.png' }));
-        container.addMediaGalleryComponents(
-          new MediaGalleryBuilder().addItems(new MediaGalleryItemBuilder().setURL('attachment://uid-characters.png'))
-        );
-      }
+      addShowcase(container, showcased, raw);
     } else {
       container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
         '**キャラクター展示**\n-# 非公開または未設定（ゲーム内のプロフィール公開設定をご確認ください）'
@@ -156,7 +180,7 @@ async function makeCard({ uid, p, av, raw, displayName, avatarURL }) {
     }
   } else {
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-      '## ' + safe(displayName).slice(0, 80) + '\n**UID** \`' + uid + '\`\n-# プロフィールを取得できませんでした。後ほど再取得します。'
+      '## ' + safe(displayName).slice(0, 80) + '\n' + uidBlock + '\n-# プロフィールを取得できませんでした。後ほど再取得します。'
     ));
   }
   // Link buttons belong to the same container; no extra message or duplicate UID footer.

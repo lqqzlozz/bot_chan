@@ -48,10 +48,18 @@ test('talent icons follow talent level order in both Enka formats and private pr
   } finally { en.names = original.names; en.char = original.char; }
 });
 
-test('UID registration publicly identifies the Discord user without pinging them', async () => {
-  const original = { player: en.player, names: en.names, saveLater: st.saveLater };
-  en.player = async () => ({ p: { nickname: 'ゲーム内の名前', showAvatarInfoList: [] } });
-  en.names = async () => ({}); st.saveLater = () => {};
+test('UID registration renders native showcase rows, even at the Discord component limit', async t => {
+  t.mock.method(en, 'names', async () => ({}));
+  t.mock.method(en, 'charIcon', a => en.uiPath('UI_AvatarIcon_' + a.avatarId));
+  t.mock.method(st, 'saveLater', () => {});
+  t.mock.method(globalThis, 'fetch', async () => ({ ok: false }));
+  const p = { nickname: 'ゲーム内の名前', showAvatarInfoList: [{ avatarId: 1, level: 90 }, { avatarId: 2, level: 80 }] };
+  const raw = [{ avatarId: 1, equipList: [
+    { weapon: {}, flat: { icon: 'UI_EquipIcon_Test' } },
+    { reliquary: {}, flat: { icon: 'UI_RelicIcon_15001_1' } },
+    { reliquary: {}, flat: { icon: 'UI_RelicIcon_15001_2' } }
+  ] }];
+  const player = t.mock.method(en, 'player', async () => ({ p, raw }));
   let output;
   const i = { guildId: 'intro-test', channelId: 'c', customId: 'intro_mdl_role',
     user: { id: '123456789', displayAvatarURL: () => 'https://example.com/avatar.png' },
@@ -59,15 +67,39 @@ test('UID registration publicly identifies the Discord user without pinging them
     guild: { roles: { fetch: async () => null } }, channel: { send: async p => { output = p; return { id: 'msg' }; } } };
   try {
     await intro.submit(i);
-    assert.match(output.content, /<@123456789> がUIDを登録/);
+    assert.equal(output.flags, MessageFlags.IsComponentsV2);
+    assert.equal(output.content, undefined);
+    assert.equal(output.embeds, undefined);
     assert.deepEqual(output.allowedMentions.parse, []);
-    assert.match(output.embeds[0].toJSON().author.name, /Discordの名前/);
-    assert.deepEqual(output.components, []);
-    en.player = async () => ({ p: { nickname: '公開プロフィール', showAvatarInfoList: [] }, raw: [{ avatarId: 1 }] });
+    assert.deepEqual(output.files.map(file => file.name), ['uid-header.png']);
+    const components = output.components[0].toJSON().components;
+    assert.match(components[1].content, /ゲーム内の名前/);
+    assert.ok(components[1].content.includes('**UID**\n```\n123456789\n```'));
+    assert.match(components[3].components[0].content, /Lv\.90 │ C0/);
+    assert.equal(components[3].accessory.media.url, en.uiPath('UI_AvatarIcon_1'));
+    assert.deepEqual(components[4].items.map(item => item.media.url),
+      ['UI_EquipIcon_Test', 'UI_RelicIcon_15001_1'].map(en.uiPath));
+    assert.match(components[5].components[0].content, /Lv\.80 │ 凸数 非公開/);
+    assert.deepEqual(components.at(-1).components.map(b => b.url), ['https://enka.network/u/123456789/', 'https://akasha.cv/profile/123456789']);
+
+    p.showAvatarInfoList = Array.from({ length: 12 }, (_, n) => ({ avatarId: n + 1, level: 90 }));
     st.db.clear();
     await intro.submit(i);
-    assert.deepEqual(output.components[0].toJSON().components.map(b => b.url), ['https://enka.network/u/123456789/', 'https://akasha.cv/profile/123456789']);
-  } finally { en.player = original.player; en.names = original.names; st.saveLater = original.saveLater; st.db.clear(); }
+    const count = c => 1 + (c.accessory ? count(c.accessory) : 0) +
+      (c.components || []).reduce((n, child) => n + count(child), 0);
+    const full = output.components[0].toJSON();
+    assert.ok(count(full) <= 40);
+    assert.equal(full.components.slice(3, -1).length, 12);
+    assert.match(full.components[3].components[0].content, /武器/);
+    assert.match(full.components.at(-2).content, /キャラクター 12/);
+
+    player.mock.mockImplementation(async () => ({ err: 503 }));
+    st.db.clear();
+    await intro.submit(i);
+    assert.deepEqual(output.files, []);
+    assert.match(output.components[0].toJSON().components[0].content, /123456789/);
+    assert.equal(st.get(i.guildId).intro[i.user.id].pending, true);
+  } finally { st.db.clear(); }
 });
 
 test('public card identifies its owner and only that owner can change it', async () => {

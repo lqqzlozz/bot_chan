@@ -1,4 +1,4 @@
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder, MessageFlags, ContainerBuilder, TextDisplayBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder, SectionBuilder, ThumbnailBuilder, StringSelectMenuBuilder } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder, MessageFlags, ContainerBuilder, TextDisplayBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder, SectionBuilder, ThumbnailBuilder } = require('discord.js');
 const st = require('./store');
 const en = require('./enka');
 const { profileHeader } = require('./charRow');
@@ -98,21 +98,40 @@ function showcaseStats(a, detail) {
 
 const showcaseName = a => en.name(a.avatarId) || 'キャラクター ' + a.avatarId;
 
-function addShowcase(container, uid, showcased, raw) {
+function addShowcase(container, showcased, raw) {
   const details = new Map((raw || []).map(a => [String(a.avatarId), a]));
-  const options = showcased.slice(0, 12).map(a => ({
-    label: showcaseName(a).slice(0, 100),
-    value: String(a.avatarId),
-    description: showcaseStats(a, details.get(String(a.avatarId)))
-  }));
-  const lines = options.map(option => '**' + safe(option.label) + '** · ' + option.description);
-  container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### キャラクター展示\n' + lines.join('\n')));
-  container.addActionRowComponents(new ActionRowBuilder().addComponents(
-    new StringSelectMenuBuilder().setCustomId('intro_char_' + uid)
-      .setPlaceholder('キャラ画像・装備を見る').addOptions(options)
-  ));
+  const entries = showcased.slice(0, 12).map(a => {
+    const name = showcaseName(a);
+    const detail = details.get(String(a.avatarId));
+    const stats = detail ? ' Lv.' + (a.level ?? '?') + ' C' + (detail.talentIdList || []).length : '';
+    return { name, stats, url: en.charIcon(a) };
+  });
+  container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### キャラクター展示'));
+
+  // Balance two galleries for larger showcases so the last group does not become a tall single image.
+  const groupSize = Math.ceil(entries.length / Math.ceil(entries.length / 6));
+  for (let start = 0; start < entries.length; start += groupSize) {
+    const group = entries.slice(start, start + groupSize);
+    const caption = new TextDisplayBuilder().setContent('-# ' + group.map(({ name, stats }) =>
+      safe(name) + stats
+    ).join('　│　'));
+    const icons = group.filter(entry => entry.url);
+    if (icons.length === 1) {
+      const [icon] = icons;
+      container.addSectionComponents(new SectionBuilder().addTextDisplayComponents(caption)
+        .setThumbnailAccessory(new ThumbnailBuilder().setURL(icon.url).setDescription(icon.name + icon.stats)));
+    } else {
+      if (icons.length) {
+        container.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(...icons.map(icon =>
+          new MediaGalleryItemBuilder().setURL(icon.url).setDescription(icon.name + icon.stats)
+        )));
+      }
+      container.addTextDisplayComponents(caption);
+    }
+  }
 }
 
+// Older posted cards still have a character menu.
 async function showCharacter(i) {
   await i.deferReply({ flags: MessageFlags.Ephemeral });
   try {
@@ -189,7 +208,7 @@ async function makeCard({ uid, p, raw, displayName, avatarURL }) {
     ));
     const showcased = p.showAvatarInfoList || [];
     if (showcased.length) {
-      addShowcase(container, uid, showcased, raw);
+      addShowcase(container, showcased, raw);
     } else {
       container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
         '**キャラクター展示**\n-# 非公開または未設定（ゲーム内のプロフィール公開設定をご確認ください）'

@@ -1,7 +1,7 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder, MessageFlags, ContainerBuilder, TextDisplayBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder, SectionBuilder, ThumbnailBuilder } = require('discord.js');
 const st = require('./store');
 const en = require('./enka');
-const { profileHeader, characterIconGrid } = require('./charRow');
+const { profileHeader } = require('./charRow');
 
 const COLOR = '#1D9E75';
 const busy = new Map();
@@ -63,11 +63,11 @@ async function submit(i) {
   const uid = en.cleanUid(i.fields.getTextInputValue('uid'));
   if (!uid) return oops(i, errMsg[400]);
 
-  const { p, raw, err } = await en.player(uid).catch(() => ({ err: 503 }));
+  const { p, err } = await en.player(uid).catch(() => ({ err: 503 }));
   // UIDの打ち間違いだけはやり直してもらう
   if (!p && (err === 400 || err === 404)) return oops(i, errMsg[err]);
 
-  const card = await makeCard({ uid, p, raw, displayName: i.member.displayName, avatarURL: i.user.displayAvatarURL() });
+  const card = await makeCard({ uid, p, displayName: i.member.displayName, avatarURL: i.user.displayAvatarURL() });
 
   // 前のカードがあれば差し替え
   const d = st.get(i.guildId);
@@ -98,23 +98,21 @@ function showcaseStats(a, detail) {
 
 const showcaseName = a => en.name(a.avatarId) || 'キャラクター ' + a.avatarId;
 
-async function makeShowcase(showcased, raw) {
-  if (!showcased.length) return null;
-  const details = new Map((raw || []).map(a => [String(a.avatarId), a]));
-  const entries = showcased.slice(0, 12).map(a => {
-    const name = showcaseName(a);
-    const detail = details.get(String(a.avatarId));
-    const stats = detail ? ' Lv.' + (a.level ?? '?') + ' C' + (detail.talentIdList || []).length : '';
-    return { name, stats, url: en.charIcon(a) || en.charSideIcon(a) };
+function makeShowcase(showcased) {
+  const items = showcased.slice(0, 12).flatMap(avatar => {
+    const url = en.charIcon(avatar) || en.charSideIcon(avatar);
+    return url ? [new MediaGalleryItemBuilder().setURL(url).setDescription(showcaseName(avatar))] : [];
   });
-  const columns = entries.length > 6 ? Math.ceil(entries.length / 2) : entries.length;
-  const rows = [entries.slice(0, columns)];
-  if (entries.length > columns) rows.push(entries.slice(columns));
-  return {
-    image: await characterIconGrid(rows.map(row => row.map(entry => entry.url))).catch(() => null),
-    caption: rows.map(row => '-# ' + row.map(({ name, stats }) => safe(name) + stats).join(' ・ ')).join('\n'),
-    names: entries.map(entry => entry.name).join('、')
-  };
+  if (!items.length) return null;
+
+  const showcase = new ContainerBuilder().addTextDisplayComponents(
+    new TextDisplayBuilder().setContent('### キャラクター展示')
+  );
+  const groupSize = Math.ceil(items.length / Math.ceil(items.length / 6));
+  for (let start = 0; start < items.length; start += groupSize) {
+    showcase.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(...items.slice(start, start + groupSize)));
+  }
+  return showcase;
 }
 
 // Older posted cards still have a character menu.
@@ -170,17 +168,14 @@ async function showCharacter(i) {
   }
 }
 
-async function makeCard({ uid, p, raw, displayName, avatarURL }) {
+async function makeCard({ uid, p, displayName, avatarURL }) {
   const container = new ContainerBuilder().setAccentColor(0x1D9E75);
   const files = [];
   const uidBlock = '**UID**\n```\n' + uid + '\n```';
   if (p) {
     await en.names();
     const icon = en.pfpIcon(p.profilePicture) || avatarURL;
-    const [header, showcase] = await Promise.all([
-      profileHeader(en.namecardImages(p.nameCardId), icon).catch(() => null),
-      makeShowcase(p.showAvatarInfoList || [], raw)
-    ]);
+    const header = await profileHeader(en.namecardImages(p.nameCardId), icon).catch(() => null);
     if (header) {
       files.push(new AttachmentBuilder(header, { name: 'uid-header.png' }));
       container.addMediaGalleryComponents(
@@ -195,20 +190,6 @@ async function makeCard({ uid, p, raw, displayName, avatarURL }) {
       '-# 冒険ランク ' + (p.level ?? '—') + '　│　世界ランク ' + (p.worldLevel ?? '—') +
       '　│　アチーブメント ' + (p.finishAchievementNum ?? '—')
     ));
-    if (showcase) {
-      container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### キャラクター展示'));
-      if (showcase.image) {
-        files.push(new AttachmentBuilder(showcase.image, { name: 'uid-icons.png' }));
-        container.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(
-          new MediaGalleryItemBuilder().setURL('attachment://uid-icons.png').setDescription(showcase.names)
-        ));
-      }
-      container.addTextDisplayComponents(new TextDisplayBuilder().setContent(showcase.caption));
-    } else {
-      container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-        '**キャラクター展示**\n-# 非公開または未設定（ゲーム内のプロフィール公開設定をご確認ください）'
-      ));
-    }
   } else {
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
       '## ' + safe(displayName).slice(0, 80) + '\n' + uidBlock + '\n-# プロフィールを取得できませんでした。後ほど再取得します。'
@@ -219,7 +200,9 @@ async function makeCard({ uid, p, raw, displayName, avatarURL }) {
     new ButtonBuilder().setLabel('Enka').setStyle(ButtonStyle.Link).setURL('https://enka.network/u/' + uid + '/'),
     new ButtonBuilder().setLabel('Akasha').setStyle(ButtonStyle.Link).setURL('https://akasha.cv/profile/' + uid)
   ));
-  return { components: [container], files, flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
+  const showcase = makeShowcase(p?.showAvatarInfoList || []);
+  const components = showcase ? [container, showcase] : [container];
+  return { components, files, flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 
 // Retry only temporary Enka failures. Keep the pending UID in the saved server config.

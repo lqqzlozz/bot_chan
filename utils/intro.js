@@ -5,6 +5,7 @@ const { profileHeader } = require('./charRow');
 const { characterEmoji, statEmoji } = require('./introEmoji');
 
 const COLOR = '#1D9E75';
+const CARD_VERSION = 1;
 const busy = new Map();
 
 // 案内（ボタン付き）
@@ -79,7 +80,7 @@ async function submit(i) {
     if (ch) await ch.messages.delete(old.msg).catch(() => null);
   }
   const m = await i.channel.send(card);
-  d.intro[i.user.id] = { ch: i.channelId, msg: m.id, uid, pending: !p && retryable(err) };
+  d.intro[i.user.id] = { ch: i.channelId, msg: m.id, uid, pending: !p && retryable(err), cardVersion: CARD_VERSION };
   st.saveLater(i.guild, 3000);
 
   // A role is optional: UID registration must succeed without any role assignment.
@@ -210,65 +211,85 @@ async function makeCard({ uid, p, displayName, avatarURL, emojis }) {
   return { components: [container], files, flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 
-// Retry only temporary Enka failures. Keep the pending UID in the saved server config.
+// Upgrade each saved card once and retry temporary failures on the existing timer.
 const retryable = err => err !== 400 && err !== 404;
+const permanentDiscordErrors = new Set([10003, 10008, 50001, 50005, 50013]);
 let retryBusy = false;
 async function retryPending(client) {
   if (retryBusy) return;
   retryBusy = true;
+  const migration = { updated: 0, skipped: 0, retry: 0 };
   try {
     for (const guild of client.guilds.cache.values()) {
       const d = st.get(guild.id);
       for (const [userId, entry] of Object.entries(d.intro || {})) {
         if (!entry.uid || !entry.msg || !entry.ch) continue;
-        // Migrate older UID cards that were posted while Enka was unavailable.
-        if (entry.pending === undefined) {
-          try {
-            const ch = await client.channels.fetch(entry.ch);
-            const msg = await ch.messages.fetch(entry.msg);
-            entry.pending = !msg.embeds[0]?.fields?.some(field => field.name === '冒険ランク');
-          } catch { entry.pending = false; }
-          st.saveLater(guild);
-        }
-        if (!entry.pending) continue;
+        const upgrade = entry.cardVersion !== CARD_VERSION && entry.cardSkippedVersion !== CARD_VERSION;
+        if (!upgrade && !entry.pending) continue;
         if (entry.retryAfter && Date.now() < entry.retryAfter) continue;
         const result = await en.player(entry.uid).catch(() => ({ err: 503 }));
         if (!result.p) {
           if (!retryable(result.err)) {
             entry.pending = false;
+            if (upgrade) {
+              entry.cardSkippedVersion = CARD_VERSION;
+              migration.skipped++;
+              console.warn('UIDカード一括更新対象外:', entry.msg, 'Enka', result.err);
+            }
           } else {
             entry.retryAfter = Date.now() + 10 * 60 * 1000;
+            if (upgrade) migration.retry++;
           }
           st.saveLater(guild);
           continue;
         }
         try {
-          const ch = await client.channels.fetch(entry.ch);
+          const ch = await guild.channels.fetch(entry.ch);
           const msg = await ch.messages.fetch(entry.msg);
-          const member = await guild.members.fetch(userId).catch(() => null);
-          await en.names();
-          const card = await makeCard({ uid: entry.uid, ...result, displayName: member?.displayName || msg.mentions.users.first()?.username || 'ユーザー', avatarURL: member?.user.displayAvatarURL() || client.user.displayAvatarURL(), emojis: client.application?.emojis });
-          if (msg.flags.has(MessageFlags.IsComponentsV2)) {
-            await msg.edit({ components: card.components, files: card.files, attachments: [], allowedMentions: { parse: [] } });
-          } else {
-            // Legacy Embed posts cannot reliably be converted to Components V2 in place.
-            const replacement = await ch.send(card);
-            entry.msg = replacement.id;
-            await msg.delete().catch(() => null);
+          if (msg.author.id !== client.user.id) {
+            entry.pending = false;
+            if (upgrade) {
+              entry.cardSkippedVersion = CARD_VERSION;
+              migration.skipped++;
+              console.warn('UIDカード一括更新対象外:', entry.msg, '別の投稿者');
+            }
+            st.saveLater(guild);
+            continue;
           }
+          const member = await guild.members.fetch(userId).catch(() => null);
+          const card = await makeCard({ uid: entry.uid, ...result, displayName: member?.displayName || msg.mentions.users.first()?.username || 'ユーザー', avatarURL: member?.user.displayAvatarURL() || client.user.displayAvatarURL(), emojis: client.application?.emojis });
+          if (d.intro[userId] !== entry) continue;
+          // Clear legacy fields when enabling Components V2 on an existing message.
+          const legacy = msg.flags.has(MessageFlags.IsComponentsV2) ? {} : { content: null, embeds: [] };
+          await msg.edit({ ...card, ...legacy, flags: msg.flags.bitfield | card.flags, attachments: [] });
           entry.pending = false;
+          entry.cardVersion = CARD_VERSION;
+          delete entry.cardSkippedVersion;
           delete entry.retryAfter;
+          if (upgrade) migration.updated++;
           st.saveLater(guild);
         } catch (error) {
-          // Deleted messages or unavailable channels cannot be restored automatically.
-          if (error.code === 10008 || error.code === 10003) entry.pending = false;
-          else entry.retryAfter = Date.now() + 10 * 60 * 1000;
+          if (permanentDiscordErrors.has(error.code)) {
+            entry.pending = false;
+            if (upgrade) {
+              entry.cardSkippedVersion = CARD_VERSION;
+              migration.skipped++;
+            }
+          } else {
+            entry.retryAfter = Date.now() + 10 * 60 * 1000;
+            if (upgrade) migration.retry++;
+          }
           st.saveLater(guild);
           console.error('自己紹介再取得失敗:', guild.id, userId, error.message);
         }
       }
     }
-  } finally { retryBusy = false; }
+  } finally {
+    retryBusy = false;
+    if (migration.updated || migration.skipped || migration.retry) {
+      console.log('UIDカード一括更新:', JSON.stringify(migration));
+    }
+  }
 }
 
 module.exports = { panel, place, bump, open, submit, showCharacter, retryPending };

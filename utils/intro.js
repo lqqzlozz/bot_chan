@@ -1,7 +1,7 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder, MessageFlags, ContainerBuilder, TextDisplayBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder, SectionBuilder, ThumbnailBuilder } = require('discord.js');
 const st = require('./store');
 const en = require('./enka');
-const { profileHeader } = require('./charRow');
+const { profileHeader, characterIconStrip } = require('./charRow');
 
 const COLOR = '#1D9E75';
 const busy = new Map();
@@ -98,37 +98,23 @@ function showcaseStats(a, detail) {
 
 const showcaseName = a => en.name(a.avatarId) || 'キャラクター ' + a.avatarId;
 
-function addShowcase(container, showcased, raw) {
+async function showcaseRows(showcased, raw) {
   const details = new Map((raw || []).map(a => [String(a.avatarId), a]));
   const entries = showcased.slice(0, 12).map(a => {
     const name = showcaseName(a);
     const detail = details.get(String(a.avatarId));
     const stats = detail ? ' Lv.' + (a.level ?? '?') + ' C' + (detail.talentIdList || []).length : '';
-    return { name, stats, url: en.charIcon(a) };
+    return { name, stats, url: en.charIcon(a) || en.charSideIcon(a) };
   });
-  container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### キャラクター展示'));
-
-  // Balance two galleries for larger showcases so the last group does not become a tall single image.
-  const groupSize = Math.ceil(entries.length / Math.ceil(entries.length / 6));
-  for (let start = 0; start < entries.length; start += groupSize) {
-    const group = entries.slice(start, start + groupSize);
-    const caption = new TextDisplayBuilder().setContent('-# ' + group.map(({ name, stats }) =>
-      safe(name) + stats
-    ).join('　│　'));
-    const icons = group.filter(entry => entry.url);
-    if (icons.length === 1) {
-      const [icon] = icons;
-      container.addSectionComponents(new SectionBuilder().addTextDisplayComponents(caption)
-        .setThumbnailAccessory(new ThumbnailBuilder().setURL(icon.url).setDescription(icon.name + icon.stats)));
-    } else {
-      if (icons.length) {
-        container.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(...icons.map(icon =>
-          new MediaGalleryItemBuilder().setURL(icon.url).setDescription(icon.name + icon.stats)
-        )));
-      }
-      container.addTextDisplayComponents(caption);
-    }
+  const groups = [];
+  for (let start = 0; start < entries.length; start += 4) {
+    groups.push(entries.slice(start, start + 4));
   }
+  return Promise.all(groups.map(async group => ({
+    image: await characterIconStrip(group.map(entry => entry.url)).catch(() => null),
+    caption: group.map(({ name, stats }) => safe(name) + stats).join('　│　'),
+    names: group.map(entry => entry.name).join('、')
+  })));
 }
 
 // Older posted cards still have a character menu.
@@ -191,7 +177,10 @@ async function makeCard({ uid, p, raw, displayName, avatarURL }) {
   if (p) {
     await en.names();
     const icon = en.pfpIcon(p.profilePicture) || avatarURL;
-    const header = await profileHeader(en.namecardImages(p.nameCardId), icon).catch(() => null);
+    const [header, rows] = await Promise.all([
+      profileHeader(en.namecardImages(p.nameCardId), icon).catch(() => null),
+      showcaseRows(p.showAvatarInfoList || [], raw)
+    ]);
     if (header) {
       files.push(new AttachmentBuilder(header, { name: 'uid-header.png' }));
       container.addMediaGalleryComponents(
@@ -206,9 +195,18 @@ async function makeCard({ uid, p, raw, displayName, avatarURL }) {
       '-# 冒険ランク ' + (p.level ?? '—') + '　│　世界ランク ' + (p.worldLevel ?? '—') +
       '　│　アチーブメント ' + (p.finishAchievementNum ?? '—')
     ));
-    const showcased = p.showAvatarInfoList || [];
-    if (showcased.length) {
-      addShowcase(container, showcased, raw);
+    if (rows.length) {
+      container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### キャラクター展示'));
+      for (const [index, row] of rows.entries()) {
+        if (row.image) {
+          const filename = 'uid-icons-' + (index + 1) + '.png';
+          files.push(new AttachmentBuilder(row.image, { name: filename }));
+          container.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(
+            new MediaGalleryItemBuilder().setURL('attachment://' + filename).setDescription(row.names)
+          ));
+        }
+        container.addTextDisplayComponents(new TextDisplayBuilder().setContent('-# ' + row.caption));
+      }
     } else {
       container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
         '**キャラクター展示**\n-# 非公開または未設定（ゲーム内のプロフィール公開設定をご確認ください）'

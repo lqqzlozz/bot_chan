@@ -145,6 +145,63 @@ test('UID cards display and reuse individual character emoji above the link butt
   } finally { st.db.clear(); }
 });
 
+test('bulk UID refresh edits the original posts once and retries temporary failures', async t => {
+  t.mock.method(en, 'names', async () => ({}));
+  t.mock.method(st, 'saveLater', () => {});
+  t.mock.method(globalThis, 'fetch', async () => ({ ok: false }));
+  const p = { nickname: 'テスト', level: 60 };
+  const player = t.mock.method(en, 'player', async uid => uid === '123456782' ? { err: 503 } : { p });
+  const guildId = 'uid-migration';
+  const entry = (msg, uid = '123456789') => ({ uid, msg, ch: 'channel', pending: false });
+  const records = {
+    legacy: entry('old-embed'),
+    modern: entry('old-components'),
+    missing: entry('deleted'),
+    waiting: entry('temporarily-unavailable', '123456782'),
+    current: { ...entry('already-current'), cardVersion: 1 }
+  };
+  st.get(guildId).intro = records;
+  const edits = new Map();
+  const channel = { messages: { fetch: async id => {
+    if (id === 'deleted') throw Object.assign(new Error('Unknown Message'), { code: 10008 });
+    assert.notEqual(id, 'already-current');
+    return {
+      author: { id: 'bot' },
+      flags: { bitfield: id === 'old-embed' ? 0 : MessageFlags.IsComponentsV2,
+        has: () => id !== 'old-embed' },
+      mentions: { users: new Collection() },
+      edit: async payload => {
+        assert.ok(!edits.has(id));
+        edits.set(id, payload);
+      }
+    };
+  } } };
+  const guild = { id: guildId, channels: { fetch: async () => channel },
+    members: { fetch: async () => null } };
+  const client = { guilds: { cache: new Collection([[guildId, guild]]) },
+    user: { id: 'bot', displayAvatarURL: () => 'https://example.com/avatar.png' } };
+  try {
+    await intro.retryPending(client);
+    assert.deepEqual([...edits.keys()], ['old-embed', 'old-components']);
+    assert.equal(edits.get('old-embed').content, null);
+    assert.deepEqual(edits.get('old-embed').embeds, []);
+    assert.equal(edits.get('old-embed').flags, MessageFlags.IsComponentsV2);
+    assert.deepEqual(edits.get('old-components').attachments, []);
+    assert.equal(records.legacy.msg, 'old-embed');
+    assert.equal(records.legacy.cardVersion, 1);
+    assert.equal(records.missing.cardSkippedVersion, 1);
+    assert.ok(records.waiting.retryAfter > Date.now());
+    await intro.retryPending(client);
+    assert.equal(player.mock.callCount(), 4);
+
+    records.waiting.retryAfter = 0;
+    player.mock.mockImplementation(async () => ({ p }));
+    await intro.retryPending(client);
+    assert.ok(edits.has('temporarily-unavailable'));
+    assert.equal(records.waiting.cardVersion, 1);
+  } finally { st.db.clear(); }
+});
+
 test('public card identifies its owner and only that owner can change it', async () => {
   const original = { player: en.player, names: en.names, build: character.build, card: cards.charCard, saveLater: st.saveLater };
   const builds = [], posts = [];

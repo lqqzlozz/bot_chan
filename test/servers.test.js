@@ -3,17 +3,21 @@ const assert = require('node:assert/strict');
 const { Collection } = require('discord.js');
 const servers = require('../commands/servers');
 
-test('servers is globally registered and publicly posts every guild without pinging', async () => {
-  const guilds = new Collection(Array.from({ length: 80 }, (_, n) => [String(n), { id: String(n), name: 'サーバー名'.repeat(15) + n }]));
-  const messages = [];
-  const i = { user: { id: '1088369918069715024' }, deferReply: async options => assert.ok(!options?.ephemeral), editReply: async p => messages.push(p), followUp: async p => messages.push(p) };
+test('servers shows one guild at a time, newest ID first, and pages using buttons', async () => {
+  const guilds = new Collection(Array.from({ length: 8 }, (_, n) => [String(n+1), { id: String(n+1), name: 'サーバー'+n }]));
+  let first;
+  const i = { user: { id: '1088369918069715024' }, deferReply: async options => assert.ok(!options?.ephemeral), editReply: async p => { first=p; return {id:'message1'}; } };
   await servers.execute(i, { guilds: { cache: guilds } });
-  assert.equal(servers.guild, undefined);
-  assert.equal(servers.data.toJSON().name, 'servers');
-  assert.ok(messages.length > 1);
-  const descriptions = messages.map(m => m.embeds[0].toJSON().description).join('');
-  for (const g of guilds.values()) assert.ok(descriptions.includes('ID: `' + g.id + '`'));
-  for (const m of messages) { assert.ok(m.embeds[0].toJSON().description.length < 4096); assert.deepEqual(m.allowedMentions.parse, []); assert.ok(!m.ephemeral); }
+  assert.equal(servers.data.toJSON().name,'servers');
+  assert.match(first.embeds[0].toJSON().description,/ID: `8`/);
+  assert.doesNotMatch(first.embeds[0].toJSON().description,/ID: `7`/);
+  assert.equal(first.embeds[0].toJSON().footer.text,'1 / 8ページ');
+  assert.equal(first.components[0].components[0].data.disabled,true);
+  let next;
+  await servers.handleButton({customId:'servers_next_1088369918069715024',user:{id:'1088369918069715024'},message:{id:'message1'},update:async p=>{next=p;}});
+  assert.match(next.embeds[0].toJSON().description,/ID: `7`/);
+  assert.equal(next.embeds[0].toJSON().footer.text,'2 / 8ページ');
+  assert.deepEqual(next.allowedMentions.parse,[]);
 });
 
 test('servers rejects ordinary server admins before disclosing guilds', async () => {

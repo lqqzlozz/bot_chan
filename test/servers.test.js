@@ -4,7 +4,7 @@ const { Collection } = require('discord.js');
 const servers = require('../commands/servers');
 
 test('servers shows one guild at a time, newest ID first, and pages using buttons', async () => {
-  const guilds = new Collection(Array.from({ length: 8 }, (_, n) => [String(n+1), { id: String(n+1), name: 'サーバー'+n }]));
+  const guilds = new Collection(Array.from({ length: 8 }, (_, n) => [String(n+1), { id: String(n+1), name: 'サーバー'+n, members:{me:{joinedTimestamp:n*1000}} }]));
   let first;
   const i = { user: { id: '1088369918069715024' }, deferReply: async options => assert.ok(!options?.ephemeral), editReply: async p => { first=p; return {id:'message1'}; } };
   await servers.execute(i, { guilds: { cache: guilds } });
@@ -17,6 +17,7 @@ test('servers shows one guild at a time, newest ID first, and pages using button
   await servers.handleButton({customId:'servers_next_1088369918069715024',user:{id:'1088369918069715024'},message:{id:'message1'},update:async p=>{next=p;}});
   assert.match(next.embeds[0].toJSON().description,/ID: `7`/);
   assert.equal(next.embeds[0].toJSON().footer.text,'2 / 8ページ');
+  assert.match(next.embeds[0].toJSON().description,/^2[.] /);
   assert.deepEqual(next.allowedMentions.parse,[]);
 });
 

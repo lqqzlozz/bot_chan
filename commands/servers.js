@@ -8,6 +8,7 @@ function pageView(session, index) {
   const count = session.data.length;
   const n = Math.max(0, Math.min(index, Math.max(0,count-1)));
   const embed = directory.makePages(session.data.slice(n,n+1))[0]
+    .setDescription(directory.makePages(session.data.slice(n,n+1))[0].data.description.replace(/^1[.] /,`${n+1}. `))
     .setTitle(`参加サーバー：${count}件`)
     .setFooter({text:`${count ? n+1 : 0} / ${count}ページ`});
   const row = new ActionRowBuilder().addComponents(
@@ -50,12 +51,13 @@ module.exports = {
       cfg.serverJoinNotifyChannelId = i.channelId;
       saved = await st.save(i.guild);
     }
-    const list = [...client.guilds.cache.values()].sort((a,b) => {
-      // Discord snowflakes are chronological IDs; higher IDs are newer guilds.
-      const x=BigInt(a.id),y=BigInt(b.id);
-      return x===y?0:x>y?-1:1;
-    });
-    const data = await Promise.all(list.map(directory.info));
+    // Sort by the BOT's actual join time, not the server creation time.
+    const joined = await Promise.all([...client.guilds.cache.values()].map(async guild => {
+      const member = guild.members?.me || await guild.members?.fetchMe?.().catch(() => null);
+      return {guild, joinedAt:member?.joinedTimestamp || 0};
+    }));
+    joined.sort((a,b) => b.joinedAt-a.joinedAt || (BigInt(a.guild.id)>BigInt(b.guild.id)?-1:1));
+    const data = await Promise.all(joined.map(({guild})=>directory.info(guild)));
     const notice = i.guild
       ? saved ? '\n🔔 今後の導入通知先：このチャンネル' : '\n⚠️ 通知先の保存に失敗。#bot-config とBOTの権限を確認してください。'
       : '\nℹ️ DMでの実行では通知先を登録できません。サーバー内のチャンネルで実行してください。';

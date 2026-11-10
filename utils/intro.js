@@ -1,7 +1,7 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder, MessageFlags, ContainerBuilder, TextDisplayBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder, SectionBuilder, ThumbnailBuilder } = require('discord.js');
 const st = require('./store');
 const en = require('./enka');
-const { profileHeader, characterIconStrip } = require('./charRow');
+const { profileHeader, characterIconGrid } = require('./charRow');
 
 const COLOR = '#1D9E75';
 const busy = new Map();
@@ -98,7 +98,8 @@ function showcaseStats(a, detail) {
 
 const showcaseName = a => en.name(a.avatarId) || 'キャラクター ' + a.avatarId;
 
-async function showcaseRows(showcased, raw) {
+async function makeShowcase(showcased, raw) {
+  if (!showcased.length) return null;
   const details = new Map((raw || []).map(a => [String(a.avatarId), a]));
   const entries = showcased.slice(0, 12).map(a => {
     const name = showcaseName(a);
@@ -106,15 +107,14 @@ async function showcaseRows(showcased, raw) {
     const stats = detail ? ' Lv.' + (a.level ?? '?') + ' C' + (detail.talentIdList || []).length : '';
     return { name, stats, url: en.charIcon(a) || en.charSideIcon(a) };
   });
-  const groups = [];
-  for (let start = 0; start < entries.length; start += 4) {
-    groups.push(entries.slice(start, start + 4));
-  }
-  return Promise.all(groups.map(async group => ({
-    image: await characterIconStrip(group.map(entry => entry.url)).catch(() => null),
-    caption: group.map(({ name, stats }) => safe(name) + stats).join('　│　'),
-    names: group.map(entry => entry.name).join('、')
-  })));
+  const columns = entries.length > 6 ? Math.ceil(entries.length / 2) : entries.length;
+  const rows = [entries.slice(0, columns)];
+  if (entries.length > columns) rows.push(entries.slice(columns));
+  return {
+    image: await characterIconGrid(rows.map(row => row.map(entry => entry.url))).catch(() => null),
+    caption: rows.map(row => '-# ' + row.map(({ name, stats }) => safe(name) + stats).join(' ・ ')).join('\n'),
+    names: entries.map(entry => entry.name).join('、')
+  };
 }
 
 // Older posted cards still have a character menu.
@@ -177,9 +177,9 @@ async function makeCard({ uid, p, raw, displayName, avatarURL }) {
   if (p) {
     await en.names();
     const icon = en.pfpIcon(p.profilePicture) || avatarURL;
-    const [header, rows] = await Promise.all([
+    const [header, showcase] = await Promise.all([
       profileHeader(en.namecardImages(p.nameCardId), icon).catch(() => null),
-      showcaseRows(p.showAvatarInfoList || [], raw)
+      makeShowcase(p.showAvatarInfoList || [], raw)
     ]);
     if (header) {
       files.push(new AttachmentBuilder(header, { name: 'uid-header.png' }));
@@ -195,18 +195,15 @@ async function makeCard({ uid, p, raw, displayName, avatarURL }) {
       '-# 冒険ランク ' + (p.level ?? '—') + '　│　世界ランク ' + (p.worldLevel ?? '—') +
       '　│　アチーブメント ' + (p.finishAchievementNum ?? '—')
     ));
-    if (rows.length) {
+    if (showcase) {
       container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### キャラクター展示'));
-      for (const [index, row] of rows.entries()) {
-        if (row.image) {
-          const filename = 'uid-icons-' + (index + 1) + '.png';
-          files.push(new AttachmentBuilder(row.image, { name: filename }));
-          container.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(
-            new MediaGalleryItemBuilder().setURL('attachment://' + filename).setDescription(row.names)
-          ));
-        }
-        container.addTextDisplayComponents(new TextDisplayBuilder().setContent('-# ' + row.caption));
+      if (showcase.image) {
+        files.push(new AttachmentBuilder(showcase.image, { name: 'uid-icons.png' }));
+        container.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(
+          new MediaGalleryItemBuilder().setURL('attachment://uid-icons.png').setDescription(showcase.names)
+        ));
       }
+      container.addTextDisplayComponents(new TextDisplayBuilder().setContent(showcase.caption));
     } else {
       container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
         '**キャラクター展示**\n-# 非公開または未設定（ゲーム内のプロフィール公開設定をご確認ください）'

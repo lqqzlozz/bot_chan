@@ -48,7 +48,7 @@ test('talent icons follow talent level order in both Enka formats and private pr
   } finally { en.names = original.names; en.char = original.char; }
 });
 
-test('UID registration keeps the full showcase compact and opens equipment privately', async t => {
+test('UID cards show character icons and public stats without a select menu', async t => {
   t.mock.method(en, 'names', async () => ({}));
   t.mock.method(en, 'charIcon', a => en.uiPath('UI_AvatarIcon_' + a.avatarId));
   t.mock.method(st, 'saveLater', () => {});
@@ -75,14 +75,17 @@ test('UID registration keeps the full showcase compact and opens equipment priva
     const components = output.components[0].toJSON().components;
     assert.match(components[1].content, /ゲーム内の名前/);
     assert.ok(components[1].content.includes('**UID**\n```\n123456789\n```'));
-    assert.match(components[2].content, /キャラクター 1\*\* · Lv\.90 │ C0/);
-    assert.match(components[2].content, /キャラクター 2\*\* · Lv\.80 │ 凸数 非公開/);
-    assert.deepEqual(components[3].components[0].options.map(option => option.value), ['1', '2']);
+    assert.deepEqual(components[3].items.map(item => item.media.url),
+      ['UI_AvatarIcon_1', 'UI_AvatarIcon_2'].map(en.uiPath));
+    assert.match(components[4].content, /キャラクター 1 Lv\.90 C0/);
+    assert.match(components[4].content, /キャラクター 2$/);
+    assert.doesNotMatch(components[4].content, /Lv\.80/);
+    assert.equal(components.filter(component => component.type === 1).length, 1);
     assert.deepEqual(components.at(-1).components.map(b => b.url), ['https://enka.network/u/123456789/', 'https://akasha.cv/profile/123456789']);
 
     let details;
     await interactions.execute({
-      customId: components[3].components[0].custom_id,
+      customId: 'intro_char_123456789',
       values: ['1'],
       isButton: () => false,
       isModalSubmit: () => false,
@@ -102,10 +105,11 @@ test('UID registration keeps the full showcase compact and opens equipment priva
     st.db.clear();
     await intro.submit(i);
     const full = output.components[0].toJSON().components;
-    assert.equal(full.length, 5);
-    assert.equal(full[2].content.split('\n').length, 13);
-    assert.match(full[2].content, /キャラクター 12/);
-    assert.equal(full[3].components[0].options.length, 12);
+    assert.equal(full.length, 8);
+    assert.equal(full[3].items.length, 6);
+    assert.equal(full[5].items.length, 6);
+    assert.match(full[6].content, /キャラクター 12$/);
+    assert.equal(full.filter(component => component.type === 1).length, 1);
 
     player.mock.mockImplementation(async () => ({ err: 503 }));
     st.db.clear();

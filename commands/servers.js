@@ -7,8 +7,8 @@ const PAGE_TTL = 60 * 60 * 1000;
 function pageView(session, index) {
   const count = session.data.length;
   const n = Math.max(0, Math.min(index, Math.max(0,count-1)));
-  const embed = directory.makePages(session.data.slice(n,n+1).map(g=>({...g,name:g.name})))[0]
-    .setDescription(directory.makePages(session.data.slice(n,n+1))[0].data.description.replace(/^1\\. /,`${n+1}. `))
+  const embed = directory.makePages(session.data.slice(n,n+1))[0]
+    .setDescription(directory.makePages(session.data.slice(n,n+1))[0].data.description.replace(/^1[.] /,`${n+1}. `))
     .setTitle(`参加サーバー：${count}件`)
     .setFooter({text:`${count ? n+1 : 0} / ${count}ページ`});
   const row = new ActionRowBuilder().addComponents(

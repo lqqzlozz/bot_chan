@@ -5,7 +5,7 @@ const { profileHeader } = require('./charRow');
 const { characterEmoji, statEmoji } = require('./introEmoji');
 
 const COLOR = '#1D9E75';
-const CARD_VERSION = 2;
+const CARD_VERSION = 3;
 const ODETTE_PROFILE_ICON = 11800;
 const busy = new Map();
 
@@ -251,13 +251,7 @@ async function retryPending(client) {
           continue;
         }
         const odette = Number(result.p.profilePicture?.id) === ODETTE_PROFILE_ICON;
-        // Version 1 already has the current layout. Only re-edit cards affected by the Odette lookup.
-        if (entry.cardVersion === 1 && !entry.pending && !odette) {
-          entry.cardVersion = CARD_VERSION;
-          delete entry.retryAfter;
-          st.saveLater(guild);
-          continue;
-        }
+        // Every older profile must be re-rendered to apply the latest icon layout.
         try {
           const ch = await guild.channels.fetch(entry.ch);
           const msg = await ch.messages.fetch(entry.msg);

@@ -98,21 +98,16 @@ function showcaseStats(a, detail) {
 
 const showcaseName = a => en.name(a.avatarId) || 'キャラクター ' + a.avatarId;
 
-function makeShowcase(showcased) {
+function addShowcase(container, showcased) {
   const items = showcased.slice(0, 12).flatMap(avatar => {
     const url = en.charIcon(avatar) || en.charSideIcon(avatar);
     return url ? [new MediaGalleryItemBuilder().setURL(url).setDescription(showcaseName(avatar))] : [];
   });
-  if (!items.length) return null;
-
-  const showcase = new ContainerBuilder().addTextDisplayComponents(
-    new TextDisplayBuilder().setContent('### キャラクター展示')
-  );
+  if (!items.length) return;
   const groupSize = Math.ceil(items.length / Math.ceil(items.length / 6));
   for (let start = 0; start < items.length; start += groupSize) {
-    showcase.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(...items.slice(start, start + groupSize)));
+    container.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(...items.slice(start, start + groupSize)));
   }
-  return showcase;
 }
 
 // Older posted cards still have a character menu.
@@ -195,14 +190,12 @@ async function makeCard({ uid, p, displayName, avatarURL }) {
       '## ' + safe(displayName).slice(0, 80) + '\n' + uidBlock + '\n-# プロフィールを取得できませんでした。後ほど再取得します。'
     ));
   }
-  // Link buttons belong to the same container; no extra message or duplicate UID footer.
+  addShowcase(container, p?.showAvatarInfoList || []);
   container.addActionRowComponents(new ActionRowBuilder().addComponents(
     new ButtonBuilder().setLabel('Enka').setStyle(ButtonStyle.Link).setURL('https://enka.network/u/' + uid + '/'),
     new ButtonBuilder().setLabel('Akasha').setStyle(ButtonStyle.Link).setURL('https://akasha.cv/profile/' + uid)
   ));
-  const showcase = makeShowcase(p?.showAvatarInfoList || []);
-  const components = showcase ? [container, showcase] : [container];
-  return { components, files, flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
+  return { components: [container], files, flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 
 // Retry only temporary Enka failures. Keep the pending UID in the saved server config.

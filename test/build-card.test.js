@@ -48,7 +48,7 @@ test('talent icons follow talent level order in both Enka formats and private pr
   } finally { en.names = original.names; en.char = original.char; }
 });
 
-test('UID cards display original showcase icons in a separate container', async t => {
+test('UID cards display original showcase icons above the link buttons', async t => {
   t.mock.method(en, 'names', async () => ({}));
   t.mock.method(en, 'charIcon', a => en.uiPath('UI_AvatarIcon_' + a.avatarId));
   t.mock.method(st, 'saveLater', () => {});
@@ -75,12 +75,9 @@ test('UID cards display original showcase icons in a separate container', async 
     const components = output.components[0].toJSON().components;
     assert.match(components[1].content, /ゲーム内の名前/);
     assert.ok(components[1].content.includes('**UID**\n```\n123456789\n```'));
-    assert.equal(output.components.length, 2);
-    assert.equal(components.length, 3);
-    const showcase = output.components[1].toJSON().components;
-    assert.deepEqual(showcase.map(component => component.type), [10, 12]);
-    assert.equal(showcase[0].content, '### キャラクター展示');
-    assert.deepEqual(showcase[1].items.map(item => item.media.url),
+    assert.equal(output.components.length, 1);
+    assert.deepEqual(components.map(component => component.type), [12, 10, 12, 1]);
+    assert.deepEqual(components[2].items.map(item => item.media.url),
       ['UI_AvatarIcon_1', 'UI_AvatarIcon_2'].map(en.uiPath));
     assert.equal(components.filter(component => component.type === 1).length, 1);
     assert.deepEqual(components.at(-1).components.map(b => b.url), ['https://enka.network/u/123456789/', 'https://akasha.cv/profile/123456789']);
@@ -107,7 +104,9 @@ test('UID cards display original showcase icons in a separate container', async 
       p.showAvatarInfoList = Array.from({ length: count }, (_, n) => ({ avatarId: n + 1, level: 90 }));
       st.db.clear();
       await intro.submit(i);
-      const galleries = output.components[1].toJSON().components.slice(1);
+      const card = output.components[0].toJSON().components;
+      assert.deepEqual(card.map(component => component.type), [12, 10, 12, 12, 1]);
+      const galleries = card.slice(2, -1);
       assert.deepEqual(galleries.map(gallery => gallery.items.length), [count / 2, count / 2]);
       assert.deepEqual(galleries.flatMap(gallery => gallery.items.map(item => item.media.url)),
         p.showAvatarInfoList.map(en.charIcon));

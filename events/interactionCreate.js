@@ -85,8 +85,9 @@ module.exports = {
     // お知らせのロール選択
     if (interaction.isRoleSelectMenu() && interaction.customId === 'gn_role') return gn.pick(interaction).catch(e => console.error('お知らせ設定エラー:', e.message));
 
-    // 聖遺物自慢のメニュー
+    // キャラ展示・聖遺物自慢のメニュー
     if (interaction.isStringSelectMenu()) {
+      if (interaction.customId.startsWith('intro_char_')) return intro.showCharacter(interaction).catch(e => console.error('キャラクター展示エラー:', e.message));
       const run = { art_c: art.pickChar, art_b: art.pickBase, art_p: art.pickPart }[interaction.customId.slice(0, 5)];
       if (interaction.customId.startsWith('dic_')) return dict.pick(interaction).catch(e => console.error('辞典エラー:', e.message));
       if (interaction.customId.startsWith('off_')) return off.pick(interaction).catch(e => console.error('解除エラー:', e.message));

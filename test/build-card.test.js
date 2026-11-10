@@ -48,7 +48,7 @@ test('talent icons follow talent level order in both Enka formats and private pr
   } finally { en.names = original.names; en.char = original.char; }
 });
 
-test('UID registration renders native showcase rows, even at the Discord component limit', async t => {
+test('UID registration keeps the full showcase compact and opens equipment privately', async t => {
   t.mock.method(en, 'names', async () => ({}));
   t.mock.method(en, 'charIcon', a => en.uiPath('UI_AvatarIcon_' + a.avatarId));
   t.mock.method(st, 'saveLater', () => {});
@@ -75,23 +75,37 @@ test('UID registration renders native showcase rows, even at the Discord compone
     const components = output.components[0].toJSON().components;
     assert.match(components[1].content, /ゲーム内の名前/);
     assert.ok(components[1].content.includes('**UID**\n```\n123456789\n```'));
-    assert.match(components[3].components[0].content, /Lv\.90 │ C0/);
-    assert.equal(components[3].accessory.media.url, en.uiPath('UI_AvatarIcon_1'));
-    assert.deepEqual(components[4].items.map(item => item.media.url),
-      ['UI_EquipIcon_Test', 'UI_RelicIcon_15001_1'].map(en.uiPath));
-    assert.match(components[5].components[0].content, /Lv\.80 │ 凸数 非公開/);
+    assert.match(components[2].content, /キャラクター 1\*\* · Lv\.90 │ C0/);
+    assert.match(components[2].content, /キャラクター 2\*\* · Lv\.80 │ 凸数 非公開/);
+    assert.deepEqual(components[3].components[0].options.map(option => option.value), ['1', '2']);
     assert.deepEqual(components.at(-1).components.map(b => b.url), ['https://enka.network/u/123456789/', 'https://akasha.cv/profile/123456789']);
+
+    let details;
+    await interactions.execute({
+      customId: components[3].components[0].custom_id,
+      values: ['1'],
+      isButton: () => false,
+      isModalSubmit: () => false,
+      isChatInputCommand: () => false,
+      isRoleSelectMenu: () => false,
+      isStringSelectMenu: () => true,
+      deferReply: async options => assert.equal(options.flags, MessageFlags.Ephemeral),
+      editReply: async options => { details = options; }
+    });
+    assert.equal(details.flags, MessageFlags.IsComponentsV2);
+    const detail = details.components[0].toJSON().components;
+    assert.equal(detail[0].accessory.media.url, en.uiPath('UI_AvatarIcon_1'));
+    assert.deepEqual(detail[1].items.map(item => item.media.url),
+      ['UI_EquipIcon_Test', 'UI_RelicIcon_15001_1'].map(en.uiPath));
 
     p.showAvatarInfoList = Array.from({ length: 12 }, (_, n) => ({ avatarId: n + 1, level: 90 }));
     st.db.clear();
     await intro.submit(i);
-    const count = c => 1 + (c.accessory ? count(c.accessory) : 0) +
-      (c.components || []).reduce((n, child) => n + count(child), 0);
-    const full = output.components[0].toJSON();
-    assert.ok(count(full) <= 40);
-    assert.equal(full.components.slice(3, -1).length, 12);
-    assert.match(full.components[3].components[0].content, /武器/);
-    assert.match(full.components.at(-2).content, /キャラクター 12/);
+    const full = output.components[0].toJSON().components;
+    assert.equal(full.length, 5);
+    assert.equal(full[2].content.split('\n').length, 13);
+    assert.match(full[2].content, /キャラクター 12/);
+    assert.equal(full[3].components[0].options.length, 12);
 
     player.mock.mockImplementation(async () => ({ err: 503 }));
     st.db.clear();

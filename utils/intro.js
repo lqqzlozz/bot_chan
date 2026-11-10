@@ -108,7 +108,11 @@ async function showcaseLine(showcased, emojis) {
     const emoji = await characterEmoji(emojis, url);
     return emojiText(emoji) || safe(showcaseName(avatar));
   }));
-  return items.join(' ');
+  // Keep native Discord emoji at their existing size; only insert a line break.
+  const n = items.length;
+  if (n <= 6) return items.join(' ');
+  const firstRow = n <= 8 ? 4 : n === 9 ? 5 : 6;
+  return items.slice(0, firstRow).join(' ') + '\n# ' + items.slice(firstRow).join(' ');
 }
 
 // Older posted cards still have a character menu.
@@ -180,7 +184,8 @@ async function makeCard({ uid, p, displayName, avatarURL, emojis }) {
       '冒険ランク ' + (p.level ?? '—'),
       '世界ランク ' + (p.worldLevel ?? '—'),
       'アチーブメント ' + (p.finishAchievementNum ?? '—')
-    ].map((label, index) => statIcons[index] ? emojiText(statIcons[index]) + ' ' + label : label).join('　│　');
+    ].map((label, index) => statIcons[index] ? emojiText(statIcons[index]) + ' ' + label : label);
+    const statsText = stats.slice(0, 2).join('　│　') + '\n-# ' + stats[2];
     if (header) {
       files.push(new AttachmentBuilder(header, { name: 'uid-header.png' }));
       container.addMediaGalleryComponents(
@@ -192,7 +197,7 @@ async function makeCard({ uid, p, displayName, avatarURL, emojis }) {
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
       '## ' + nickname + signature + '\n' +
       uidBlock + '\n' +
-      '-# ' + stats
+      '-# ' + statsText
     ));
     if (showcase) {
       // A heading gives inline icons more room without adding a gallery.

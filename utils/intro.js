@@ -5,7 +5,8 @@ const { profileHeader } = require('./charRow');
 const { characterEmoji, statEmoji } = require('./introEmoji');
 
 const COLOR = '#1D9E75';
-const CARD_VERSION = 1;
+const CARD_VERSION = 2;
+const ODETTE_PROFILE_ICON = 11800;
 const busy = new Map();
 
 // 案内（ボタン付き）
@@ -224,6 +225,7 @@ async function retryPending(client) {
       const d = st.get(guild.id);
       for (const [userId, entry] of Object.entries(d.intro || {})) {
         if (!entry.uid || !entry.msg || !entry.ch) continue;
+        if (entry.cardSkippedVersion && !entry.pending) continue;
         const upgrade = entry.cardVersion !== CARD_VERSION && entry.cardSkippedVersion !== CARD_VERSION;
         if (!upgrade && !entry.pending) continue;
         if (entry.retryAfter && Date.now() < entry.retryAfter) continue;
@@ -240,6 +242,14 @@ async function retryPending(client) {
             entry.retryAfter = Date.now() + 10 * 60 * 1000;
             if (upgrade) migration.retry++;
           }
+          st.saveLater(guild);
+          continue;
+        }
+        const odette = Number(result.p.profilePicture?.id) === ODETTE_PROFILE_ICON;
+        // Version 1 already has the current layout. Only re-edit cards affected by the Odette lookup.
+        if (entry.cardVersion === 1 && !entry.pending && !odette) {
+          entry.cardVersion = CARD_VERSION;
+          delete entry.retryAfter;
           st.saveLater(guild);
           continue;
         }
@@ -266,7 +276,10 @@ async function retryPending(client) {
           entry.cardVersion = CARD_VERSION;
           delete entry.cardSkippedVersion;
           delete entry.retryAfter;
-          if (upgrade) migration.updated++;
+          if (upgrade) {
+            migration.updated++;
+            if (odette) console.log('UIDプロフィール画像更新:', entry.uid, 'Odette');
+          }
           st.saveLater(guild);
         } catch (error) {
           if (permanentDiscordErrors.has(error.code)) {

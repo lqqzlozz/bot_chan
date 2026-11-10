@@ -1,4 +1,4 @@
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder, MessageFlags, ContainerBuilder, TextDisplayBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder, SectionBuilder, ThumbnailBuilder } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, AttachmentBuilder, MessageFlags, ContainerBuilder, TextDisplayBuilder, MediaGalleryBuilder, MediaGalleryItemBuilder, SectionBuilder, ThumbnailBuilder, StringSelectMenuBuilder } = require('discord.js');
 const st = require('./store');
 const en = require('./enka');
 const { profileHeader } = require('./charRow');
@@ -92,14 +92,39 @@ async function submit(i) {
 
 // UID card: artwork only in images, all useful data as copyable Components V2 text.
 const safe = value => String(value ?? '').replace(/@/g, '＠').replace(/[\r\n]/g, ' ').replace(/([\\\x60*_~|>\[\]()])/g, '\\$1');
-function addShowcase(container, showcased, raw) {
+function showcaseStats(a, detail) {
+  return 'Lv.' + (a.level ?? '?') + ' │ ' + (detail ? 'C' + (detail.talentIdList || []).length : '凸数 非公開');
+}
+
+const showcaseName = a => en.name(a.avatarId) || 'キャラクター ' + a.avatarId;
+
+function addShowcase(container, uid, showcased, raw) {
   const details = new Map((raw || []).map(a => [String(a.avatarId), a]));
-  const rows = showcased.slice(0, 12).map(a => {
-    const detail = details.get(String(a.avatarId));
-    const name = en.name(a.avatarId) || 'キャラクター ' + a.avatarId;
+  const options = showcased.slice(0, 12).map(a => ({
+    label: showcaseName(a).slice(0, 100),
+    value: String(a.avatarId),
+    description: showcaseStats(a, details.get(String(a.avatarId)))
+  }));
+  const lines = options.map(option => '**' + safe(option.label) + '** · ' + option.description);
+  container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### キャラクター展示\n' + lines.join('\n')));
+  container.addActionRowComponents(new ActionRowBuilder().addComponents(
+    new StringSelectMenuBuilder().setCustomId('intro_char_' + uid)
+      .setPlaceholder('キャラ画像・装備を見る').addOptions(options)
+  ));
+}
+
+async function showCharacter(i) {
+  await i.deferReply({ flags: MessageFlags.Ephemeral });
+  try {
+    const uid = i.customId.slice('intro_char_'.length);
+    const { p, raw } = await en.player(uid);
+    const id = i.values[0];
+    const a = p?.showAvatarInfoList?.find(avatar => String(avatar.avatarId) === id);
+    if (!a) return i.editReply({ content: 'キャラクターを取得できませんでした。展示設定をご確認のうえ、もう一度お試しください。' });
+    await en.names();
+    const detail = raw?.find(avatar => String(avatar.avatarId) === id);
+    const name = showcaseName(a);
     const portrait = en.charIcon(a) || en.charSideIcon(a);
-    const constellation = detail ? 'C' + (detail.talentIdList || []).length : '凸数 非公開';
-    const stats = '**' + safe(name) + '**\nLv.' + (a.level ?? '?') + ' │ ' + constellation;
     const equips = detail?.equipList || [];
     const weapon = equips.find(e => e.weapon);
     const equipment = weapon ? [{
@@ -118,33 +143,25 @@ function addShowcase(container, showcased, raw) {
     for (const set of sets.values()) {
       if (set.count >= 2) equipment.push({ label: set.name + ' ×' + set.count, url: set.url });
     }
-    return { name, portrait, stats, equipment };
-  });
-
-  // Reserve the container, existing header, showcase title, link row and buttons,
-  // and one text component per character. A Section and its Thumbnail cost two more.
-  let remaining = 40 - (1 + container.components.length + 1 + 3 + rows.length);
-  const galleriesFit = remaining >= rows.reduce((cost, row) => cost +
-    (row.portrait ? 2 : 0) + (row.equipment.some(item => item.url) ? 1 : 0), 0);
-  container.addTextDisplayComponents(new TextDisplayBuilder().setContent('### キャラクター展示'));
-  for (const { name, portrait, stats, equipment } of rows) {
-    const thumbnail = portrait && remaining >= 2;
     const equipmentText = equipment.length ? '\n-# ' + equipment.map(item => safe(item.label)).join(' │ ') : '';
-    const portraitLink = portrait && !thumbnail ? '\n-# [キャラ画像](' + portrait + ')' : '';
-    const text = new TextDisplayBuilder().setContent(stats + equipmentText + portraitLink);
-    if (thumbnail) {
+    const text = new TextDisplayBuilder().setContent('### ' + safe(name) + '\n' + showcaseStats(a, detail) + equipmentText);
+    const container = new ContainerBuilder().setAccentColor(0x1D9E75);
+    if (portrait) {
       container.addSectionComponents(new SectionBuilder().addTextDisplayComponents(text)
         .setThumbnailAccessory(new ThumbnailBuilder().setURL(portrait).setDescription(name)));
-      remaining -= 2;
     } else {
       container.addTextDisplayComponents(text);
     }
     const images = equipment.filter(item => item.url);
-    if (galleriesFit && images.length) {
+    if (images.length) {
       container.addMediaGalleryComponents(new MediaGalleryBuilder().addItems(...images.map(item =>
         new MediaGalleryItemBuilder().setURL(item.url).setDescription(item.label)
       )));
     }
+    return await i.editReply({ components: [container], flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } });
+  } catch (error) {
+    console.error('キャラクター展示エラー:', error.message);
+    return i.editReply({ content: 'キャラクターを表示できませんでした。もう一度お試しください。' });
   }
 }
 
@@ -172,7 +189,7 @@ async function makeCard({ uid, p, raw, displayName, avatarURL }) {
     ));
     const showcased = p.showAvatarInfoList || [];
     if (showcased.length) {
-      addShowcase(container, showcased, raw);
+      addShowcase(container, uid, showcased, raw);
     } else {
       container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
         '**キャラクター展示**\n-# 非公開または未設定（ゲーム内のプロフィール公開設定をご確認ください）'
@@ -252,4 +269,4 @@ async function retryPending(client) {
   } finally { retryBusy = false; }
 }
 
-module.exports = { panel, place, bump, open, submit, retryPending };
+module.exports = { panel, place, bump, open, submit, showCharacter, retryPending };

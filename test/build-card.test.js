@@ -80,11 +80,11 @@ test('UID cards show even rows of character icons and public stats without a sel
     assert.equal(output.content, undefined);
     assert.equal(output.embeds, undefined);
     assert.deepEqual(output.allowedMentions.parse, []);
-    assert.deepEqual(output.files.map(file => file.name), ['uid-header.png', 'uid-icons-1.png']);
+    assert.deepEqual(output.files.map(file => file.name), ['uid-header.png', 'uid-icons.png']);
     const components = output.components[0].toJSON().components;
     assert.match(components[1].content, /ゲーム内の名前/);
     assert.ok(components[1].content.includes('**UID**\n```\n123456789\n```'));
-    assert.equal(components[3].items[0].media.url, 'attachment://uid-icons-1.png');
+    assert.equal(components[3].items[0].media.url, 'attachment://uid-icons.png');
     assert.match(components[4].content, /キャラクター 1 Lv\.90 C0/);
     assert.match(components[4].content, /キャラクター 2$/);
     assert.doesNotMatch(components[4].content, /Lv\.80/);
@@ -109,25 +109,27 @@ test('UID cards show even rows of character icons and public stats without a sel
     assert.deepEqual(detail[1].items.map(item => item.media.url),
       ['UI_EquipIcon_Test', 'UI_RelicIcon_15001_1'].map(en.uiPath));
 
-    p.showAvatarInfoList = Array.from({ length: 12 }, (_, n) => ({ avatarId: n + 1, level: 90 }));
-    st.db.clear();
-    await intro.submit(i);
-    const full = output.components[0].toJSON().components;
-    assert.equal(full.length, 10);
-    assert.deepEqual(full.filter(component => component.type === 12).slice(1).map(component => component.items[0].media.url),
-      ['attachment://uid-icons-1.png', 'attachment://uid-icons-2.png', 'attachment://uid-icons-3.png']);
-    assert.match(full[8].content, /キャラクター 12$/);
-    assert.equal(full.filter(component => component.type === 1).length, 1);
-    for (const file of output.files.slice(1)) {
-      const strip = await loadImage(file.attachment);
-      assert.deepEqual([strip.width, strip.height], [640, 120]);
-      const canvas = createCanvas(strip.width, strip.height);
+    for (const count of [10, 12]) {
+      p.showAvatarInfoList = Array.from({ length: count }, (_, n) => ({ avatarId: n + 1, level: 90 }));
+      st.db.clear();
+      await intro.submit(i);
+      const full = output.components[0].toJSON().components;
+      assert.equal(full.length, 6);
+      assert.equal(full[4].content.split('\n').length, 2);
+      assert.ok(full[4].content.endsWith('キャラクター ' + count));
+      assert.equal(full.filter(component => component.type === 1).length, 1);
+      const grid = await loadImage(output.files[1].attachment);
+      assert.deepEqual([grid.width, grid.height], [640, 208]);
+      const canvas = createCanvas(grid.width, grid.height);
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(strip, 0, 0);
-      for (const x of [80, 240, 400, 560]) {
-        assert.equal(ctx.getImageData(x, 60, 1, 1).data[3], 255);
+      ctx.drawImage(grid, 0, 0);
+      const columns = count / 2;
+      for (let column = 0; column < columns; column++) {
+        const x = Math.floor(640 * (column + 0.5) / columns);
+        assert.equal(ctx.getImageData(x, 52, 1, 1).data[3], 255);
+        assert.equal(ctx.getImageData(x, 156, 1, 1).data[3], 255);
       }
-      assert.equal(ctx.getImageData(160, 60, 1, 1).data[3], 0);
+      assert.equal(ctx.getImageData(64, 104, 1, 1).data[3], 0);
     }
 
     player.mock.mockImplementation(async () => ({ err: 503 }));

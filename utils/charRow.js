@@ -60,24 +60,25 @@ async function profileHeader(namecardUrls, avatarUrl) {
   return canvas.toBuffer('image/png');
 }
 
-async function characterIconStrip(urls) {
-  const icons = await Promise.all(urls.map(load));
-  if (!icons.some(Boolean)) return null;
+async function characterIconGrid(rows) {
+  const icons = await Promise.all(rows.map(row => Promise.all(row.map(load))));
+  if (!icons.flat().some(Boolean)) return null;
 
-  const slotWidth = 160;
-  const size = 112;
-  const canvas = createCanvas(slotWidth * 4, 120);
+  const rowHeight = 104;
+  const canvas = createCanvas(640, rowHeight * rows.length);
   const ctx = canvas.getContext('2d');
-  const start = (canvas.width - slotWidth * icons.length) / 2;
-  icons.forEach((icon, index) => {
+  const slotWidth = canvas.width / Math.max(4, ...rows.map(row => row.length));
+  const size = 92;
+  icons.forEach((row, rowIndex) => row.forEach((icon, columnIndex) => {
     if (!icon) return;
     const scale = size / Math.max(icon.width, icon.height);
     const width = icon.width * scale;
     const height = icon.height * scale;
-    const x = start + slotWidth * (index + 0.5) - width / 2;
-    ctx.drawImage(icon, x, (canvas.height - height) / 2, width, height);
-  });
+    const x = slotWidth * (columnIndex + 0.5) - width / 2;
+    const y = rowHeight * (rowIndex + 0.5) - height / 2;
+    ctx.drawImage(icon, x, y, width, height);
+  }));
   return canvas.toBuffer('image/png');
 }
 
-module.exports = { profileHeader, characterIconStrip };
+module.exports = { profileHeader, characterIconGrid };

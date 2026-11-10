@@ -92,8 +92,12 @@ test('UID cards display and reuse individual character emoji above the link butt
     assert.match(components[1].content, /ゲーム内の名前/);
     assert.ok(components[1].content.includes('**UID**\n```\n123456789\n```'));
     assert.equal(output.components.length, 1);
-    assert.deepEqual(components.map(component => component.type), [12, 10, 10, 1]);
-    assert.match(components[2].content, /^# <:uid_[a-f0-9]+:\d+> <:uid_[a-f0-9]+:\d+>$/);
+    assert.deepEqual(components.map(component => component.type), [12, 10, 14, 10, 14, 1]);
+    assert.match(components[3].content, /^# <:uid_[a-f0-9]+:\d+> <:uid_[a-f0-9]+:\d+>$/);
+    for (const spacer of [components[2], components[4]]) {
+      assert.equal(spacer.divider, false);
+      assert.equal(spacer.spacing, 1);
+    }
     assert.equal(emojis.create.mock.callCount(), 2);
     assert.equal(components.filter(component => component.type === 1).length, 1);
     assert.deepEqual(components.at(-1).components.map(b => b.url), ['https://enka.network/u/123456789/', 'https://akasha.cv/profile/123456789']);
@@ -121,8 +125,8 @@ test('UID cards display and reuse individual character emoji above the link butt
       st.db.clear();
       await intro.submit(i);
       const card = output.components[0].toJSON().components;
-      assert.deepEqual(card.map(component => component.type), [12, 10, 10, 1]);
-      assert.equal(card[2].content.match(/<:uid_[a-f0-9]+:\d+>/g).length, count);
+      assert.deepEqual(card.map(component => component.type), [12, 10, 14, 10, 14, 1]);
+      assert.equal(card[3].content.match(/<:uid_[a-f0-9]+:\d+>/g).length, count);
       assert.equal(emojis.create.mock.callCount(), count);
       assert.deepEqual(output.files.map(file => file.name), ['uid-header.png']);
     }

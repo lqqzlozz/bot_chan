@@ -37,6 +37,14 @@ module.exports = {
       }
       return;
     }
+    if (interaction.isButton() && interaction.customId?.startsWith('servers_')) {
+      try { await require('../commands/servers').handleButton(interaction); }
+      catch(e) {
+        console.error('サーバー一覧ページ送りエラー:',e);
+        if (!interaction.deferred && !interaction.replied) await interaction.reply({content:'ページを切り替えられませんでした。',ephemeral:true}).catch(()=>null);
+      }
+      return;
+    }
     if (interaction.isChatInputCommand()) {
       const command = client.commands.get(interaction.commandName);
       if (!command) return;

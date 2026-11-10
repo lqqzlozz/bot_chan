@@ -230,7 +230,7 @@ async function retryPending(client) {
       const d = st.get(guild.id);
       for (const [userId, entry] of Object.entries(d.intro || {})) {
         if (!entry.uid || !entry.msg || !entry.ch) continue;
-        if (entry.cardSkippedVersion && !entry.pending) continue;
+        if (entry.cardSkippedVersion === CARD_VERSION && !entry.pending) continue;
         const upgrade = entry.cardVersion !== CARD_VERSION && entry.cardSkippedVersion !== CARD_VERSION;
         if (!upgrade && !entry.pending) continue;
         if (entry.retryAfter && Date.now() < entry.retryAfter) continue;

@@ -186,7 +186,10 @@ async function makeCard({ uid, p, displayName, avatarURL, emojis }) {
       '-# 冒険ランク ' + (p.level ?? '—') + '　│　世界ランク ' + (p.worldLevel ?? '—') +
       '　│　アチーブメント ' + (p.finishAchievementNum ?? '—')
     ));
-    if (showcase) container.addTextDisplayComponents(new TextDisplayBuilder().setContent(showcase));
+    if (showcase) {
+      // A heading gives inline icons more room without adding a gallery.
+      container.addTextDisplayComponents(new TextDisplayBuilder().setContent('# ' + showcase));
+    }
   } else {
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
       '## ' + safe(displayName).slice(0, 80) + '\n' + uidBlock + '\n-# プロフィールを取得できませんでした。後ほど再取得します。'

@@ -7,17 +7,17 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 async function main(){
  const browser=await chromium.launch({headless:true});
  try{
-  const page=await browser.newPage({locale:'ja-JP'});
-  await page.goto(BASE+'/characters/active',{waitUntil:'domcontentloaded',timeout:60000});
-  await page.waitForTimeout(4000);
-  // LaQoos can render character cards without anchors. Inspect all DOM links and
-  // rendered page text, and print diagnostics rather than silently timing out.
-  const hrefs=await page.locator('[href]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('href')).filter(Boolean));
-  const html=await page.content();
-  const ids=[...new Set([...hrefs.join(' ' ).matchAll(/\/genshin\/characters\/(\d+)(?:\/active)?/g),...html.matchAll(/\/genshin\/characters\/(\d+)(?:\/active)?/g)].map(m=>m[1]))];
-  console.log('Listing diagnostics:',JSON.stringify({url:page.url(),title:await page.title(),links:hrefs.length,htmlLength:html.length,bodyPreview:(await page.locator('body').innerText().catch(()=>'' )).slice(0,500)}));
-  console.log('Found character links:',ids.length);
-  if(ids.length<65)throw new Error('Character listing incomplete: '+ids.length);
+  // Derive playable five-star avatar IDs independently of LaQoos listing markup.
+  const catalogUrl='https://raw.githubusercontent.com/EnkaNetwork/API-docs/master/store/gi/avatars.json';
+  const response=await fetch(catalogUrl,{signal:AbortSignal.timeout(20000)});
+  if(!response.ok)throw new Error('Enka avatar catalog HTTP '+response.status);
+  const catalog=await response.json();
+  const ids=[...new Set(Object.entries(catalog).filter(([id,v])=>
+    /^1000\d{4}$/.test(id) &&
+    (v.QualityType==='QUALITY_ORANGE'||Number(v.Rarity)===5)
+  ).map(([id])=>id))];
+  console.log('Enka five-star IDs:',ids.length,'includes 10000136:',ids.includes('10000136'));
+  if(ids.length<65)throw new Error('Enka catalog incomplete: '+ids.length);
   let cursor=0;const ownership=[],usage=[];
   async function worker(){
    const p=await browser.newPage({locale:'ja-JP'});
@@ -26,7 +26,7 @@ async function main(){
      const avatarId=Number(ids[cursor++]);
      try{
       await p.goto(BASE+'/characters/'+avatarId+'/active',{waitUntil:'domcontentloaded',timeout:45000});
-      await p.getByText('所持率',{exact:true}).first().waitFor({timeout:15000});
+      await p.getByText('所持率',{exact:true}).first().waitFor({timeout:12000});
       const text=await p.locator('body').innerText();
       if(!/★5キャラクター\s*\d+人中\s*\d+位/.test(text))continue;
       const name=await p.locator('h1').first().innerText().catch(()=>null);

@@ -11,15 +11,53 @@ const TYPES = {
   team: { title: '螺旋における人気パーティー', key: 'teams' }
 };
 const PAGE_SIZE = 12;
+const { createCanvas, loadImage } = require('@napi-rs/canvas');
+const { AttachmentBuilder } = require('discord.js');
 const FOUR_STAR = new Set(['Fischl','Bennett','Candace','Rosaria','Yanfei','Layla']);
 const isFiveStar = row => row.rarity === 5 || (row.rarity == null && !FOUR_STAR.has(row.name));
+const catalog = new Map();
+async function loadCatalog() {
+  await enka.names();
+  if (catalog.size) return;
+  for (let id=10000001; id<=10000250; id++) {
+    const c=enka.char(id), name=enka.name(id);
+    if (!c || !name) continue;
+    const rarity = c.QualityType === 'QUALITY_ORANGE' || Number(c.Rarity)===5 ? 5 :
+      c.QualityType === 'QUALITY_PURPLE' || Number(c.Rarity)===4 ? 4 : null;
+    catalog.set(name.toLowerCase(), {id,name,rarity});
+  }
+}
+function info(row) {
+  const c=catalog.get(row.name.toLowerCase());
+  return {id:row.avatarId || c?.id || ICON_IDS[row.name], name:c?.name || DISPLAY_NAMES[row.name] || row.name, rarity:row.rarity || c?.rarity || (FOUR_STAR.has(row.name)?4:null)};
+}
+function fiveStar(row) { return info(row).rarity === 5; }
+async function gridImage(rows) {
+  const w=800, cw=200, ch=160;
+  const canvas=createCanvas(w,Math.max(180,Math.ceil(rows.length/4)*ch));
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#20242c';ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.textAlign='center';
+  for(let n=0;n<rows.length;n++){
+    const x=n%4*cw,y=Math.floor(n/4)*ch, c=info(rows[n]);
+    ctx.fillStyle='#303746';ctx.fillRect(x+5,y+5,cw-10,ch-10);
+    const url=c.id?enka.charIcon({avatarId:c.id}):null;
+    if(url) try {
+      const img=await loadImage(url), scale=Math.min(100/img.width,100/img.height);
+      ctx.drawImage(img,x+(cw-img.width*scale)/2,y+5,img.width*scale,img.height*scale);
+    }catch(error){console.warn('統計アイコン取得失敗:',error.message);}
+    ctx.fillStyle='#ffffff';ctx.font='bold 22px sans-serif';ctx.fillText(rows[n].rate.toFixed(1)+'%',x+cw/2,y+121);
+    ctx.font='15px sans-serif';ctx.fillText(c.name.slice(0,13),x+cw/2,y+145);
+  }
+  return new AttachmentBuilder(canvas.toBuffer('image/png'),{name:'genshin-stats.png'});
+}
 const ICON_IDS = { Fischl: 10000031, Bennett: 10000032, Candace: 10000072, Rosaria: 10000045, Yanfei: 10000048, Layla: 10000074 };
 const DISPLAY_NAMES = { Fischl:'フィッシュル', Bennett:'ベネット', Candace:'キャンディス', Rosaria:'ロサリア', Yanfei:'煙緋', Layla:'レイラ' };
 async function prepareIcons(session, data, manager) {
   session.icons = {};
   if (!manager || session.type === 'team') return;
   await enka.names();
-  const rows = Array.isArray(data[TYPES[session.type].key]) ? data[TYPES[session.type].key].filter(isFiveStar) : [];
+  const rows = Array.isArray(data[TYPES[session.type].key]) ? data[TYPES[session.type].key].filter(fiveStar) : [];
   await Promise.all(rows.slice(0, 30).map(async row => {
     const id = ICON_IDS[row.name];
     if (!id) return;
@@ -76,9 +114,9 @@ async function loadResult() {
 async function loadSnapshot() {
   return (await loadResult()).data;
 }
-function view(session, data) {
+async function view(session, data) {
   const info = TYPES[session.type];
-  const rows = Array.isArray(data[info.key]) ? data[info.key].filter(x => x && typeof x.name === 'string' && Number.isFinite(x.rate) && x.rate >= 0 && x.rate <= 100 && (session.type === 'team' || isFiveStar(x))) : [];
+  const rows = Array.isArray(data[info.key]) ? data[info.key].filter(x => x && typeof x.name === 'string' && Number.isFinite(x.rate) && x.rate >= 0 && x.rate <= 100 && (session.type === 'team' || fiveStar(x))) : [];
   const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   session.page = Math.min(session.page, pages - 1);
   const start = session.page * PAGE_SIZE;
@@ -103,18 +141,21 @@ function view(session, data) {
     new ButtonBuilder().setCustomId(`gstats_prev_${session.user}`).setLabel('前へ').setStyle(ButtonStyle.Secondary).setDisabled(session.page === 0),
     new ButtonBuilder().setCustomId(`gstats_next_${session.user}`).setLabel('次へ').setStyle(ButtonStyle.Secondary).setDisabled(session.page >= pages - 1)
   );
-  return { embeds: [embed], components: rows.length ? [buttons] : [], allowedMentions: {parse: []} };
+  const files = visible.length && session.type !== 'team' ? [await gridImage(visible)] : [];
+  if(files.length) embed.setImage('attachment://genshin-stats.png').setDescription(data.partial ? '確認済みの一部キャラクターのみを掲載しています。' : '★5キャラクターの統計');
+  return { embeds: [embed], files, attachments: [], components: rows.length ? [buttons] : [], allowedMentions: {parse: []} };
 }
 async function execute(i, type) {
   if (!i.guildId || !isGI(i.guildId)) return i.reply({content: '原神機能がONのサーバーでのみ利用できます。', ephemeral: true});
   const session = {type, user: i.user.id, page: 0, created: Date.now()};
   await i.deferReply();
   await i.editReply({content: '⏳ 統計データを取得中です。しばらくお待ちください…'});
+  await loadCatalog();
   const result = await loadResult();
   const data = result.data;
   session.data = data;
   await prepareIcons(session, data, i.client?.application?.emojis);
-  const message = await i.editReply({content: result.fresh ? null : `※ ${result.reason}${remoteCache && remoteCache === data ? ' 前回取得したデータを表示しています。' : ''}`, ...view(session, data)});
+  const message = await i.editReply({content: result.fresh ? null : `※ ${result.reason}${remoteCache && remoteCache === data ? ' 前回取得したデータを表示しています。' : ''}`, ...await view(session, data)});
   sessions.set(message.id, session);
   for (const [id, value] of sessions) if (Date.now() - value.created > TTL) sessions.delete(id);
 }
@@ -128,7 +169,7 @@ async function handleButton(i) {
   }
   if (session.user !== i.user.id) return i.reply({content:'操作できるのはコマンドの実行者のみです。', ephemeral:true});
   session.page = Math.max(0, session.page + (i.customId.startsWith('gstats_next_') ? 1 : -1));
-  await i.update(view(session, session.data || snapshot()));
+  await i.update(await view(session, session.data || snapshot()));
   return true;
 }
 module.exports = { execute, handleButton, TYPES, valid, loadSnapshot };

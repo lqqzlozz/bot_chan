@@ -1,4 +1,5 @@
 const artifactNames = require('../data/genshinArtifactNamesJa.json');
+const enkaIcons = require('../data/genshinCharacterEnkaIcons.json');
 const readings = {
   神里綾華:'かみさとあやか', 旅人:'たびびと', 香菱:'しゃんりん', 北斗:'ほくと',
   行秋:'ゆくあき', 魈:'しょう', 凝光:'ぎょうこう', 鍾離:'しょうり', 七七:'なな',
@@ -15,25 +16,46 @@ const reading = name => readings[name] || name;
 const percent = n => n.toFixed(2) + '%';
 const labels = {10000005:'旅人（空）',10000007:'旅人（蛍）'};
 const label = row => labels[row.avatarId] || row.name;
-function characterPages(characters) {
-  const sorted = [...characters].sort((a,b) =>
-    collator.compare(reading(a.name), reading(b.name)) || a.avatarId - b.avatarId);
-  const pages = [];
-  for (let n=0;n<sorted.length;n+=25) pages.push(sorted.slice(n,n+25));
-  return pages;
+const kanaRows = [
+  ['あ行','あいうえおぁぃぅぇぉゔ'], ['か行','かきくけこがぎぐげごゕゖ'],
+  ['さ行','さしすせそざじずぜぞ'], ['た行','たちつてとだぢづでどっ'],
+  ['な行','なにぬねの'], ['は行','はひふへほばびぶべぼぱぴぷぺぽ'],
+  ['ま行','まみむめも'], ['や行','やゆよゃゅょ'], ['ら行','らりるれろ'],
+  ['わ行','わをんゐゑゎ'], ['その他','']
+];
+function hiragana(name) {
+  return reading(name).normalize('NFKC').replace(/[ァ-ヶ]/g, char => String.fromCharCode(char.charCodeAt(0)-96));
 }
-function characterMenus(pages, page, selectedId) {
+function characterGroups(characters) {
+  const sorted = [...characters].sort((a,b) =>
+    collator.compare(hiragana(a.name), hiragana(b.name)) || a.avatarId - b.avatarId);
+  const groups = kanaRows.map(([name])=>({name,characters:[]}));
+  for (const row of sorted) {
+    const first=hiragana(row.name)[0];
+    const group=kanaRows.findIndex(([,kana])=>first && kana.includes(first));
+    groups[group<0 ? groups.length-1 : group].characters.push(row);
+  }
+  return groups.filter(group=>group.characters.length);
+}
+function characterMenus(groups, group, selectedId) {
   const menu = (custom_id, placeholder, options) => ({
     type:1,components:[{type:3,custom_id,placeholder,options}]
   });
-  const rows = [];
-  if (pages.length > 1) rows.push(menu('gstats_char_page','名前の範囲を選ぶ',pages.map((items,index) => ({
-    label: label(items[0]) + ' 〜 ' + label(items.at(-1)), value:String(index), default:index===page
-  }))));
-  rows.push(menu('gstats_char_pick','キャラクターを選ぶ（五十音順）',pages[page].map(row => ({
-    label:label(row),value:String(row.avatarId),default:row.avatarId===selectedId
-  }))));
+  const rows = [menu('gstats_char_page','あ行・か行・さ行…から選ぶ',groups.map(item => ({
+    label:item.name, value:item.name, default:item.name===group?.name
+  })))];
+  if (!group) return rows;
+  for (let start=0;start<group.characters.length;start+=25) {
+    const id=start===0?'gstats_char_pick':'gstats_char_pick_'+start;
+    rows.push(menu(id,'キャラクターを選ぶ（五十音順）',group.characters.slice(start,start+25).map(row => ({
+      label:label(row),value:String(row.avatarId),default:row.avatarId===selectedId
+    }))));
+  }
   return rows;
+}
+function characterIcon(avatarId) {
+  const file=enkaIcons[avatarId];
+  return file && 'https://enka.network/ui/'+file;
 }
 function teamSections(data, limit, avatarId) {
   const names = new Map(data.characters.map(row => [row.avatarId,label(row)]));
@@ -55,4 +77,4 @@ function characterFields(data, row) {
     {name:'天賦レベル平均',value:'集計データなし'}
   ];
 }
-module.exports={label,characterPages,characterMenus,teamSections,characterFields};
+module.exports={label,characterGroups,characterMenus,characterIcon,teamSections,characterFields};

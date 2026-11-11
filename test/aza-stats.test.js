@@ -62,7 +62,12 @@ test('failed HTTP/schema validation retains the previous snapshot; success repla
   } finally {await fs.rm(dir,{recursive:true,force:true});}
 });
 test('Discord command replies with verified data without an image and gates disabled guilds',async()=>{
-  const f=fixture(), data=normalize(f.payload,f.html,now);
+  const f=fixture();
+  f.payload.data.character[10000002].weapons=[
+    {id:'11414',value:.1841},{id:'11509',value:.4364},{id:'11425',value:.0645},{id:'11101',value:.0398}
+  ];
+  const data=normalize(f.payload,f.html,now);
+  assert.deepEqual(data.characters.find(row=>row.avatarId===10000002).weapons.map(row=>row.id),[11509,11414,11425]);
   class Embed {
     constructor(){this.data={};}
     setTitle(x){this.data.title=x;return this;}
@@ -127,7 +132,8 @@ test('Discord command replies with verified data without an image and gates disa
   const char=replies.at(-1).embeds[0].data;
   assert.match(char.title,/神里綾華/);
   assert.match(char.fields[0].value,/64\.33%/);
-  assert.match(char.fields[1].value,/氷風を彷徨う勇士/);
+  assert.match(char.fields.find(field=>field.name==='人気の武器（採用率）').value,/^霧切の廻光　43\.64%/);
+  assert.match(char.fields.find(field=>field.name==='人気の聖遺物セット').value,/氷風を彷徨う勇士/);
   assert.equal(char.thumbnail,'https://enka.network/ui/UI_AvatarIcon_Side_Ayaka.png');
   assert.equal(replies.at(-1).components.at(-1).components.map(button=>button.label).join(','),'終了,🗑️');
   assert.match(char.fields.find(field=>field.name.startsWith('イベント祈願')).value,/Ver\.2\.0.*2021\/07\/21/);

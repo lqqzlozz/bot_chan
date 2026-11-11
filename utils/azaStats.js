@@ -1,6 +1,7 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const namesJa = require('../data/genshinCharacterNamesJa.json');
+const {details} = require('./azaDetails');
 const PAGE = 'https://genshin.aza.gg/spiral-abyss?l=en';
 const API = 'https://n1-api.aza.gg/v1/kv/read?key_id=genshin_abyss_statistics';
 
@@ -48,7 +49,7 @@ function normalize(payload, html, now = new Date()) {
     scheduleId: d.schedule.id, updatedAt: new Date(timestamp).toISOString(), fetchedAt: now.toISOString(),
     sampleSize: null, sample: {origin: d.sample_size_x_a, reference: d.sample_size_x_b},
     methodology: 'AZA.GG投稿サンプル。所持率=own_rate、使用率=use_by_own_rate（所持者中）、採用率=use_rate（全サンプル中）。全プレイヤーの代表値ではありません。',
-    partial: false, ownership: sort(ownership), usage: sort(usage), teams: []
+    partial: false, ownership: sort(ownership), usage: sort(usage), ...details(d, catalog, percent)
   };
 }
 async function get(url, fetchImpl) {
@@ -61,7 +62,7 @@ async function update(output, fetchImpl = fetch, now = new Date()) {
   const html = await (await get(PAGE, fetchImpl)).text();
   const result = normalize(payload, html, now);
   const missingNames = new Map();
-  for (const row of result.ownership) {
+  for (const row of result.characters) {
     if (row.name) continue;
     const url = `https://ar-cs.aza.gg/g/genshin_impact/data/ja/character/${row.avatarId}.json`;
     const character = await (await get(url, fetchImpl)).json();
@@ -71,7 +72,7 @@ async function update(output, fetchImpl = fetch, now = new Date()) {
     }
     missingNames.set(row.avatarId, character.name);
   }
-  for (const row of [...result.ownership, ...result.usage]) {
+  for (const row of [...result.ownership, ...result.usage, ...result.characters]) {
     row.name ??= missingNames.get(row.avatarId);
   }
   await fs.mkdir(path.dirname(output), {recursive:true});

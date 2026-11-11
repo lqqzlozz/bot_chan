@@ -37,6 +37,12 @@ module.exports = {
       }
       return;
     }
+    if (interaction.isStringSelectMenu() && interaction.customId?.startsWith('gstats_char_')) {
+      try { await require('../utils/genshinStats').handleSelect(interaction); }
+      catch (error) { console.error('原神統計の選択エラー:',error); }
+      return;
+    }
+
     if (interaction.isButton() && interaction.customId?.startsWith('gstats_')) {
       try { await require('../utils/genshinStats').handleButton(interaction); }
       catch (error) {

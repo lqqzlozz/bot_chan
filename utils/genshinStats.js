@@ -1,5 +1,7 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 const { isGI } = require('./gi');
+const enka = require('./enka');
+const { characterEmoji } = require('./introEmoji');
 const fs = require('fs');
 const path = require('path');
 
@@ -9,6 +11,21 @@ const TYPES = {
   team: { title: '螺旋における人気パーティー', key: 'teams' }
 };
 const PAGE_SIZE = 10;
+const ICON_IDS = { Fischl: 10000031, Bennett: 10000032, Candace: 10000072, Rosaria: 10000045, Yanfei: 10000048, Layla: 10000074 };
+const DISPLAY_NAMES = { Fischl:'フィッシュル', Bennett:'ベネット', Candace:'キャンディス', Rosaria:'ロサリア', Yanfei:'煙緋', Layla:'レイラ' };
+async function prepareIcons(session, data, manager) {
+  session.icons = {};
+  if (!manager || session.type === 'team') return;
+  await enka.names();
+  const rows = Array.isArray(data[TYPES[session.type].key]) ? data[TYPES[session.type].key] : [];
+  await Promise.all(rows.slice(0, 30).map(async row => {
+    const id = ICON_IDS[row.name];
+    if (!id) return;
+    const url = enka.charIcon({avatarId:id});
+    const emoji = await characterEmoji(manager, url);
+    if (emoji) session.icons[row.name] = `<:${emoji.name}:${emoji.id}>`;
+  }));
+}
 const sessions = new Map();
 const TTL = 15 * 60 * 1000;
 
@@ -64,7 +81,7 @@ function view(session, data) {
   session.page = Math.min(session.page, pages - 1);
   const start = session.page * PAGE_SIZE;
   const text = rows.length
-    ? rows.slice(start, start + PAGE_SIZE).map((item, i) => `${data.partial ? '・' : `${start + i + 1}.`} ${item.name.replace(/[@\r\n]/g, ' ')} — ${item.rate.toFixed(1)}%`).join('\n')
+    ? rows.slice(start, start + PAGE_SIZE).map((item, i) => `${data.partial ? '・' : `${start + i + 1}.`} ${session.icons?.[item.name] || '▫️'} **${(DISPLAY_NAMES[item.name] || item.name).replace(/[@\r\n]/g, ' ')}**  ${item.rate.toFixed(1)}%`).join('\n')
     : session.type === 'team' ? 'LaQoosの人気編成データは未取得です。https://www.laqoos.com/en-US/genshin/abyss/party' : '表示できる統計データがありません。LaQoosの取得方法を検証中です。';
   const metadata = [data.partial ? '確認済みの一部キャラクターのみ（全体順位ではありません）' : null, data.source ? `出典：${data.source}` : null, data.period ? `集計期間：${data.period}` : null, data.updatedAt ? `更新：${data.updatedAt}` : null, Number.isInteger(data.sampleSize) ? `サンプル数：${data.sampleSize}` : null].filter(Boolean);
   const embed = new EmbedBuilder().setTitle(info.title + (data.partial && rows.length ? '（確認済み抜粋）' : '')).setDescription(text).setColor(0x5865F2)
@@ -83,6 +100,7 @@ async function execute(i, type) {
   const result = await loadResult();
   const data = result.data;
   session.data = data;
+  await prepareIcons(session, data, i.client?.application?.emojis);
   const message = await i.editReply({content: result.fresh ? null : `※ ${result.reason}${remoteCache && remoteCache === data ? ' 前回取得したデータを表示しています。' : ''}`, ...view(session, data)});
   sessions.set(message.id, session);
   for (const [id, value] of sessions) if (Date.now() - value.created > TTL) sessions.delete(id);

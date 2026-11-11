@@ -110,7 +110,7 @@ test('Discord command replies with verified data without an image and gates disa
   assert.equal(menus.length,2);
   assert.ok(menus[0].components[0].options.some(option=>option.label==='か行'));
   assert.ok(menus[0].components[0].options.length<=25);
-  assert.equal(menus[1].components.map(button=>button.label).join(','),'メニューを閉じる,🗑️');
+  assert.equal(menus[1].components.map(button=>button.label).join(','),'終了,🗑️');
   const initialTimer=[...timers][0];
   assert.equal(initialTimer.delay,300000);
   const detailView=require('../utils/genshinStatsDetailsView');
@@ -129,15 +129,10 @@ test('Discord command replies with verified data without an image and gates disa
   assert.match(char.fields[0].value,/64\.33%/);
   assert.match(char.fields[1].value,/氷風を彷徨う勇士/);
   assert.equal(char.thumbnail,'https://enka.network/ui/UI_AvatarIcon_Side_Ayaka.png');
-  assert.equal(replies.at(-1).components.at(-1).components[0].label,'ピックアップ履歴');
-  await module.exports.handleButton({...i,customId:'gstats_char_history_10000002',update:async x=>replies.push(x)});
-  const history=replies.at(-1).embeds[0].data;
-  assert.match(history.title,/神里綾華のピックアップ履歴/);
-  assert.match(history.fields[0].value,/Ver\.2\.0.*2021\/07\/21/);
-  assert.equal(history.fields[1].name,'集録祈願（1回）');
-  assert.equal(history.thumbnail,char.thumbnail);
-  await module.exports.handleButton({...i,customId:'gstats_char_stats_10000002',update:async x=>replies.push(x)});
-  assert.equal(replies.at(-1).embeds[0].data.title,char.title);
+  assert.equal(replies.at(-1).components.at(-1).components.map(button=>button.label).join(','),'終了,🗑️');
+  assert.match(char.fields.find(field=>field.name.startsWith('イベント祈願')).value,/Ver\.2\.0.*2021\/07\/21/);
+  assert.ok(char.fields.some(field=>field.name==='集録祈願のピックアップ履歴（1回）'));
+  assert.match(char.footer.text,/AZA.GG.*Paimon.moe/);
   await [...timers][0].fn();
   assert.equal(timers.size,0);
   assert.equal(messageEdits.at(-1).components[0].components[0].label,'🗑️');

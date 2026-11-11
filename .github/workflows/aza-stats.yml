@@ -1,10 +1,10 @@
 name: Verify and update AZA statistics
 on:
   pull_request:
-    paths: ['utils/azaStats.js', 'utils/azaDetails.js', 'utils/genshinStatsDetailsView.js', 'data/genshinArtifactNamesJa.json', 'data/genshinCharacterEnkaIcons.json', 'commands/stats-char.js', 'events/interactionCreate.js', 'utils/registerCommands.js', 'utils/genshinStats.js', 'utils/genshinStatsView.js', 'scripts/updateAzaStats.js', 'test/aza-stats.test.js', '.github/workflows/aza-stats.yml']
+    paths: ['utils/azaStats.js', 'utils/azaDetails.js', 'utils/genshinStatsDetailsView.js', 'data/genshinArtifactNamesJa.json', 'data/genshinCharacterEnkaIcons.json', 'data/genshinPickupHistory.json', 'commands/stats-char.js', 'events/interactionCreate.js', 'utils/registerCommands.js', 'utils/genshinStats.js', 'utils/genshinStatsView.js', 'scripts/updateAzaStats.js', 'test/aza-stats.test.js', '.github/workflows/aza-stats.yml']
   push:
     branches: [main]
-    paths: ['utils/azaStats.js', 'utils/azaDetails.js', 'utils/genshinStatsDetailsView.js', 'data/genshinArtifactNamesJa.json', 'data/genshinCharacterEnkaIcons.json', 'commands/stats-char.js', 'events/interactionCreate.js', 'utils/registerCommands.js', 'utils/genshinStats.js', 'utils/genshinStatsView.js', 'scripts/updateAzaStats.js', 'test/aza-stats.test.js', '.github/workflows/aza-stats.yml']
+    paths: ['utils/azaStats.js', 'utils/azaDetails.js', 'utils/genshinStatsDetailsView.js', 'data/genshinArtifactNamesJa.json', 'data/genshinCharacterEnkaIcons.json', 'data/genshinPickupHistory.json', 'commands/stats-char.js', 'events/interactionCreate.js', 'utils/registerCommands.js', 'utils/genshinStats.js', 'utils/genshinStatsView.js', 'scripts/updateAzaStats.js', 'test/aza-stats.test.js', '.github/workflows/aza-stats.yml']
   workflow_dispatch:
   schedule:
     - cron: '15 2 * * *'

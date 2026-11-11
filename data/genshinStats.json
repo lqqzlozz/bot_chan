@@ -1,9 +1,76 @@
 {
-  "source": null,
-  "period": null,
-  "updatedAt": null,
+  "source": "LaQoos（個別キャラクターページの確認済み抜粋）",
+  "period": "螺旋 2026-10-15 ～ 2026-11-15",
+  "updatedAt": "2026-11-11（参照時点）",
   "sampleSize": null,
-  "ownership": [],
-  "usage": [],
+  "partial": true,
+  "ownership": [
+    {
+      "name": "Fischl",
+      "rate": 97.9
+    },
+    {
+      "name": "Bennett",
+      "rate": 95.9
+    },
+    {
+      "name": "Candace",
+      "rate": 93.4
+    },
+    {
+      "name": "Rosaria",
+      "rate": 92.5
+    },
+    {
+      "name": "Yanfei",
+      "rate": 90.1
+    },
+    {
+      "name": "Layla",
+      "rate": 88.3
+    },
+    {
+      "name": "Vodyanitsa",
+      "rate": 63.9
+    },
+    {
+      "name": "Mitya",
+      "rate": 27.4
+    }
+  ],
+  "usage": [
+    {
+      "name": "Vodyanitsa",
+      "rate": 92.5
+    },
+    {
+      "name": "Bennett",
+      "rate": 10.5
+    },
+    {
+      "name": "Mitya",
+      "rate": 7.1
+    },
+    {
+      "name": "Fischl",
+      "rate": 6.5
+    },
+    {
+      "name": "Layla",
+      "rate": 1.5
+    },
+    {
+      "name": "Rosaria",
+      "rate": 0.5
+    },
+    {
+      "name": "Yanfei",
+      "rate": 0.2
+    },
+    {
+      "name": "Candace",
+      "rate": 0.1
+    }
+  ],
   "teams": []
 }

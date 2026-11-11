@@ -37,6 +37,14 @@ module.exports = {
       }
       return;
     }
+    if (interaction.isButton() && interaction.customId?.startsWith('gstats_')) {
+      try { await require('../utils/genshinStats').handleButton(interaction); }
+      catch (error) {
+        console.error('原神統計ページ送りエラー:', error);
+        if (!interaction.deferred && !interaction.replied) await interaction.reply({content:'ページを切り替えられませんでした。', ephemeral:true}).catch(() => null);
+      }
+      return;
+    }
     if (interaction.isButton() && interaction.customId?.startsWith('servers_')) {
       try { await require('../commands/servers').handleButton(interaction); }
       catch(e) {

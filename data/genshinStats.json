@@ -5,8 +5,8 @@
   "apiVersion": "5.6",
   "period": "2026-10-15T20:00:00.000Z ～ 2026-11-15T19:59:59.000Z",
   "scheduleId": 124,
-  "updatedAt": "2026-11-11T06:00:00.362Z",
-  "fetchedAt": "2026-11-11T06:05:53.234Z",
+  "updatedAt": "2026-11-11T07:00:00.377Z",
+  "fetchedAt": "2026-11-11T07:13:09.695Z",
   "sampleSize": null,
   "sample": {
     "origin": 1388,
@@ -1454,7 +1454,7 @@
         },
         {
           "level": 4,
-          "rate": 35.1
+          "rate": 34.92
         },
         {
           "level": 5,
@@ -1462,7 +1462,7 @@
         },
         {
           "level": 6,
-          "rate": 23.28
+          "rate": 23.46
         }
       ],
       "artifacts": [
@@ -1760,11 +1760,11 @@
         },
         {
           "level": 1,
-          "rate": 13.3
+          "rate": 13.01
         },
         {
           "level": 2,
-          "rate": 15.94
+          "rate": 16.23
         },
         {
           "level": 3,
@@ -2810,11 +2810,11 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 68.8
+          "rate": 67.95
         },
         {
           "level": 1,
-          "rate": 12.39
+          "rate": 13.25
         },
         {
           "level": 2,
@@ -3877,31 +3877,31 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 41.29
+          "rate": 41.67
         },
         {
           "level": 1,
-          "rate": 14.19
+          "rate": 14.1
         },
         {
           "level": 2,
-          "rate": 17.74
+          "rate": 17.63
         },
         {
           "level": 3,
-          "rate": 6.13
+          "rate": 6.09
         },
         {
           "level": 4,
-          "rate": 5.48
+          "rate": 5.13
         },
         {
           "level": 5,
-          "rate": 2.58
+          "rate": 2.24
         },
         {
           "level": 6,
-          "rate": 12.58
+          "rate": 13.14
         }
       ],
       "artifacts": [

@@ -64,10 +64,10 @@ function view(session, data) {
   session.page = Math.min(session.page, pages - 1);
   const start = session.page * PAGE_SIZE;
   const text = rows.length
-    ? rows.slice(start, start + PAGE_SIZE).map((item, i) => `${start + i + 1}. ${item.name.replace(/[@\r\n]/g, ' ')} — ${item.rate.toFixed(1)}%`).join('\n')
-    : '表示できる統計データがありません。LaQoosの取得方法を検証中です。';
-  const metadata = [data.period ? `集計期間：${data.period}` : null, data.updatedAt ? `更新：${data.updatedAt}` : null, Number.isInteger(data.sampleSize) ? `サンプル数：${data.sampleSize}` : null].filter(Boolean);
-  const embed = new EmbedBuilder().setTitle(info.title).setDescription(text).setColor(0x5865F2)
+    ? rows.slice(start, start + PAGE_SIZE).map((item, i) => `${data.partial ? '・' : `${start + i + 1}.`} ${item.name.replace(/[@\r\n]/g, ' ')} — ${item.rate.toFixed(1)}%`).join('\n')
+    : session.type === 'team' ? 'LaQoosの人気編成データは未取得です。https://www.laqoos.com/en-US/genshin/abyss/party' : '表示できる統計データがありません。LaQoosの取得方法を検証中です。';
+  const metadata = [data.partial ? '確認済みの一部キャラクターのみ（全体順位ではありません）' : null, data.source ? `出典：${data.source}` : null, data.period ? `集計期間：${data.period}` : null, data.updatedAt ? `更新：${data.updatedAt}` : null, Number.isInteger(data.sampleSize) ? `サンプル数：${data.sampleSize}` : null].filter(Boolean);
+  const embed = new EmbedBuilder().setTitle(info.title + (data.partial && rows.length ? '（確認済み抜粋）' : '')).setDescription(text).setColor(0x5865F2)
     .setFooter({text: `${session.page + 1} / ${pages}ページ${metadata.length ? ' ｜ ' + metadata.join(' ｜ ') : ''}`});
   const buttons = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`gstats_prev_${session.user}`).setLabel('前へ').setStyle(ButtonStyle.Secondary).setDisabled(session.page === 0),

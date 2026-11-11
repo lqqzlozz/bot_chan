@@ -1,0 +1,50 @@
+name: Verify and update AZA statistics
+on:
+  pull_request:
+    paths: ['utils/azaStats.js', 'utils/genshinStats.js', 'utils/genshinStatsView.js', 'scripts/updateAzaStats.js', 'test/aza-stats.test.js', '.github/workflows/aza-stats.yml']
+  push:
+    branches: [main]
+    paths: ['utils/azaStats.js', 'utils/genshinStats.js', 'utils/genshinStatsView.js', 'scripts/updateAzaStats.js', 'test/aza-stats.test.js', '.github/workflows/aza-stats.yml']
+  workflow_dispatch:
+  schedule:
+    - cron: '15 2 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: aza-stats-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/aza-stats.test.js
+      - run: node scripts/updateAzaStats.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-aza-statistics
+          path: data/genshinStats.json
+  publish:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: verify
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: verified-aza-statistics
+          path: data
+      - name: Commit verified aggregate statistics
+        run: |
+          if git diff --quiet -- data/genshinStats.json; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/genshinStats.json
+          git commit -m 'data: refresh AZA aggregate statistics'
+          git push

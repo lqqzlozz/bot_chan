@@ -70,6 +70,7 @@ test('Discord command replies with verified data without an image and gates disa
     setColor(x){return this;}
     setFooter(x){this.data.footer=x;return this;}
     addFields(x){this.data.fields=x;return this;}
+    setThumbnail(x){this.data.thumbnail=x;return this;}
   }
   let enabled=true, current=data;
   const module={exports:{}};
@@ -83,7 +84,7 @@ test('Discord command replies with verified data without an image and gates disa
     if(name==='./genshinStatsDetailsView')return require('../utils/genshinStatsDetailsView');
     throw new Error('Unexpected import '+name);
   }});
-  const replies=[], i={guildId:'test',reply:async x=>replies.push(x),deferReply:async()=>{},editReply:async x=>replies.push(x)};
+  const replies=[], defers=[], i={guildId:'test',reply:async x=>replies.push(x),deferReply:async x=>defers.push(x),editReply:async x=>replies.push(x)};
   await module.exports.execute(i,'usage');
   assert.match(replies.at(-1).embeds[0].data.description,/所持者中/);
   assert.equal(replies.at(-1).files,undefined);
@@ -95,18 +96,25 @@ test('Discord command replies with verified data without an image and gates disa
   await module.exports.execute(i,'team');
   assert.match(replies.at(-1).embeds[0].data.fields[0].value,/神里綾華.*12\.77%/);
   await module.exports.execute(i,'char');
+  assert.equal(defers.at(-1),undefined);
   const menus=replies.at(-1).components;
+  assert.equal(menus.length,1);
+  assert.ok(menus[0].components[0].options.some(option=>option.label==='か行'));
   assert.ok(menus.every(menu=>menu.components[0].options.length<=25));
   const detailView=require('../utils/genshinStatsDetailsView');
-  const sorted=detailView.characterPages([{avatarId:3,name:'フリーナ'},{avatarId:2,name:'神里綾華'},{avatarId:1,name:'アルベド'}]);
-  assert.deepEqual(sorted.flat().map(row=>row.name),['アルベド','神里綾華','フリーナ']);
-  await module.exports.handleSelect({...i,customId:'gstats_char_page',values:['1'],update:async x=>replies.push(x)});
-  assert.equal(replies.at(-1).components[0].components[0].options[1].default,true);
+  const sorted=detailView.characterGroups([{avatarId:3,name:'フリーナ'},{avatarId:2,name:'神里綾華'},{avatarId:1,name:'アルベド'},{avatarId:4,name:'甘雨'},{avatarId:5,name:'ヴェスナ'}]);
+  assert.deepEqual(sorted.map(group=>[group.name,group.characters.map(row=>row.name)]),[
+    ['あ行',['アルベド','ヴェスナ']],['か行',['神里綾華','甘雨']],['は行',['フリーナ']]
+  ]);
+  await module.exports.handleSelect({...i,customId:'gstats_char_page',values:['か行'],update:async x=>replies.push(x)});
+  assert.ok(replies.at(-1).components[0].components[0].options.some(option=>option.label==='か行' && option.default));
+  assert.ok(replies.at(-1).components[1].components[0].options.some(option=>option.label==='神里綾華'));
   await module.exports.handleSelect({...i,customId:'gstats_char_pick',values:['10000002'],update:async x=>replies.push(x)});
   const char=replies.at(-1).embeds[0].data;
   assert.match(char.title,/神里綾華/);
   assert.match(char.fields[0].value,/64\.33%/);
   assert.match(char.fields[1].value,/氷風を彷徨う勇士/);
+  assert.equal(char.thumbnail,'https://enka.network/ui/UI_AvatarIcon_Side_Ayaka.png');
   current={};await module.exports.execute(i,'pull');assert.match(replies.at(-1).content,/検証済み/);
   enabled=false;await module.exports.execute(i,'usage');assert.equal(replies.at(-1).ephemeral,true);
 });

@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const ROOT = path.join(__dirname, '..', 'data');
 const {valid, description} = require('./genshinStatsView');
+const {label,characterPages,characterMenus,teamSections,characterFields} = require('./genshinStatsDetailsView');
 const TYPES = {
   pull: { title: 'キャラクター所持率', key: 'ownership' },
   usage: { title: '螺旋におけるキャラクター使用率', key: 'usage' },
@@ -13,14 +14,37 @@ function snapshot() {
   try { return JSON.parse(fs.readFileSync(path.join(ROOT,'genshinStats.json'),'utf8')); }
   catch { return {ownership:[],usage:[],teams:[]}; }
 }
+const hasDetails = data => valid(data) && data.characters?.length && Array.isArray(data.teams);
+function footer(data) {
+  const date = value => new Date(value).toLocaleDateString('ja-JP',{timeZone:'Asia/Tokyo'});
+  const period = data.period?.split(' ～ ').map(date).join(' ～ ');
+  const sample = data.sample && 'origin ' + data.sample.origin + ' / ref ' + data.sample.reference;
+  return ['出典 AZA.GG',period,data.updatedAt && '更新 '+date(data.updatedAt),sample].filter(Boolean).join(' ｜ ');
+}
+function detailEmbed(data, title) {
+  return new EmbedBuilder().setTitle(title).setColor(0x5865f2).setFooter({text:footer(data)});
+}
+function characterReply(data, pages, page, row) {
+  const embed=detailEmbed(data,row ? label(row)+'の深境螺旋統計' : 'キャラクター別統計');
+  if (row) embed.addFields(characterFields(data,row));
+  else embed.setDescription('メニューからキャラクターを選んでください。');
+  return {embeds:[embed],components:characterMenus(pages,page,row?.avatarId),allowedMentions:{parse:[]}};
+}
 async function execute(i,type) {
   if (!i.guildId || !isGI(i.guildId)) return i.reply({content:'原神機能がONのサーバーでのみ利用できます。',ephemeral:true});
-  await i.deferReply();
+  await i.deferReply(type==='char' ? {ephemeral:true} : undefined);
   try {
+    const data=snapshot();
+    if (type==='team' || type==='char') {
+      if (!hasDetails(data)) return await i.editReply({content:'統計は準備中です。'});
+      if (type==='char') return await i.editReply(characterReply(data,characterPages(data.characters),0));
+      const embed=detailEmbed(data,'深境螺旋12層の人気チーム')
+        .setDescription('前半・後半それぞれの採用率トップ10')
+        .addFields(teamSections(data,10));
+      return await i.editReply({embeds:[embed],allowedMentions:{parse:[]}});
+    }
     const config=TYPES[type];
     if (!config) throw new Error('Unknown stats type');
-    if (type==='team') return await i.editReply({content:'人気編成の統計は準備中です。'});
-    const data=snapshot();
     if (!valid(data)) return await i.editReply({content:'検証済みの★5統計は準備中です。'});
     const embeds=description(data,config.key).map((text,index) => {
       const embed=new EmbedBuilder().setTitle(config.title+(index?'（続き）':''))
@@ -38,9 +62,22 @@ async function execute(i,type) {
     await i.editReply({content:'統計を表示できませんでした。管理者にログの確認を依頼してください。'}).catch(()=>null);
   }
 }
+async function handleSelect(i) {
+  if (!i.guildId || !isGI(i.guildId)) return i.reply({content:'原神機能がONのサーバーでのみ利用できます。',ephemeral:true});
+  const data=snapshot();
+  if (!hasDetails(data)) return i.update({content:'統計は準備中です。',embeds:[],components:[]});
+  const pages=characterPages(data.characters);
+  const value=Number(i.values[0]);
+  if (i.customId==='gstats_char_page' && pages[value]) return i.update(characterReply(data,pages,value));
+  if (i.customId==='gstats_char_pick') {
+    const page=pages.findIndex(rows=>rows.some(row=>row.avatarId===value));
+    if (page>=0) return i.update(characterReply(data,pages,page,pages[page].find(row=>row.avatarId===value)));
+  }
+  return i.reply({content:'一覧が更新されました。/stats-char を開き直してください。',ephemeral:true});
+}
 async function handleButton(i) {
   if (!i.customId?.startsWith('gstats_')) return false;
   await i.reply({content:'ページ送りは廃止しました。コマンドを再実行してください。',ephemeral:true});
   return true;
 }
-module.exports={execute,handleButton,TYPES,valid,loadSnapshot:async()=>snapshot()};
+module.exports={execute,handleButton,handleSelect,TYPES,valid,loadSnapshot:async()=>snapshot()};

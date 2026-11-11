@@ -74,8 +74,12 @@ test('Discord command replies with verified data without an image and gates disa
   }
   let enabled=true, current=data;
   const module={exports:{}};
+  const timers=new Set();
   const code=await fs.readFile(path.join(__dirname,'../utils/genshinStats.js'),'utf8');
-  vm.runInNewContext(code,{module,__dirname:path.join(__dirname,'../utils'),console,require(name){
+  vm.runInNewContext(code,{module,__dirname:path.join(__dirname,'../utils'),console,
+  setTimeout(fn,delay){const timer={fn,delay,unref(){}};timers.add(timer);return timer;},
+  clearTimeout(timer){timers.delete(timer);},
+  require(name){
     if(name==='discord.js')return {EmbedBuilder:Embed};
     if(name==='./gi')return {isGI:()=>enabled};
     if(name==='node:fs')return {readFileSync:()=>JSON.stringify(current)};
@@ -85,7 +89,11 @@ test('Discord command replies with verified data without an image and gates disa
     if(name==='../data/genshinPickupHistory.json')return require('../data/genshinPickupHistory.json');
     throw new Error('Unexpected import '+name);
   }});
-  const replies=[], defers=[], i={guildId:'test',reply:async x=>replies.push(x),deferReply:async x=>defers.push(x),editReply:async x=>replies.push(x)};
+  const replies=[], defers=[], messageEdits=[];
+  let deletes=0;
+  const message={id:'message',edit:async x=>messageEdits.push(x),delete:async()=>{deletes++;}};
+  const i={guildId:'test',user:{id:'123'},message,reply:async x=>replies.push(x),deferReply:async x=>defers.push(x),
+    editReply:async x=>{replies.push(x);return message;},update:async x=>replies.push(x),deferUpdate:async()=>{}};
   await module.exports.execute(i,'usage');
   assert.match(replies.at(-1).embeds[0].data.description,/所持者中/);
   assert.equal(replies.at(-1).files,undefined);
@@ -99,15 +107,20 @@ test('Discord command replies with verified data without an image and gates disa
   await module.exports.execute(i,'char');
   assert.equal(defers.at(-1),undefined);
   const menus=replies.at(-1).components;
-  assert.equal(menus.length,1);
+  assert.equal(menus.length,2);
   assert.ok(menus[0].components[0].options.some(option=>option.label==='か行'));
-  assert.ok(menus.every(menu=>menu.components[0].options.length<=25));
+  assert.ok(menus[0].components[0].options.length<=25);
+  assert.equal(menus[1].components.map(button=>button.label).join(','),'メニューを閉じる,🗑️');
+  const initialTimer=[...timers][0];
+  assert.equal(initialTimer.delay,300000);
   const detailView=require('../utils/genshinStatsDetailsView');
   const sorted=detailView.characterGroups([{avatarId:3,name:'フリーナ'},{avatarId:2,name:'神里綾華'},{avatarId:1,name:'アルベド'},{avatarId:4,name:'甘雨'},{avatarId:5,name:'ヴェスナ'}]);
   assert.deepEqual(sorted.map(group=>[group.name,group.characters.map(row=>row.name)]),[
     ['あ行',['アルベド','ヴェスナ']],['か行',['神里綾華','甘雨']],['は行',['フリーナ']]
   ]);
   await module.exports.handleSelect({...i,customId:'gstats_char_page',values:['か行'],update:async x=>replies.push(x)});
+  assert.equal(timers.has(initialTimer),false);
+  assert.equal(timers.size,1);
   assert.ok(replies.at(-1).components[0].components[0].options.some(option=>option.label==='か行' && option.default));
   assert.ok(replies.at(-1).components[1].components[0].options.some(option=>option.label==='神里綾華'));
   await module.exports.handleSelect({...i,customId:'gstats_char_pick',values:['10000002'],update:async x=>replies.push(x)});
@@ -125,6 +138,19 @@ test('Discord command replies with verified data without an image and gates disa
   assert.equal(history.thumbnail,char.thumbnail);
   await module.exports.handleButton({...i,customId:'gstats_char_stats_10000002',update:async x=>replies.push(x)});
   assert.equal(replies.at(-1).embeds[0].data.title,char.title);
+  await [...timers][0].fn();
+  assert.equal(timers.size,0);
+  assert.equal(messageEdits.at(-1).components[0].components[0].label,'🗑️');
+  assert.equal(Object.hasOwn(messageEdits.at(-1),'embeds'),false);
+  await module.exports.handleButton({...i,user:{id:'456'},customId:'gstats_char_delete_123'});
+  assert.equal(deletes,0);
+  assert.equal(replies.at(-1).ephemeral,true);
+  await module.exports.handleButton({...i,customId:'gstats_char_delete_123'});
+  assert.equal(deletes,1);
+  await module.exports.execute(i,'char');
+  await module.exports.handleButton({...i,customId:'gstats_char_close_123'});
+  assert.equal(timers.size,0);
+  assert.equal(replies.at(-1).components[0].components[0].label,'🗑️');
   current={};await module.exports.execute(i,'pull');assert.match(replies.at(-1).content,/検証済み/);
   enabled=false;await module.exports.execute(i,'usage');assert.equal(replies.at(-1).ephemeral,true);
 });

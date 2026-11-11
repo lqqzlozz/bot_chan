@@ -22,9 +22,46 @@ function snapshot() {
     return {};
   }
 }
-function view(session) {
+const CACHE_MS = 6 * 60 * 60 * 1000;
+let remoteCache = null;
+let lastFetch = 0;
+let inflight = null;
+function valid(data) {
+  return data && typeof data === 'object' && ['ownership', 'usage', 'teams'].every(key =>
+    Array.isArray(data[key]) && data[key].every(row =>
+      row && typeof row.name === 'string' && row.name.length <= 150 &&
+      typeof row.rate === 'number' && Number.isFinite(row.rate) && row.rate >= 0 && row.rate <= 100));
+}
+// A trusted JSON feed may be configured after its source and usage conditions are verified.
+// LaQoos page HTML is deliberately not treated as a documented API.
+async function loadSnapshot() {
+  const url = process.env.GENSHIN_STATS_JSON_URL;
+  if (!url) return snapshot();
+  if (remoteCache && Date.now() - lastFetch < CACHE_MS) return remoteCache;
+  if (!inflight) inflight = (async () => {
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== 'https:') throw new Error('HTTPS URL required');
+      const response = await fetch(parsed, {signal: AbortSignal.timeout(10000), headers:{Accept:'application/json'}});
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const body = await response.text();
+      if (body.length > 1024 * 1024) throw new Error('JSON too large');
+      const data = JSON.parse(body);
+      if (!valid(data)) throw new Error('Invalid stats schema');
+      remoteCache = data;
+      lastFetch = Date.now();
+    } catch (error) {
+      console.error('原神統計フィード取得失敗:', error.message);
+      lastFetch = Date.now();
+    } finally {
+      inflight = null;
+    }
+    return remoteCache || snapshot();
+  })();
+  return inflight;
+}
+function view(session, data) {
   const info = TYPES[session.type];
-  const data = snapshot();
   const rows = Array.isArray(data[info.key]) ? data[info.key].filter(x => x && typeof x.name === 'string' && Number.isFinite(x.rate) && x.rate >= 0 && x.rate <= 100) : [];
   const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   session.page = Math.min(session.page, pages - 1);
@@ -44,7 +81,9 @@ function view(session) {
 async function execute(i, type) {
   if (!i.guildId || !isGI(i.guildId)) return i.reply({content: '原神機能がONのサーバーでのみ利用できます。', ephemeral: true});
   const session = {type, user: i.user.id, page: 0, created: Date.now()};
-  const message = await i.reply({...view(session), fetchReply: true});
+  await i.deferReply();
+  const data = await loadSnapshot();
+  const message = await i.editReply(view(session, data));
   sessions.set(message.id, session);
   for (const [id, value] of sessions) if (Date.now() - value.created > TTL) sessions.delete(id);
 }
@@ -58,7 +97,7 @@ async function handleButton(i) {
   }
   if (session.user !== i.user.id) return i.reply({content:'操作できるのはコマンドの実行者のみです。', ephemeral:true});
   session.page = Math.max(0, session.page + (i.customId.startsWith('gstats_next_') ? 1 : -1));
-  await i.update(view(session));
+  await i.update(view(session, await loadSnapshot()));
   return true;
 }
-module.exports = { execute, handleButton, TYPES };
+module.exports = { execute, handleButton, TYPES, valid, loadSnapshot };

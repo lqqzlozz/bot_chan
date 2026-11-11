@@ -10,8 +10,9 @@ const now = new Date('2026-11-11T03:00:00Z');
 function fixture() {
   const character = {};
   let html = '<table>';
+  const ids = Object.keys(require('../data/genshinCharacterNamesJa.json'));
   for(let n=0;n<110;n++) {
-    const id=10000001+n, rarity=n<70?5:4;
+    const id=ids[n], rarity=n<70?5:4;
     html+=`<tr><td><a href="#/test-${id}"><img class="gi-star-${rarity}-bg-gradient"><span>Character ${n}</span></a></td></tr>`;
     character[id]={own_rate:.5,use_rate:.1,use_by_own_rate:.2};
   }
@@ -33,7 +34,7 @@ test('filters five-stars and keeps usage denominators and sample metadata distin
   assert.match(description(data,'usage',new Date('2026-11-20')).join(''),/更新が古い/);
 });
 test('rejects corrupt, stale, duplicate, missing and changed-schema data',()=>{
-  for(const mutate of [f=>{f.payload.retcode=1;},f=>{f.payload.meta.api_ver='6';},f=>{f.payload.data.updated_at=1;},f=>{f.payload.data.character[10000001].own_rate=50;},f=>{f.payload.data.character[10000001].use_by_own_rate=null;},f=>{delete f.payload.data.character[10000001];},f=>{f.html+=f.html;},f=>{f.html='Cloudflare challenge';}]){
+  for(const mutate of [f=>{f.payload.retcode=1;},f=>{f.payload.meta.api_ver='6';},f=>{f.payload.data.updated_at=1;},f=>{f.payload.data.character[10000002].own_rate=50;},f=>{f.payload.data.character[10000002].use_by_own_rate=null;},f=>{delete f.payload.data.character[10000002];},f=>{f.html+=f.html;},f=>{f.html='Cloudflare challenge';}]){
     const f=fixture();mutate(f);assert.throws(()=>normalize(f.payload,f.html,now));
   }
 });
@@ -46,8 +47,17 @@ test('failed HTTP/schema validation retains the previous snapshot; success repla
     const f=fixture();
     await assert.rejects(update(output,async()=>({ok:true,json:async()=>f.payload,text:async()=>'challenge'}),now));
     assert.equal(await fs.readFile(output,'utf8'),'previous');
-    await update(output,async()=>({ok:true,json:async()=>f.payload,text:async()=>f.html}),now);
-    assert.equal(JSON.parse(await fs.readFile(output,'utf8')).ownership.length,70);
+    f.html=f.html.replace('#/test-10000002','#/test-10000999');
+    f.payload.data.character[10000999]=f.payload.data.character[10000002];
+    await update(output,async url=>({
+      ok:true,
+      json:async()=>url.endsWith('/10000999.json')?{id:10000999,name:'新キャラクター'}:f.payload,
+      text:async()=>f.html
+    }),now);
+    const saved=JSON.parse(await fs.readFile(output,'utf8'));
+    assert.equal(saved.ownership.length,70);
+    assert.equal(saved.ownership.find(row=>row.avatarId===10000999).name,'新キャラクター');
+    assert.equal(saved.usage.find(row=>row.avatarId===10000999).name,'新キャラクター');
     await assert.rejects(fs.stat(output+'.tmp'));
   } finally {await fs.rm(dir,{recursive:true,force:true});}
 });
@@ -58,7 +68,6 @@ test('Discord command replies with verified data without an image and gates disa
     setTitle(x){this.data.title=x;return this;}
     setDescription(x){this.data.description=x;return this;}
     setColor(x){return this;}
-    setURL(x){this.data.url=x;return this;}
     setFooter(x){this.data.footer=x;return this;}
   }
   let enabled=true, current=data;
@@ -76,7 +85,10 @@ test('Discord command replies with verified data without an image and gates disa
   await module.exports.execute(i,'usage');
   assert.match(replies.at(-1).embeds[0].data.description,/所持者中/);
   assert.equal(replies.at(-1).files,undefined);
-  assert.equal(replies.at(-1).embeds[0].data.url,'https://genshin.aza.gg/spiral-abyss?l=en');
+  assert.match(replies.at(-1).embeds[0].data.description,/神里綾華/);
+  assert.doesNotMatch(replies.at(-1).embeds[0].data.description,/2026-10/);
+  assert.match(replies.at(-1).embeds[0].data.footer.text,/出典 AZA.GG.*2026-10/);
+  assert.equal(replies.at(-1).embeds[0].data.url,undefined);
   await module.exports.execute(i,'team');assert.match(replies.at(-1).content,/準備中/);
   current={};await module.exports.execute(i,'pull');assert.match(replies.at(-1).content,/検証済み/);
   enabled=false;await module.exports.execute(i,'usage');assert.equal(replies.at(-1).ephemeral,true);

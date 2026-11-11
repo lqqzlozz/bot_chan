@@ -25,8 +25,11 @@ async function execute(i,type) {
     const embeds=description(data,config.key).map((text,index) => {
       const embed=new EmbedBuilder().setTitle(config.title+(index?'（続き）':''))
         .setDescription(text).setColor(0x5865f2);
-      if (!index) embed.setURL('https://genshin.aza.gg/spiral-abyss?l=en')
-        .setFooter({text:'出典：AZA.GG ｜ データ更新：'+data.updatedAt});
+      if (!index) {
+        const period = data.period?.replace(/(\d{4}-\d{2}-\d{2})T[^ ]+/g, '$1');
+        const sample = data.sample && 'origin ' + data.sample.origin + ' / ref ' + data.sample.reference;
+        embed.setFooter({text:['出典 AZA.GG', period, data.updatedAt && '更新 ' + data.updatedAt.slice(0,10), sample].filter(Boolean).join(' ｜ ')});
+      }
       return embed;
     });
     await i.editReply({embeds,allowedMentions:{parse:[]}});

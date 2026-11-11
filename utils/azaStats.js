@@ -1,5 +1,6 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const namesJa = require('../data/genshinCharacterNamesJa.json');
 const PAGE = 'https://genshin.aza.gg/spiral-abyss?l=en';
 const API = 'https://n1-api.aza.gg/v1/kv/read?key_id=genshin_abyss_statistics';
 
@@ -16,7 +17,7 @@ function catalogFromPage(html) {
     const rarity = row.match(/gi-star-([45])-bg-gradient/);
     const name = [...link[2].matchAll(/<span\b[^>]*>([^<>]+)<\/span>/g)].at(-1)?.[1];
     if (!rarity || !name || name.length > 100 || catalog.has(link[1])) throw new Error('Invalid/duplicate AZA catalog row');
-    catalog.set(link[1], {avatarId: Number(link[1]), name: name.replace(/&#39;|&apos;/g, "'").replace(/&amp;/g, '&').replace(/&quot;/g, '"'), rarity: Number(rarity[1])});
+    catalog.set(link[1], {avatarId: Number(link[1]), name: namesJa[link[1]], rarity: Number(rarity[1])});
   }
   if (catalog.size < 100) throw new Error('AZA character table incomplete');
   return catalog;
@@ -59,6 +60,20 @@ async function update(output, fetchImpl = fetch, now = new Date()) {
   const payload = await (await get(API, fetchImpl)).json();
   const html = await (await get(PAGE, fetchImpl)).text();
   const result = normalize(payload, html, now);
+  const missingNames = new Map();
+  for (const row of result.ownership) {
+    if (row.name) continue;
+    const url = `https://ar-cs.aza.gg/g/genshin_impact/data/ja/character/${row.avatarId}.json`;
+    const character = await (await get(url, fetchImpl)).json();
+    if (Number(character?.id) !== row.avatarId || typeof character.name !== 'string' ||
+        !/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u.test(character.name)) {
+      throw new Error('Japanese character name unavailable for ' + row.avatarId);
+    }
+    missingNames.set(row.avatarId, character.name);
+  }
+  for (const row of [...result.ownership, ...result.usage]) {
+    row.name ??= missingNames.get(row.avatarId);
+  }
   await fs.mkdir(path.dirname(output), {recursive:true});
   const temporary = output + '.tmp';
   try {

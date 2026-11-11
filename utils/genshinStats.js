@@ -23,9 +23,6 @@ function snapshot() {
   }
 }
 let remoteCache = null;
-let lastFetch = 0;
-let lastAttemptSucceeded = false;
-let lastError = null;
 let inflight = null;
 function valid(data) {
   return data && typeof data === 'object' && ['ownership', 'usage', 'teams'].every(key =>
@@ -33,12 +30,9 @@ function valid(data) {
       row && typeof row.name === 'string' && row.name.length <= 150 &&
       typeof row.rate === 'number' && Number.isFinite(row.rate) && row.rate >= 0 && row.rate <= 100));
 }
-// A trusted JSON feed may be configured after its source and usage conditions are verified.
-// LaQoos page HTML is deliberately not treated as a documented API.
-async function loadSnapshot({refresh = true} = {}) {
+async function loadResult() {
   const url = process.env.GENSHIN_STATS_JSON_URL;
-  if (!url) { lastAttemptSucceeded = false; lastError = '統計データの取得先が未設定です。'; return snapshot(); }
-  if (!refresh && remoteCache) return remoteCache;
+  if (!url) return {data: snapshot(), fresh: false, reason: '統計データの取得先が未設定です。'};
   if (!inflight) inflight = (async () => {
     try {
       const parsed = new URL(url);
@@ -50,19 +44,18 @@ async function loadSnapshot({refresh = true} = {}) {
       const data = JSON.parse(body);
       if (!valid(data)) throw new Error('Invalid stats schema');
       remoteCache = data;
-      lastFetch = Date.now();
-      lastAttemptSucceeded = true;
-      lastError = null;
+      return {data, fresh: true, reason: null};
     } catch (error) {
-      lastAttemptSucceeded = false;
-      lastError = '統計データの取得に失敗しました。';
       console.error('原神統計フィード取得失敗:', error.message);
+      return {data: remoteCache || snapshot(), fresh: false, reason: '統計データの取得に失敗しました。'};
     } finally {
       inflight = null;
     }
-    return remoteCache || snapshot();
   })();
   return inflight;
+}
+async function loadSnapshot() {
+  return (await loadResult()).data;
 }
 function view(session, data) {
   const info = TYPES[session.type];
@@ -87,9 +80,10 @@ async function execute(i, type) {
   const session = {type, user: i.user.id, page: 0, created: Date.now()};
   await i.deferReply();
   await i.editReply({content: '⏳ 統計データを取得中です。しばらくお待ちください…'});
-  const data = await loadSnapshot({refresh:true});
+  const result = await loadResult();
+  const data = result.data;
   session.data = data;
-  const message = await i.editReply({content: lastAttemptSucceeded ? null : `※ ${lastError || '最新データを取得できませんでした。'}${remoteCache === data ? ' 前回取得したデータを表示しています。' : ''}`, ...view(session, data)});
+  const message = await i.editReply({content: result.fresh ? null : `※ ${result.reason}${remoteCache && remoteCache === data ? ' 前回取得したデータを表示しています。' : ''}`, ...view(session, data)});
   sessions.set(message.id, session);
   for (const [id, value] of sessions) if (Date.now() - value.created > TTL) sessions.delete(id);
 }

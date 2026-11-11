@@ -9,10 +9,13 @@ async function main(){
  try{
   const page=await browser.newPage({locale:'ja-JP'});
   await page.goto(BASE+'/characters/active',{waitUntil:'domcontentloaded',timeout:60000});
-  await page.locator('a[href*="/genshin/characters/"]').first().waitFor({timeout:30000});
-  await page.waitForTimeout(2500);
-  const hrefs=await page.locator('a[href*="/genshin/characters/"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('href')).filter(Boolean));
-  const ids=[...new Set(hrefs.map(h=>h.match(/\/genshin\/characters\/(\d+)\/active/)?.[1]).filter(Boolean))];
+  await page.waitForTimeout(4000);
+  // LaQoos can render character cards without anchors. Inspect all DOM links and
+  // rendered page text, and print diagnostics rather than silently timing out.
+  const hrefs=await page.locator('[href]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('href')).filter(Boolean));
+  const html=await page.content();
+  const ids=[...new Set([...hrefs.join(' ' ).matchAll(/\/genshin\/characters\/(\d+)(?:\/active)?/g),...html.matchAll(/\/genshin\/characters\/(\d+)(?:\/active)?/g)].map(m=>m[1]))];
+  console.log('Listing diagnostics:',JSON.stringify({url:page.url(),title:await page.title(),links:hrefs.length,htmlLength:html.length,bodyPreview:(await page.locator('body').innerText().catch(()=>'' )).slice(0,500)}));
   console.log('Found character links:',ids.length);
   if(ids.length<65)throw new Error('Character listing incomplete: '+ids.length);
   let cursor=0;const ownership=[],usage=[];

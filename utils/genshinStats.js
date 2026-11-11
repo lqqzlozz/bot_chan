@@ -69,41 +69,30 @@ function footer(data) {
 function detailEmbed(data, title) {
   return new EmbedBuilder().setTitle(title).setColor(0x5865f2).setFooter({text:footer(data)});
 }
-function characterReply(data, groups, owner, group, row, showHistory = false) {
-  const title=row ? label(row)+(showHistory?'のピックアップ履歴':'の深境螺旋統計') : 'キャラクター別統計';
-  const embed=detailEmbed(data,title);
+function pickupFields(avatarId) {
+  const records=pickupHistory.characters[avatarId] || [];
+  const fields=[];
+  for (const [name,kind] of [['イベント祈願','event'],['集録祈願','chronicled']]) {
+    const periods=records.filter(record=>record.kind===kind);
+    if (!periods.length) continue;
+    fields.push({name:name+'のピックアップ履歴（'+periods.length+'回）',value:periods.map(period=>
+      'Ver.'+period.version+'　'+period.start.replaceAll('-','/')+' 〜 '+period.end.replaceAll('-','/')
+    ).join('\n')});
+  }
+  return fields.length ? fields : [{name:'ピックアップ履歴',value:'収録された履歴はありません。'}];
+}
+function characterReply(data, groups, owner, group, row) {
+  const embed=detailEmbed(data,row ? label(row)+'の深境螺旋統計' : 'キャラクター別統計');
   const components=characterMenus(groups,group,row?.avatarId);
-  const buttons=[];
   if (row) {
-    if (showHistory) {
-      const records=pickupHistory.characters[row.avatarId] || [];
-      const sections=[
-        ['イベント祈願','event'],
-        ['集録祈願','chronicled']
-      ];
-      for (const [name,kind] of sections) {
-        const periods=records.filter(record=>record.kind===kind);
-        if (!periods.length) continue;
-        embed.addFields([{name:name+'（'+periods.length+'回）',value:periods.map(period=>
-          'Ver.'+period.version+'　'+period.start.replaceAll('-','/')+' 〜 '+period.end.replaceAll('-','/')
-        ).join('\n')}]);
-      }
-      if (!records.length) embed.setDescription('収録されたピックアップ履歴はありません。');
-      embed.setFooter({text:'出典 '+pickupHistory.source+' ｜ アジアサーバーの日付'});
-    } else {
-      embed.addFields(characterFields(data,row));
-    }
+    embed.addFields([...characterFields(data,row),...pickupFields(row.avatarId)]);
+    embed.setFooter({text:footer(data)+' ｜ 祈願履歴 '+pickupHistory.source+'（アジアサーバー）'});
     const icon=characterIcon(row.avatarId);
     if (icon) embed.setThumbnail(icon);
-    buttons.push({
-      type:2,style:2,label:showHistory?'統計に戻る':'ピックアップ履歴',
-      custom_id:'gstats_char_'+(showHistory?'stats_':'history_')+row.avatarId
-    });
   } else {
     embed.setDescription(group?'キャラクターを選んでください。':'名前の最初の行を選んでください。');
   }
-  buttons.push(characterControl('close',owner,'メニューを閉じる',2),deleteControl(owner));
-  components.push({type:1,components:buttons});
+  components.push({type:1,components:[characterControl('close',owner,'終了',2),deleteControl(owner)]});
   return {embeds:[embed],components,allowedMentions:{parse:[]}};
 }
 async function execute(i,type) {
@@ -206,30 +195,6 @@ async function handleButton(i) {
         }
       }
     }
-    return true;
-  }
-  const detail=i.customId.match(/^gstats_char_(history|stats)_(\d{8})$/);
-  if (detail) {
-    if (!i.guildId || !isGI(i.guildId)) {
-      await i.reply({content:'原神機能がONのサーバーでのみ利用できます。',ephemeral:true});
-      return true;
-    }
-    const session=characterSession(i);
-    if (typeof session.then==='function') {
-      await session;
-      return true;
-    }
-    const data=snapshot();
-    if (hasDetails(data)) {
-      const id=Number(detail[2]);
-      const groups=characterGroups(data.characters);
-      const group=groups.find(item=>item.characters.some(row=>row.avatarId===id));
-      if (group) {
-        await updateCharacterSession(i,session,characterReply(data,groups,session.owner,group,group.characters.find(row=>row.avatarId===id),detail[1]==='history'));
-        return true;
-      }
-    }
-    await i.reply({content:'一覧が更新されました。/stats-char を開き直してください。',ephemeral:true});
     return true;
   }
   await i.reply({content:'ページ送りは廃止しました。コマンドを再実行してください。',ephemeral:true});

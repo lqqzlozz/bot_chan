@@ -1,4 +1,5 @@
 const artifactNames = require('../data/genshinArtifactNamesJa.json');
+const weaponNames = require('../data/genshinWeaponNamesJa.json');
 const enkaIcons = require('../data/genshinCharacterEnkaIcons.json');
 const readings = {
   神里綾華:'かみさとあやか', 旅人:'たびびと', 香菱:'しゃんりん', 北斗:'ほくと',
@@ -71,6 +72,8 @@ function characterFields(data, row) {
     `${level===0?'無凸':level+'凸'} ${byLevel.has(level)?percent(byLevel.get(level)):'—'}`);
   return [
     {name:'凸の分布',value:byLevel.size ? distribution.slice(0,4).join(' ｜ ')+'\n'+distribution.slice(4).join(' ｜ ') : '掲載データなし'},
+    {name:'人気の武器（採用率）',value:(row.weapons || []).map(item =>
+      `${weaponNames[item.id] || '武器 ID '+item.id}　${percent(item.rate)}`).join('\n') || '掲載データなし'},
     {name:'人気の聖遺物セット',value:row.artifacts.map(item =>
       Object.entries(item.sets).map(([id,count])=>`${artifactNames[id] || 'セット '+id} ${count}セット`).join(' ＋ ')+`　${percent(item.rate)}`).join('\n') || '掲載データなし'},
     ...teamSections(data,3,row.avatarId).map(field=>({...field,name:field.name+'の人気編成（採用率）'})),

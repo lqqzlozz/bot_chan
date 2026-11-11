@@ -12,7 +12,11 @@ function details(data, catalog, percent) {
         Object.entries(row.set).length && Object.entries(row.set).every(([id,count]) => /^\d+$/.test(id) && [1,2,4].includes(count)))
       .map(row => ({sets: row.set, rate: percent(row.value)}))
       .sort((a,b) => b.rate - a.rate).slice(0,3);
-    characters.push({...entry, constellations, artifacts});
+    const weapons = (stats.weapons || [])
+      .filter(row => /^\d{5}$/.test(row.id) && typeof row.value === 'number')
+      .map(row => ({id: Number(row.id), rate: percent(row.value)}))
+      .sort((a,b) => b.rate - a.rate).slice(0,3);
+    characters.push({...entry, constellations, artifacts, weapons});
   }
   const known = new Set(characters.map(row => row.avatarId));
   const teams = [];

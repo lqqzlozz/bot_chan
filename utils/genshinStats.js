@@ -10,14 +10,16 @@ const TYPES = {
   usage: { title: '螺旋におけるキャラクター使用率', key: 'usage' },
   team: { title: '螺旋における人気パーティー', key: 'teams' }
 };
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 12;
+const FOUR_STAR = new Set(['Fischl','Bennett','Candace','Rosaria','Yanfei','Layla']);
+const isFiveStar = row => row.rarity === 5 || (row.rarity == null && !FOUR_STAR.has(row.name));
 const ICON_IDS = { Fischl: 10000031, Bennett: 10000032, Candace: 10000072, Rosaria: 10000045, Yanfei: 10000048, Layla: 10000074 };
 const DISPLAY_NAMES = { Fischl:'フィッシュル', Bennett:'ベネット', Candace:'キャンディス', Rosaria:'ロサリア', Yanfei:'煙緋', Layla:'レイラ' };
 async function prepareIcons(session, data, manager) {
   session.icons = {};
   if (!manager || session.type === 'team') return;
   await enka.names();
-  const rows = Array.isArray(data[TYPES[session.type].key]) ? data[TYPES[session.type].key] : [];
+  const rows = Array.isArray(data[TYPES[session.type].key]) ? data[TYPES[session.type].key].filter(isFiveStar) : [];
   await Promise.all(rows.slice(0, 30).map(async row => {
     const id = ICON_IDS[row.name];
     if (!id) return;
@@ -76,14 +78,25 @@ async function loadSnapshot() {
 }
 function view(session, data) {
   const info = TYPES[session.type];
-  const rows = Array.isArray(data[info.key]) ? data[info.key].filter(x => x && typeof x.name === 'string' && Number.isFinite(x.rate) && x.rate >= 0 && x.rate <= 100) : [];
+  const rows = Array.isArray(data[info.key]) ? data[info.key].filter(x => x && typeof x.name === 'string' && Number.isFinite(x.rate) && x.rate >= 0 && x.rate <= 100 && (session.type === 'team' || isFiveStar(x))) : [];
   const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   session.page = Math.min(session.page, pages - 1);
   const start = session.page * PAGE_SIZE;
-  const text = rows.length
-    ? rows.slice(start, start + PAGE_SIZE).map((item, i) => `${data.partial ? '・' : `${start + i + 1}.`} ${session.icons?.[item.name] || '▫️'} **${(DISPLAY_NAMES[item.name] || item.name).replace(/[@\r\n]/g, ' ')}**  ${item.rate.toFixed(1)}%`).join('\n')
-    : session.type === 'team' ? 'LaQoosの人気編成データは未取得です。https://www.laqoos.com/en-US/genshin/abyss/party' : '表示できる統計データがありません。LaQoosの取得方法を検証中です。';
-  const metadata = [data.partial ? '確認済みの一部キャラクターのみ（全体順位ではありません）' : null, data.source ? `出典：${data.source}` : null, data.period ? `集計期間：${data.period}` : null, data.updatedAt ? `更新：${data.updatedAt}` : null, Number.isInteger(data.sampleSize) ? `サンプル数：${data.sampleSize}` : null].filter(Boolean);
+  const visible = rows.slice(start, start + PAGE_SIZE);
+  const safeName = item => (DISPLAY_NAMES[item.name] || item.name).replace(/[@\r\n]/g, ' ');
+  const blocks = [];
+  for (let offset = 0; offset < visible.length; offset += 4) {
+    const group = visible.slice(offset, offset + 4);
+    // Discord does not support four inline embed fields in a row.
+    // Keep the four icons on one line and the corresponding rates immediately below.
+    blocks.push(group.map(item => session.icons?.[item.name] || '▫️').join('　'));
+    blocks.push(group.map(item => item.rate.toFixed(1) + '%').join('　'));
+    blocks.push(group.map(item => safeName(item)).join(' / '));
+  }
+  const text = visible.length ? blocks.join('\n') :
+    session.type === 'team' ? '人気編成データは未取得です。' :
+    '表示できる★5キャラクターの統計データがありません。';
+  const metadata = [session.type !== 'team' ? '★5キャラクターのみ' : null, data.partial ? '確認済みの一部キャラクターのみ（全体順位ではありません）' : null, data.source ? `出典：${data.source}` : null, data.period ? `集計期間：${data.period}` : null, data.updatedAt ? `更新：${data.updatedAt}` : null, Number.isInteger(data.sampleSize) ? `サンプル数：${data.sampleSize}` : null].filter(Boolean);
   const embed = new EmbedBuilder().setTitle(info.title + (data.partial && rows.length ? '（確認済み抜粋）' : '')).setDescription(text).setColor(0x5865F2)
     .setFooter({text: `${session.page + 1} / ${pages}ページ${metadata.length ? ' ｜ ' + metadata.join(' ｜ ') : ''}`});
   const buttons = new ActionRowBuilder().addComponents(

@@ -25,6 +25,7 @@ function snapshot() {
 let remoteCache = null;
 let lastFetch = 0;
 let lastAttemptSucceeded = false;
+let lastError = null;
 let inflight = null;
 function valid(data) {
   return data && typeof data === 'object' && ['ownership', 'usage', 'teams'].every(key =>
@@ -36,7 +37,7 @@ function valid(data) {
 // LaQoos page HTML is deliberately not treated as a documented API.
 async function loadSnapshot({refresh = true} = {}) {
   const url = process.env.GENSHIN_STATS_JSON_URL;
-  if (!url) { lastAttemptSucceeded = false; return snapshot(); }
+  if (!url) { lastAttemptSucceeded = false; lastError = '統計データの取得先が未設定です。'; return snapshot(); }
   if (!refresh && remoteCache) return remoteCache;
   if (!inflight) inflight = (async () => {
     try {
@@ -51,8 +52,10 @@ async function loadSnapshot({refresh = true} = {}) {
       remoteCache = data;
       lastFetch = Date.now();
       lastAttemptSucceeded = true;
+      lastError = null;
     } catch (error) {
       lastAttemptSucceeded = false;
+      lastError = '統計データの取得に失敗しました。';
       console.error('原神統計フィード取得失敗:', error.message);
     } finally {
       inflight = null;
@@ -69,7 +72,7 @@ function view(session, data) {
   const start = session.page * PAGE_SIZE;
   const text = rows.length
     ? rows.slice(start, start + PAGE_SIZE).map((item, i) => `${start + i + 1}. ${item.name.replace(/[@\r\n]/g, ' ')} — ${item.rate.toFixed(1)}%`).join('\n')
-    : '統計データを準備中です。取得元の検証が完了するまで、未確認の数値は表示しません。';
+    : '表示できる統計データがありません。LaQoosの取得方法を検証中です。';
   const metadata = [data.period ? `集計期間：${data.period}` : null, data.updatedAt ? `更新：${data.updatedAt}` : null, Number.isInteger(data.sampleSize) ? `サンプル数：${data.sampleSize}` : null].filter(Boolean);
   const embed = new EmbedBuilder().setTitle(info.title).setDescription(text).setColor(0x5865F2)
     .setFooter({text: `${session.page + 1} / ${pages}ページ${metadata.length ? ' ｜ ' + metadata.join(' ｜ ') : ''}`});
@@ -86,7 +89,7 @@ async function execute(i, type) {
   await i.editReply({content: '⏳ 統計データを取得中です。しばらくお待ちください…'});
   const data = await loadSnapshot({refresh:true});
   session.data = data;
-  const message = await i.editReply({content: lastAttemptSucceeded ? null : '※ 最新データは取得できていません。', ...view(session, data)});
+  const message = await i.editReply({content: lastAttemptSucceeded ? null : `※ ${lastError || '最新データを取得できませんでした。'}${remoteCache === data ? ' 前回取得したデータを表示しています。' : ''}`, ...view(session, data)});
   sessions.set(message.id, session);
   for (const [id, value] of sessions) if (Date.now() - value.created > TTL) sessions.delete(id);
 }

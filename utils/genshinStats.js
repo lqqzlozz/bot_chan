@@ -22,9 +22,9 @@ function snapshot() {
     return {};
   }
 }
-const CACHE_MS = 6 * 60 * 60 * 1000;
 let remoteCache = null;
 let lastFetch = 0;
+let lastAttemptSucceeded = false;
 let inflight = null;
 function valid(data) {
   return data && typeof data === 'object' && ['ownership', 'usage', 'teams'].every(key =>
@@ -34,15 +34,15 @@ function valid(data) {
 }
 // A trusted JSON feed may be configured after its source and usage conditions are verified.
 // LaQoos page HTML is deliberately not treated as a documented API.
-async function loadSnapshot() {
+async function loadSnapshot({refresh = true} = {}) {
   const url = process.env.GENSHIN_STATS_JSON_URL;
-  if (!url) return snapshot();
-  if (remoteCache && Date.now() - lastFetch < CACHE_MS) return remoteCache;
+  if (!url) { lastAttemptSucceeded = false; return snapshot(); }
+  if (!refresh && remoteCache) return remoteCache;
   if (!inflight) inflight = (async () => {
     try {
       const parsed = new URL(url);
       if (parsed.protocol !== 'https:') throw new Error('HTTPS URL required');
-      const response = await fetch(parsed, {signal: AbortSignal.timeout(10000), headers:{Accept:'application/json'}});
+      const response = await fetch(parsed, {signal: AbortSignal.timeout(60000), headers:{Accept:'application/json'}});
       if (!response.ok) throw new Error('HTTP ' + response.status);
       const body = await response.text();
       if (body.length > 1024 * 1024) throw new Error('JSON too large');
@@ -50,9 +50,10 @@ async function loadSnapshot() {
       if (!valid(data)) throw new Error('Invalid stats schema');
       remoteCache = data;
       lastFetch = Date.now();
+      lastAttemptSucceeded = true;
     } catch (error) {
+      lastAttemptSucceeded = false;
       console.error('原神統計フィード取得失敗:', error.message);
-      lastFetch = Date.now();
     } finally {
       inflight = null;
     }
@@ -82,8 +83,10 @@ async function execute(i, type) {
   if (!i.guildId || !isGI(i.guildId)) return i.reply({content: '原神機能がONのサーバーでのみ利用できます。', ephemeral: true});
   const session = {type, user: i.user.id, page: 0, created: Date.now()};
   await i.deferReply();
-  const data = await loadSnapshot();
-  const message = await i.editReply(view(session, data));
+  await i.editReply({content: '⏳ 統計データを取得中です。しばらくお待ちください…'});
+  const data = await loadSnapshot({refresh:true});
+  session.data = data;
+  const message = await i.editReply({content: lastAttemptSucceeded ? null : '※ 最新データは取得できていません。', ...view(session, data)});
   sessions.set(message.id, session);
   for (const [id, value] of sessions) if (Date.now() - value.created > TTL) sessions.delete(id);
 }
@@ -97,7 +100,7 @@ async function handleButton(i) {
   }
   if (session.user !== i.user.id) return i.reply({content:'操作できるのはコマンドの実行者のみです。', ephemeral:true});
   session.page = Math.max(0, session.page + (i.customId.startsWith('gstats_next_') ? 1 : -1));
-  await i.update(view(session, await loadSnapshot()));
+  await i.update(view(session, session.data || snapshot()));
   return true;
 }
 module.exports = { execute, handleButton, TYPES, valid, loadSnapshot };

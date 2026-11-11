@@ -117,10 +117,7 @@ async function loadSnapshot() {
 async function view(session, data) {
   const info = TYPES[session.type];
   const rows = Array.isArray(data[info.key]) ? data[info.key].filter(x => x && typeof x.name === 'string' && Number.isFinite(x.rate) && x.rate >= 0 && x.rate <= 100 && (session.type === 'team' || fiveStar(x))) : [];
-  const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  session.page = Math.min(session.page, pages - 1);
-  const start = session.page * PAGE_SIZE;
-  const visible = rows.slice(start, start + PAGE_SIZE);
+  const visible = rows;
   const safeName = item => (DISPLAY_NAMES[item.name] || item.name).replace(/[@\r\n]/g, ' ');
   const blocks = [];
   for (let offset = 0; offset < visible.length; offset += 4) {
@@ -136,7 +133,7 @@ async function view(session, data) {
     '表示できる★5キャラクターの統計データがありません。';
   const metadata = [session.type !== 'team' ? '★5キャラクターのみ' : null, data.partial ? '確認済みの一部キャラクターのみ（全体順位ではありません）' : null, data.source ? `出典：${data.source}` : null, data.period ? `集計期間：${data.period}` : null, data.updatedAt ? `更新：${data.updatedAt}` : null, Number.isInteger(data.sampleSize) ? `サンプル数：${data.sampleSize}` : null].filter(Boolean);
   const embed = new EmbedBuilder().setTitle(info.title + (data.partial && rows.length ? '（確認済み抜粋）' : '')).setDescription(text).setColor(0x5865F2)
-    .setFooter({text: `${session.page + 1} / ${pages}ページ${metadata.length ? ' ｜ ' + metadata.join(' ｜ ') : ''}`});
+    .setFooter({text: metadata.join(' ｜ ').slice(0, 2048) || '統計データ'});
   const buttons = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`gstats_prev_${session.user}`).setLabel('前へ').setStyle(ButtonStyle.Secondary).setDisabled(session.page === 0),
     new ButtonBuilder().setCustomId(`gstats_next_${session.user}`).setLabel('次へ').setStyle(ButtonStyle.Secondary).setDisabled(session.page >= pages - 1)
@@ -144,7 +141,7 @@ async function view(session, data) {
   let files = [];
   if (visible.length && session.type !== 'team') try { files = [await gridImage(visible)]; } catch (error) { console.error('統計カード描画失敗:', error.message); }
   if(files.length) embed.setImage('attachment://genshin-stats.png').setDescription(data.partial ? '確認済みの一部キャラクターのみを掲載しています。' : '★5キャラクターの統計');
-  return { embeds: [embed], files, attachments: [], components: rows.length ? [buttons] : [], allowedMentions: {parse: []} };
+  return { embeds: [embed], files, attachments: [], components: [], allowedMentions: {parse: []} };
 }
 async function execute(i, type) {
   if (!i.guildId || !isGI(i.guildId)) return i.reply({content: '原神機能がONのサーバーでのみ利用できます。', ephemeral: true});
@@ -155,10 +152,9 @@ async function execute(i, type) {
   const result = await loadResult();
   const data = result.data;
   session.data = data;
-  await prepareIcons(session, data, i.client?.application?.emojis);
+  // The grid uses real portrait assets; avoid creating redundant application emojis.
   const message = await i.editReply({content: result.fresh ? null : `※ ${result.reason}${remoteCache && remoteCache === data ? ' 前回取得したデータを表示しています。' : ''}`, ...await view(session, data)});
-  sessions.set(message.id, session);
-  for (const [id, value] of sessions) if (Date.now() - value.created > TTL) sessions.delete(id);
+  // Single-image output needs no interactive session or pagination.
 }
 async function handleButton(i) {
   if (!i.customId?.startsWith('gstats_')) return false;

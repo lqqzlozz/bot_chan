@@ -17,8 +17,9 @@ const FOUR_STAR = new Set(['Fischl','Bennett','Candace','Rosaria','Yanfei','Layl
 const isFiveStar = row => row.rarity === 5 || (row.rarity == null && !FOUR_STAR.has(row.name));
 const catalog = new Map();
 async function loadCatalog() {
-  await enka.names();
   if (catalog.size) return;
+  // Avoid blocking the slash-command response on external Enka catalog requests.
+  await Promise.race([enka.names(), new Promise(resolve => setTimeout(resolve, 3000))]);
   for (let id=10000001; id<=10000250; id++) {
     const c=enka.char(id), name=enka.name(id);
     if (!c || !name) continue;
@@ -43,7 +44,9 @@ async function gridImage(rows) {
     ctx.fillStyle='#303746';ctx.fillRect(x+5,y+5,cw-10,ch-10);
     const url=c.id?enka.charIcon({avatarId:c.id}):null;
     if(url) try {
-      const img=await loadImage(url), scale=Math.min(100/img.width,100/img.height);
+      const response=await fetch(url,{signal:AbortSignal.timeout(3500)});
+      if(!response.ok) throw new Error('HTTP '+response.status);
+      const img=await loadImage(Buffer.from(await response.arrayBuffer())), scale=Math.min(100/img.width,100/img.height);
       ctx.drawImage(img,x+(cw-img.width*scale)/2,y+5,img.width*scale,img.height*scale);
     }catch(error){console.warn('統計アイコン取得失敗:',error.message);}
     ctx.fillStyle='#ffffff';ctx.font='bold 22px sans-serif';ctx.fillText(rows[n].rate.toFixed(1)+'%',x+cw/2,y+121);
@@ -148,12 +151,13 @@ async function execute(i, type) {
   const session = {type, user: i.user.id, page: 0, created: Date.now()};
   await i.deferReply();
   await i.editReply({content: '⏳ 統計データを取得中です。しばらくお待ちください…'});
+  const result = await Promise.race([loadResult(), new Promise(resolve => setTimeout(() => resolve({data:snapshot(),fresh:false,reason:'取得がタイムアウトしたため保存済みデータを表示しています。'}), 10000))]);
   await loadCatalog();
-  const result = await loadResult();
   const data = result.data;
   session.data = data;
   // The grid uses real portrait assets; avoid creating redundant application emojis.
-  const message = await i.editReply({content: result.fresh ? null : `※ ${result.reason}${remoteCache && remoteCache === data ? ' 前回取得したデータを表示しています。' : ''}`, ...await view(session, data)});
+  const rendered = await Promise.race([view(session, data), new Promise(resolve => setTimeout(() => resolve({embeds:[new EmbedBuilder().setTitle(TYPES[type].title).setDescription('画像生成がタイムアウトしました。統計データは取得済みです。再度お試しください。')],components:[],files:[],attachments:[]}), 20000))]);
+  const message = await i.editReply({content: result.fresh ? null : `※ ${result.reason}${remoteCache && remoteCache === data ? ' 前回取得したデータを表示しています。' : ''}`, ...rendered});
   // Single-image output needs no interactive session or pagination.
 }
 async function handleButton(i) {

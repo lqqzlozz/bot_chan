@@ -151,6 +151,7 @@ async function execute(i, type) {
   const session = {type, user: i.user.id, page: 0, created: Date.now()};
   await i.deferReply();
   await i.editReply({content: '⏳ 統計データを取得中です。しばらくお待ちください…'});
+  try {
   const result = await Promise.race([loadResult(), new Promise(resolve => setTimeout(() => resolve({data:snapshot(),fresh:false,reason:'取得がタイムアウトしたため保存済みデータを表示しています。'}), 10000))]);
   await loadCatalog();
   const data = result.data;
@@ -159,6 +160,10 @@ async function execute(i, type) {
   const rendered = await Promise.race([view(session, data), new Promise(resolve => setTimeout(() => resolve({embeds:[new EmbedBuilder().setTitle(TYPES[type].title).setDescription('画像生成がタイムアウトしました。統計データは取得済みです。再度お試しください。')],components:[],files:[],attachments:[]}), 20000))]);
   const message = await i.editReply({content: result.fresh ? null : `※ ${result.reason}${remoteCache && remoteCache === data ? ' 前回取得したデータを表示しています。' : ''}`, ...rendered});
   // Single-image output needs no interactive session or pagination.
+  } catch (error) {
+    console.error('原神統計表示失敗:',error);
+    await i.editReply({content:'統計表示中にエラーが発生しました。しばらくしてから再実行してください。',embeds:[],components:[],attachments:[]}).catch(()=>null);
+  }
 }
 async function handleButton(i) {
   if (!i.customId?.startsWith('gstats_')) return false;

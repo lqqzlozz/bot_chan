@@ -13,7 +13,7 @@ async function main(){
   if(!response.ok)throw new Error('Enka avatar catalog HTTP '+response.status);
   const catalog=await response.json();
   const ids=[...new Set(Object.entries(catalog).filter(([id,v])=>
-    /^1000\\d{4}$/.test(id) &&
+    /^1000\d{4}$/.test(id) &&
     (v.QualityType==='QUALITY_ORANGE'||Number(v.Rarity)===5)
   ).map(([id])=>id))];
   console.log('Enka five-star IDs:',ids.length,'includes 10000136:',ids.includes('10000136'));

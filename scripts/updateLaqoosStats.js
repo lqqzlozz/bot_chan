@@ -36,6 +36,8 @@ async function main() {
           try {
             await p.goto(BASE+'/characters/'+item.avatarId+'/active',{waitUntil:'domcontentloaded',timeout:45000});
             const text=await p.locator('body').innerText({timeout:15000});
+            const heading=await p.locator('h1').first().innerText().catch(()=>null);
+            if(heading) item.name=heading.trim();
             const rarity=text.match(/Rank\s+\d+\s+of\s+\d+\s+(4|5)★\s+characters/);
             item.rarity=rarity?Number(rarity[1]):null;
             const rate=text.match(/Spiral Abyss Usage Rate\s+(\d{1,3}(?:\.\d+)?)\s*%/);

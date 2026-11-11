@@ -24,6 +24,7 @@ function snapshot() {
 }
 let remoteCache = null;
 let lastFetch = 0;
+let lastAttemptSucceeded = false;
 let inflight = null;
 function valid(data) {
   return data && typeof data === 'object' && ['ownership', 'usage', 'teams'].every(key =>
@@ -35,7 +36,7 @@ function valid(data) {
 // LaQoos page HTML is deliberately not treated as a documented API.
 async function loadSnapshot({refresh = true} = {}) {
   const url = process.env.GENSHIN_STATS_JSON_URL;
-  if (!url) return snapshot();
+  if (!url) { lastAttemptSucceeded = false; return snapshot(); }
   if (!refresh && remoteCache) return remoteCache;
   if (!inflight) inflight = (async () => {
     try {
@@ -49,7 +50,9 @@ async function loadSnapshot({refresh = true} = {}) {
       if (!valid(data)) throw new Error('Invalid stats schema');
       remoteCache = data;
       lastFetch = Date.now();
+      lastAttemptSucceeded = true;
     } catch (error) {
+      lastAttemptSucceeded = false;
       console.error('原神統計フィード取得失敗:', error.message);
     } finally {
       inflight = null;
@@ -83,7 +86,7 @@ async function execute(i, type) {
   await i.editReply({content: '⏳ 統計データを取得中です。しばらくお待ちください…'});
   const data = await loadSnapshot({refresh:true});
   session.data = data;
-  const message = await i.editReply({content: remoteCache === data && lastFetch ? null : '※ 最新データは取得できていません。', ...view(session, data)});
+  const message = await i.editReply({content: lastAttemptSucceeded ? null : '※ 最新データは取得できていません。', ...view(session, data)});
   sessions.set(message.id, session);
   for (const [id, value] of sessions) if (Date.now() - value.created > TTL) sessions.delete(id);
 }

@@ -17,427 +17,427 @@
   "ownership": [
     {
       "avatarId": 10000003,
-      "name": "Jean",
+      "name": "ジン",
       "rarity": 5,
       "rate": 98.04
     },
     {
       "avatarId": 10000041,
-      "name": "Mona",
+      "name": "モナ",
       "rarity": 5,
       "rate": 98.04
     },
     {
       "avatarId": 10000089,
-      "name": "Furina",
+      "name": "フリーナ",
       "rarity": 5,
       "rate": 97.71
     },
     {
       "avatarId": 10000035,
-      "name": "Qiqi",
+      "name": "七七",
       "rarity": 5,
       "rate": 97.55
     },
     {
       "avatarId": 10000109,
-      "name": "Yumemizuki Mizuki",
+      "name": "夢見月瑞希",
       "rarity": 5,
       "rate": 97.55
     },
     {
       "avatarId": 10000042,
-      "name": "Keqing",
+      "name": "刻晴",
       "rarity": 5,
       "rate": 97.38
     },
     {
       "avatarId": 10000079,
-      "name": "Dehya",
+      "name": "ディシア",
       "rarity": 5,
       "rate": 97.22
     },
     {
       "avatarId": 10000069,
-      "name": "Tighnari",
+      "name": "ティナリ",
       "rarity": 5,
       "rate": 95.91
     },
     {
       "avatarId": 10000016,
-      "name": "Diluc",
+      "name": "ディルック",
       "rarity": 5,
       "rate": 95.42
     },
     {
       "avatarId": 10000125,
-      "name": "Columbina",
+      "name": "コロンビーナ",
       "rarity": 5,
       "rate": 94.93
     },
     {
       "avatarId": 10000073,
-      "name": "Nahida",
+      "name": "ナヒーダ",
       "rarity": 5,
       "rate": 91.49
     },
     {
       "avatarId": 10000150,
-      "name": "Odette",
+      "name": "オデット",
       "rarity": 5,
       "rate": 91.49
     },
     {
       "avatarId": 10000103,
-      "name": "Xilonen",
+      "name": "シロネン",
       "rarity": 5,
       "rate": 86.74
     },
     {
       "avatarId": 10000047,
-      "name": "Kaedehara Kazuha",
+      "name": "楓原万葉",
       "rarity": 5,
       "rate": 86.09
     },
     {
       "avatarId": 10000112,
-      "name": "Escoffier",
+      "name": "エスコフィエ",
       "rarity": 5,
       "rate": 84.12
     },
     {
       "avatarId": 10000060,
-      "name": "Yelan",
+      "name": "夜蘭",
       "rarity": 5,
       "rate": 83.14
     },
     {
       "avatarId": 10000052,
-      "name": "Raiden Shogun",
+      "name": "雷電将軍",
       "rarity": 5,
       "rate": 82.98
     },
     {
       "avatarId": 10000107,
-      "name": "Citlali",
+      "name": "シトラリ",
       "rarity": 5,
       "rate": 81.18
     },
     {
       "avatarId": 10000111,
-      "name": "Varesa",
+      "name": "ヴァレサ",
       "rarity": 5,
       "rate": 80.69
     },
     {
       "avatarId": 10000114,
-      "name": "Skirk",
+      "name": "スカーク",
       "rarity": 5,
       "rate": 80.69
     },
     {
       "avatarId": 10000106,
-      "name": "Mavuika",
+      "name": "マーヴィカ",
       "rarity": 5,
       "rate": 80.36
     },
     {
       "avatarId": 10000030,
-      "name": "Zhongli",
+      "name": "鍾離",
       "rarity": 5,
       "rate": 79.38
     },
     {
       "avatarId": 10000140,
-      "name": "Vodyanitsa",
+      "name": "ヴォジャニーツァ",
       "rarity": 5,
       "rate": 77.09
     },
     {
       "avatarId": 10000116,
-      "name": "Ineffa",
+      "name": "イネファ",
       "rarity": 5,
       "rate": 75.61
     },
     {
       "avatarId": 10000007,
-      "name": "Traveler",
+      "name": "旅人",
       "rarity": 5,
       "rate": 75.12
     },
     {
       "avatarId": 10000119,
-      "name": "Lauma",
+      "name": "ラウマ",
       "rarity": 5,
       "rate": 74.96
     },
     {
       "avatarId": 10000133,
-      "name": "Sandrone",
+      "name": "サンドローネ",
       "rarity": 5,
       "rate": 74.14
     },
     {
       "avatarId": 10000087,
-      "name": "Neuvillette",
+      "name": "ヌヴィレット",
       "rarity": 5,
       "rate": 70.87
     },
     {
       "avatarId": 10000122,
-      "name": "Nefer",
+      "name": "ネフェル",
       "rarity": 5,
       "rate": 68.74
     },
     {
       "avatarId": 10000131,
-      "name": "Nicole",
+      "name": "ニコ",
       "rarity": 5,
       "rate": 67.27
     },
     {
       "avatarId": 10000096,
-      "name": "Arlecchino",
+      "name": "アルレッキーノ",
       "rarity": 5,
       "rate": 66.28
     },
     {
       "avatarId": 10000130,
-      "name": "Linnea",
+      "name": "リンネア",
       "rarity": 5,
       "rate": 64.48
     },
     {
       "avatarId": 10000058,
-      "name": "Yae Miko",
+      "name": "八重神子",
       "rarity": 5,
       "rate": 64.32
     },
     {
       "avatarId": 10000046,
-      "name": "Hu Tao",
+      "name": "胡桃",
       "rarity": 5,
       "rate": 63.18
     },
     {
       "avatarId": 10000070,
-      "name": "Nilou",
+      "name": "ニィロウ",
       "rarity": 5,
       "rate": 61.87
     },
     {
       "avatarId": 10000123,
-      "name": "Durin",
+      "name": "ドゥリン",
       "rarity": 5,
       "rate": 60.88
     },
     {
       "avatarId": 10000091,
-      "name": "Navia",
+      "name": "ナヴィア",
       "rarity": 5,
       "rate": 58.27
     },
     {
       "avatarId": 10000098,
-      "name": "Clorinde",
+      "name": "クロリンデ",
       "rarity": 5,
       "rate": 54.99
     },
     {
       "avatarId": 10000037,
-      "name": "Ganyu",
+      "name": "甘雨",
       "rarity": 5,
       "rate": 54.66
     },
     {
       "avatarId": 10000054,
-      "name": "Sangonomiya Kokomi",
+      "name": "珊瑚宮心海",
       "rarity": 5,
       "rate": 53.85
     },
     {
       "avatarId": 10000093,
-      "name": "Xianyun",
+      "name": "閑雲",
       "rarity": 5,
       "rate": 52.86
     },
     {
       "avatarId": 10000002,
-      "name": "Kamisato Ayaka",
+      "name": "神里綾華",
       "rarity": 5,
       "rate": 50.74
     },
     {
       "avatarId": 10000104,
-      "name": "Chasca",
+      "name": "チャスカ",
       "rarity": 5,
       "rate": 50.74
     },
     {
       "avatarId": 10000075,
-      "name": "Wanderer",
+      "name": "放浪者",
       "rarity": 5,
       "rate": 49.92
     },
     {
       "avatarId": 10000143,
-      "name": "Vesna",
+      "name": "ヴェスナ",
       "rarity": 5,
       "rate": 49.92
     },
     {
       "avatarId": 10000126,
-      "name": "Zibai",
+      "name": "兹白",
       "rarity": 5,
       "rate": 49.1
     },
     {
       "avatarId": 10000120,
-      "name": "Flins",
+      "name": "フリンズ",
       "rarity": 5,
       "rate": 48.77
     },
     {
       "avatarId": 10000022,
-      "name": "Venti",
+      "name": "ウェンティ",
       "rarity": 5,
       "rate": 47.95
     },
     {
       "avatarId": 10000063,
-      "name": "Shenhe",
+      "name": "申鶴",
       "rarity": 5,
       "rate": 46.15
     },
     {
       "avatarId": 10000082,
-      "name": "Baizhu",
+      "name": "白朮",
       "rarity": 5,
       "rate": 44.84
     },
     {
       "avatarId": 10000078,
-      "name": "Alhaitham",
+      "name": "アルハイゼン",
       "rarity": 5,
       "rate": 44.35
     },
     {
       "avatarId": 10000102,
-      "name": "Mualani",
+      "name": "ムアラニ",
       "rarity": 5,
       "rate": 44.19
     },
     {
       "avatarId": 10000094,
-      "name": "Chiori",
+      "name": "千織",
       "rarity": 5,
       "rate": 40.26
     },
     {
       "avatarId": 10000049,
-      "name": "Yoimiya",
+      "name": "宵宮",
       "rarity": 5,
       "rate": 39.93
     },
     {
       "avatarId": 10000101,
-      "name": "Kinich",
+      "name": "キィニチ",
       "rarity": 5,
       "rate": 35.68
     },
     {
       "avatarId": 10000099,
-      "name": "Emilie",
+      "name": "エミリエ",
       "rarity": 5,
       "rate": 35.35
     },
     {
       "avatarId": 10000051,
-      "name": "Eula",
+      "name": "エウルア",
       "rarity": 5,
       "rate": 33.39
     },
     {
       "avatarId": 10000136,
-      "name": "Mitya",
+      "name": "ミティヤ",
       "rarity": 5,
       "rate": 30.28
     },
     {
       "avatarId": 10000038,
-      "name": "Albedo",
+      "name": "アルベド",
       "rarity": 5,
       "rate": 30.11
     },
     {
       "avatarId": 10000033,
-      "name": "Tartaglia",
+      "name": "タルタリヤ",
       "rarity": 5,
       "rate": 29.79
     },
     {
       "avatarId": 10000029,
-      "name": "Klee",
+      "name": "クレー",
       "rarity": 5,
       "rate": 29.62
     },
     {
       "avatarId": 10000066,
-      "name": "Kamisato Ayato",
+      "name": "神里綾人",
       "rarity": 5,
       "rate": 29.62
     },
     {
       "avatarId": 10000026,
-      "name": "Xiao",
+      "name": "魈",
       "rarity": 5,
       "rate": 27.33
     },
     {
       "avatarId": 10000071,
-      "name": "Cyno",
+      "name": "セノ",
       "rarity": 5,
       "rate": 27.17
     },
     {
       "avatarId": 10000128,
-      "name": "Varka",
+      "name": "ファルカ",
       "rarity": 5,
       "rate": 25.86
     },
     {
       "avatarId": 10000005,
-      "name": "Traveler",
+      "name": "旅人",
       "rarity": 5,
       "rate": 24.88
     },
     {
       "avatarId": 10000086,
-      "name": "Wriothesley",
+      "name": "リオセスリ",
       "rarity": 5,
       "rate": 21.44
     },
     {
       "avatarId": 10000095,
-      "name": "Sigewinne",
+      "name": "シグウィン",
       "rarity": 5,
       "rate": 19.64
     },
     {
       "avatarId": 10000057,
-      "name": "Arataki Itto",
+      "name": "荒瀧一斗",
       "rarity": 5,
       "rate": 19.15
     },
     {
       "avatarId": 10000084,
-      "name": "Lyney",
+      "name": "リネ",
       "rarity": 5,
       "rate": 16.53
     },
     {
       "avatarId": 10000129,
-      "name": "Lohen",
+      "name": "ローエン",
       "rarity": 5,
       "rate": 11.29
     }
@@ -445,497 +445,497 @@
   "usage": [
     {
       "avatarId": 10000150,
-      "name": "Odette",
+      "name": "オデット",
       "rarity": 5,
       "rate": 91.95,
       "appearanceRate": 84.12
     },
     {
       "avatarId": 10000140,
-      "name": "Vodyanitsa",
+      "name": "ヴォジャニーツァ",
       "rarity": 5,
       "rate": 91.72,
       "appearanceRate": 70.7
     },
     {
       "avatarId": 10000112,
-      "name": "Escoffier",
+      "name": "エスコフィエ",
       "rarity": 5,
       "rate": 87.94,
       "appearanceRate": 73.98
     },
     {
       "avatarId": 10000114,
-      "name": "Skirk",
+      "name": "スカーク",
       "rarity": 5,
       "rate": 75.66,
       "appearanceRate": 61.05
     },
     {
       "avatarId": 10000089,
-      "name": "Furina",
+      "name": "フリーナ",
       "rarity": 5,
       "rate": 71.19,
       "appearanceRate": 69.56
     },
     {
       "avatarId": 10000143,
-      "name": "Vesna",
+      "name": "ヴェスナ",
       "rarity": 5,
       "rate": 66.23,
       "appearanceRate": 33.06
     },
     {
       "avatarId": 10000133,
-      "name": "Sandrone",
+      "name": "サンドローネ",
       "rarity": 5,
       "rate": 59.38,
       "appearanceRate": 44.03
     },
     {
       "avatarId": 10000058,
-      "name": "Yae Miko",
+      "name": "八重神子",
       "rarity": 5,
       "rate": 58.02,
       "appearanceRate": 37.32
     },
     {
       "avatarId": 10000063,
-      "name": "Shenhe",
+      "name": "申鶴",
       "rarity": 5,
       "rate": 35.11,
       "appearanceRate": 16.2
     },
     {
       "avatarId": 10000035,
-      "name": "Qiqi",
+      "name": "七七",
       "rarity": 5,
       "rate": 29.7,
       "appearanceRate": 28.97
     },
     {
       "avatarId": 10000007,
-      "name": "Traveler",
+      "name": "旅人",
       "rarity": 5,
       "rate": 28.1,
       "appearanceRate": 21.11
     },
     {
       "avatarId": 10000131,
-      "name": "Nicole",
+      "name": "ニコ",
       "rarity": 5,
       "rate": 25.55,
       "appearanceRate": 17.18
     },
     {
       "avatarId": 10000086,
-      "name": "Wriothesley",
+      "name": "リオセスリ",
       "rarity": 5,
       "rate": 23.66,
       "appearanceRate": 5.07
     },
     {
       "avatarId": 10000107,
-      "name": "Citlali",
+      "name": "シトラリ",
       "rarity": 5,
       "rate": 22.58,
       "appearanceRate": 18.33
     },
     {
       "avatarId": 10000005,
-      "name": "Traveler",
+      "name": "旅人",
       "rarity": 5,
       "rate": 22.37,
       "appearanceRate": 5.56
     },
     {
       "avatarId": 10000129,
-      "name": "Lohen",
+      "name": "ローエン",
       "rarity": 5,
       "rate": 18.84,
       "appearanceRate": 2.13
     },
     {
       "avatarId": 10000109,
-      "name": "Yumemizuki Mizuki",
+      "name": "夢見月瑞希",
       "rarity": 5,
       "rate": 18.12,
       "appearanceRate": 17.68
     },
     {
       "avatarId": 10000125,
-      "name": "Columbina",
+      "name": "コロンビーナ",
       "rarity": 5,
       "rate": 17.59,
       "appearanceRate": 16.69
     },
     {
       "avatarId": 10000116,
-      "name": "Ineffa",
+      "name": "イネファ",
       "rarity": 5,
       "rate": 12.99,
       "appearanceRate": 9.82
     },
     {
       "avatarId": 10000103,
-      "name": "Xilonen",
+      "name": "シロネン",
       "rarity": 5,
       "rate": 12.45,
       "appearanceRate": 10.8
     },
     {
       "avatarId": 10000120,
-      "name": "Flins",
+      "name": "フリンズ",
       "rarity": 5,
       "rate": 9.4,
       "appearanceRate": 4.58
     },
     {
       "avatarId": 10000060,
-      "name": "Yelan",
+      "name": "夜蘭",
       "rarity": 5,
       "rate": 7.87,
       "appearanceRate": 6.55
     },
     {
       "avatarId": 10000136,
-      "name": "Mitya",
+      "name": "ミティヤ",
       "rarity": 5,
       "rate": 7.03,
       "appearanceRate": 2.13
     },
     {
       "avatarId": 10000123,
-      "name": "Durin",
+      "name": "ドゥリン",
       "rarity": 5,
       "rate": 6.99,
       "appearanceRate": 4.26
     },
     {
       "avatarId": 10000002,
-      "name": "Kamisato Ayaka",
+      "name": "神里綾華",
       "rarity": 5,
       "rate": 6.45,
       "appearanceRate": 3.27
     },
     {
       "avatarId": 10000128,
-      "name": "Varka",
+      "name": "ファルカ",
       "rarity": 5,
       "rate": 6.33,
       "appearanceRate": 1.64
     },
     {
       "avatarId": 10000106,
-      "name": "Mavuika",
+      "name": "マーヴィカ",
       "rarity": 5,
       "rate": 6.31,
       "appearanceRate": 5.07
     },
     {
       "avatarId": 10000130,
-      "name": "Linnea",
+      "name": "リンネア",
       "rarity": 5,
       "rate": 5.08,
       "appearanceRate": 3.27
     },
     {
       "avatarId": 10000095,
-      "name": "Sigewinne",
+      "name": "シグウィン",
       "rarity": 5,
       "rate": 5,
       "appearanceRate": 0.98
     },
     {
       "avatarId": 10000122,
-      "name": "Nefer",
+      "name": "ネフェル",
       "rarity": 5,
       "rate": 5,
       "appearanceRate": 3.44
     },
     {
       "avatarId": 10000119,
-      "name": "Lauma",
+      "name": "ラウマ",
       "rarity": 5,
       "rate": 4.8,
       "appearanceRate": 3.6
     },
     {
       "avatarId": 10000126,
-      "name": "Zibai",
+      "name": "兹白",
       "rarity": 5,
       "rate": 4.67,
       "appearanceRate": 2.29
     },
     {
       "avatarId": 10000104,
-      "name": "Chasca",
+      "name": "チャスカ",
       "rarity": 5,
       "rate": 3.87,
       "appearanceRate": 1.96
     },
     {
       "avatarId": 10000087,
-      "name": "Neuvillette",
+      "name": "ヌヴィレット",
       "rarity": 5,
       "rate": 3.23,
       "appearanceRate": 2.29
     },
     {
       "avatarId": 10000071,
-      "name": "Cyno",
+      "name": "セノ",
       "rarity": 5,
       "rate": 3.01,
       "appearanceRate": 0.82
     },
     {
       "avatarId": 10000037,
-      "name": "Ganyu",
+      "name": "甘雨",
       "rarity": 5,
       "rate": 2.4,
       "appearanceRate": 1.31
     },
     {
       "avatarId": 10000082,
-      "name": "Baizhu",
+      "name": "白朮",
       "rarity": 5,
       "rate": 2.19,
       "appearanceRate": 0.98
     },
     {
       "avatarId": 10000073,
-      "name": "Nahida",
+      "name": "ナヒーダ",
       "rarity": 5,
       "rate": 2.15,
       "appearanceRate": 1.96
     },
     {
       "avatarId": 10000098,
-      "name": "Clorinde",
+      "name": "クロリンデ",
       "rarity": 5,
       "rate": 2.08,
       "appearanceRate": 1.15
     },
     {
       "avatarId": 10000041,
-      "name": "Mona",
+      "name": "モナ",
       "rarity": 5,
       "rate": 2,
       "appearanceRate": 1.96
     },
     {
       "avatarId": 10000030,
-      "name": "Zhongli",
+      "name": "鍾離",
       "rarity": 5,
       "rate": 1.86,
       "appearanceRate": 1.47
     },
     {
       "avatarId": 10000047,
-      "name": "Kaedehara Kazuha",
+      "name": "楓原万葉",
       "rarity": 5,
       "rate": 1.71,
       "appearanceRate": 1.47
     },
     {
       "avatarId": 10000075,
-      "name": "Wanderer",
+      "name": "放浪者",
       "rarity": 5,
       "rate": 1.64,
       "appearanceRate": 0.82
     },
     {
       "avatarId": 10000094,
-      "name": "Chiori",
+      "name": "千織",
       "rarity": 5,
       "rate": 1.63,
       "appearanceRate": 0.65
     },
     {
       "avatarId": 10000111,
-      "name": "Varesa",
+      "name": "ヴァレサ",
       "rarity": 5,
       "rate": 1.62,
       "appearanceRate": 1.31
     },
     {
       "avatarId": 10000070,
-      "name": "Nilou",
+      "name": "ニィロウ",
       "rarity": 5,
       "rate": 1.59,
       "appearanceRate": 0.98
     },
     {
       "avatarId": 10000022,
-      "name": "Venti",
+      "name": "ウェンティ",
       "rarity": 5,
       "rate": 1.37,
       "appearanceRate": 0.65
     },
     {
       "avatarId": 10000054,
-      "name": "Sangonomiya Kokomi",
+      "name": "珊瑚宮心海",
       "rarity": 5,
       "rate": 1.22,
       "appearanceRate": 0.65
     },
     {
       "avatarId": 10000102,
-      "name": "Mualani",
+      "name": "ムアラニ",
       "rarity": 5,
       "rate": 1.11,
       "appearanceRate": 0.49
     },
     {
       "avatarId": 10000057,
-      "name": "Arataki Itto",
+      "name": "荒瀧一斗",
       "rarity": 5,
       "rate": 0.85,
       "appearanceRate": 0.16
     },
     {
       "avatarId": 10000049,
-      "name": "Yoimiya",
+      "name": "宵宮",
       "rarity": 5,
       "rate": 0.82,
       "appearanceRate": 0.33
     },
     {
       "avatarId": 10000052,
-      "name": "Raiden Shogun",
+      "name": "雷電将軍",
       "rarity": 5,
       "rate": 0.79,
       "appearanceRate": 0.65
     },
     {
       "avatarId": 10000046,
-      "name": "Hu Tao",
+      "name": "胡桃",
       "rarity": 5,
       "rate": 0.78,
       "appearanceRate": 0.49
     },
     {
       "avatarId": 10000096,
-      "name": "Arlecchino",
+      "name": "アルレッキーノ",
       "rarity": 5,
       "rate": 0.74,
       "appearanceRate": 0.49
     },
     {
       "avatarId": 10000093,
-      "name": "Xianyun",
+      "name": "閑雲",
       "rarity": 5,
       "rate": 0.62,
       "appearanceRate": 0.33
     },
     {
       "avatarId": 10000026,
-      "name": "Xiao",
+      "name": "魈",
       "rarity": 5,
       "rate": 0.6,
       "appearanceRate": 0.16
     },
     {
       "avatarId": 10000003,
-      "name": "Jean",
+      "name": "ジン",
       "rarity": 5,
       "rate": 0.5,
       "appearanceRate": 0.49
     },
     {
       "avatarId": 10000042,
-      "name": "Keqing",
+      "name": "刻晴",
       "rarity": 5,
       "rate": 0.5,
       "appearanceRate": 0.49
     },
     {
       "avatarId": 10000051,
-      "name": "Eula",
+      "name": "エウルア",
       "rarity": 5,
       "rate": 0.49,
       "appearanceRate": 0.16
     },
     {
       "avatarId": 10000099,
-      "name": "Emilie",
+      "name": "エミリエ",
       "rarity": 5,
       "rate": 0.46,
       "appearanceRate": 0.16
     },
     {
       "avatarId": 10000101,
-      "name": "Kinich",
+      "name": "キィニチ",
       "rarity": 5,
       "rate": 0.46,
       "appearanceRate": 0.16
     },
     {
       "avatarId": 10000091,
-      "name": "Navia",
+      "name": "ナヴィア",
       "rarity": 5,
       "rate": 0.28,
       "appearanceRate": 0.16
     },
     {
       "avatarId": 10000016,
-      "name": "Diluc",
+      "name": "ディルック",
       "rarity": 5,
       "rate": 0,
       "appearanceRate": 0
     },
     {
       "avatarId": 10000029,
-      "name": "Klee",
+      "name": "クレー",
       "rarity": 5,
       "rate": 0,
       "appearanceRate": 0
     },
     {
       "avatarId": 10000033,
-      "name": "Tartaglia",
+      "name": "タルタリヤ",
       "rarity": 5,
       "rate": 0,
       "appearanceRate": 0
     },
     {
       "avatarId": 10000038,
-      "name": "Albedo",
+      "name": "アルベド",
       "rarity": 5,
       "rate": 0,
       "appearanceRate": 0
     },
     {
       "avatarId": 10000066,
-      "name": "Kamisato Ayato",
+      "name": "神里綾人",
       "rarity": 5,
       "rate": 0,
       "appearanceRate": 0
     },
     {
       "avatarId": 10000069,
-      "name": "Tighnari",
+      "name": "ティナリ",
       "rarity": 5,
       "rate": 0,
       "appearanceRate": 0
     },
     {
       "avatarId": 10000078,
-      "name": "Alhaitham",
+      "name": "アルハイゼン",
       "rarity": 5,
       "rate": 0,
       "appearanceRate": 0
     },
     {
       "avatarId": 10000079,
-      "name": "Dehya",
+      "name": "ディシア",
       "rarity": 5,
       "rate": 0,
       "appearanceRate": 0
     },
     {
       "avatarId": 10000084,
-      "name": "Lyney",
+      "name": "リネ",
       "rarity": 5,
       "rate": 0,
       "appearanceRate": 0

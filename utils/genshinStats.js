@@ -5,6 +5,7 @@ const path = require('node:path');
 const ROOT = path.join(__dirname, '..', 'data');
 const {valid, description} = require('./genshinStatsView');
 const {label,characterGroups,characterMenus,characterIcon,teamSections,characterFields} = require('./genshinStatsDetailsView');
+const pickupHistory = require('../data/genshinPickupHistory.json');
 const TYPES = {
   pull: { title: 'キャラクター所持率', key: 'ownership' },
   usage: { title: '螺旋におけるキャラクター使用率', key: 'usage' },
@@ -24,16 +25,39 @@ function footer(data) {
 function detailEmbed(data, title) {
   return new EmbedBuilder().setTitle(title).setColor(0x5865f2).setFooter({text:footer(data)});
 }
-function characterReply(data, groups, group, row) {
-  const embed=detailEmbed(data,row ? label(row)+'の深境螺旋統計' : 'キャラクター別統計');
+function characterReply(data, groups, group, row, showHistory = false) {
+  const title=row ? label(row)+(showHistory?'のピックアップ履歴':'の深境螺旋統計') : 'キャラクター別統計';
+  const embed=detailEmbed(data,title);
+  const components=characterMenus(groups,group,row?.avatarId);
   if (row) {
-    embed.addFields(characterFields(data,row));
+    if (showHistory) {
+      const records=pickupHistory.characters[row.avatarId] || [];
+      const sections=[
+        ['イベント祈願','event'],
+        ['集録祈願','chronicled']
+      ];
+      for (const [name,kind] of sections) {
+        const periods=records.filter(record=>record.kind===kind);
+        if (!periods.length) continue;
+        embed.addFields([{name:name+'（'+periods.length+'回）',value:periods.map(period=>
+          'Ver.'+period.version+'　'+period.start.replaceAll('-','/')+' 〜 '+period.end.replaceAll('-','/')
+        ).join('\n')}]);
+      }
+      if (!records.length) embed.setDescription('収録されたピックアップ履歴はありません。');
+      embed.setFooter({text:'出典 '+pickupHistory.source+' ｜ アジアサーバーの日付'});
+    } else {
+      embed.addFields(characterFields(data,row));
+    }
     const icon=characterIcon(row.avatarId);
     if (icon) embed.setThumbnail(icon);
+    components.push({type:1,components:[{
+      type:2,style:2,label:showHistory?'統計に戻る':'ピックアップ履歴',
+      custom_id:'gstats_char_'+(showHistory?'stats_':'history_')+row.avatarId
+    }]});
   } else {
     embed.setDescription(group?'キャラクターを選んでください。':'名前の最初の行を選んでください。');
   }
-  return {embeds:[embed],components:characterMenus(groups,group,row?.avatarId),allowedMentions:{parse:[]}};
+  return {embeds:[embed],components,allowedMentions:{parse:[]}};
 }
 async function execute(i,type) {
   if (!i.guildId || !isGI(i.guildId)) return i.reply({content:'原神機能がONのサーバーでのみ利用できます。',ephemeral:true});
@@ -86,6 +110,25 @@ async function handleSelect(i) {
 }
 async function handleButton(i) {
   if (!i.customId?.startsWith('gstats_')) return false;
+  const detail=i.customId.match(/^gstats_char_(history|stats)_(\d{8})$/);
+  if (detail) {
+    if (!i.guildId || !isGI(i.guildId)) {
+      await i.reply({content:'原神機能がONのサーバーでのみ利用できます。',ephemeral:true});
+      return true;
+    }
+    const data=snapshot();
+    if (hasDetails(data)) {
+      const id=Number(detail[2]);
+      const groups=characterGroups(data.characters);
+      const group=groups.find(item=>item.characters.some(row=>row.avatarId===id));
+      if (group) {
+        await i.update(characterReply(data,groups,group,group.characters.find(row=>row.avatarId===id),detail[1]==='history'));
+        return true;
+      }
+    }
+    await i.reply({content:'一覧が更新されました。/stats-char を開き直してください。',ephemeral:true});
+    return true;
+  }
   await i.reply({content:'ページ送りは廃止しました。コマンドを再実行してください。',ephemeral:true});
   return true;
 }

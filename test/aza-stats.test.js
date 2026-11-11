@@ -69,7 +69,7 @@ test('Discord command replies with verified data without an image and gates disa
     setDescription(x){this.data.description=x;return this;}
     setColor(x){return this;}
     setFooter(x){this.data.footer=x;return this;}
-    addFields(x){this.data.fields=x;return this;}
+    addFields(x){this.data.fields=[...(this.data.fields || []),...x];return this;}
     setThumbnail(x){this.data.thumbnail=x;return this;}
   }
   let enabled=true, current=data;
@@ -82,6 +82,7 @@ test('Discord command replies with verified data without an image and gates disa
     if(name==='node:path')return path;
     if(name==='./genshinStatsView')return require('../utils/genshinStatsView');
     if(name==='./genshinStatsDetailsView')return require('../utils/genshinStatsDetailsView');
+    if(name==='../data/genshinPickupHistory.json')return require('../data/genshinPickupHistory.json');
     throw new Error('Unexpected import '+name);
   }});
   const replies=[], defers=[], i={guildId:'test',reply:async x=>replies.push(x),deferReply:async x=>defers.push(x),editReply:async x=>replies.push(x)};
@@ -115,6 +116,15 @@ test('Discord command replies with verified data without an image and gates disa
   assert.match(char.fields[0].value,/64\.33%/);
   assert.match(char.fields[1].value,/氷風を彷徨う勇士/);
   assert.equal(char.thumbnail,'https://enka.network/ui/UI_AvatarIcon_Side_Ayaka.png');
+  assert.equal(replies.at(-1).components.at(-1).components[0].label,'ピックアップ履歴');
+  await module.exports.handleButton({...i,customId:'gstats_char_history_10000002',update:async x=>replies.push(x)});
+  const history=replies.at(-1).embeds[0].data;
+  assert.match(history.title,/神里綾華のピックアップ履歴/);
+  assert.match(history.fields[0].value,/Ver\.2\.0.*2021\/07\/21/);
+  assert.equal(history.fields[1].name,'集録祈願（1回）');
+  assert.equal(history.thumbnail,char.thumbnail);
+  await module.exports.handleButton({...i,customId:'gstats_char_stats_10000002',update:async x=>replies.push(x)});
+  assert.equal(replies.at(-1).embeds[0].data.title,char.title);
   current={};await module.exports.execute(i,'pull');assert.match(replies.at(-1).content,/検証済み/);
   enabled=false;await module.exports.execute(i,'usage');assert.equal(replies.at(-1).ephemeral,true);
 });

@@ -31,7 +31,7 @@ function info(row) {
   const c=catalog.get(row.name.toLowerCase());
   return {id:row.avatarId || c?.id || ICON_IDS[row.name], name:c?.name || DISPLAY_NAMES[row.name] || row.name, rarity:row.rarity || c?.rarity || (FOUR_STAR.has(row.name)?4:null)};
 }
-function fiveStar(row) { return info(row).rarity === 5; }
+function fiveStar(row) { const rarity=info(row).rarity; return rarity === 5 || rarity == null; }
 async function gridImage(rows) {
   const w=800, cw=200, ch=160;
   const canvas=createCanvas(w,Math.max(180,Math.ceil(rows.length/4)*ch));
@@ -141,7 +141,8 @@ async function view(session, data) {
     new ButtonBuilder().setCustomId(`gstats_prev_${session.user}`).setLabel('前へ').setStyle(ButtonStyle.Secondary).setDisabled(session.page === 0),
     new ButtonBuilder().setCustomId(`gstats_next_${session.user}`).setLabel('次へ').setStyle(ButtonStyle.Secondary).setDisabled(session.page >= pages - 1)
   );
-  const files = visible.length && session.type !== 'team' ? [await gridImage(visible)] : [];
+  let files = [];
+  if (visible.length && session.type !== 'team') try { files = [await gridImage(visible)]; } catch (error) { console.error('統計カード描画失敗:', error.message); }
   if(files.length) embed.setImage('attachment://genshin-stats.png').setDescription(data.partial ? '確認済みの一部キャラクターのみを掲載しています。' : '★5キャラクターの統計');
   return { embeds: [embed], files, attachments: [], components: rows.length ? [buttons] : [], allowedMentions: {parse: []} };
 }

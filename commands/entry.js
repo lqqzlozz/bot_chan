@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js');
 const st = require('../utils/store');
-const { panel, serialize } = require('../utils/entryPanel');
+const { panel, serialize, profiles } = require('../utils/entryPanel');
 const { isOwner, deny } = require('../utils/perm');
 
 // このサーバー専用
@@ -63,6 +63,8 @@ module.exports = {
     };
 
     await serialize(channel.id, async () => {
+      const saved = profiles(interaction.guildId);
+      for (const player of initialParticipants) Object.assign(player, saved[player.id]);
       const response = await channel.send(panel(data));
       st.get(interaction.guildId).entry[channel.id] = { ...data, msg: response.id };
       await st.save(interaction.guild);

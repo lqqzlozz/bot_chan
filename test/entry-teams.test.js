@@ -66,6 +66,7 @@ test('entry roster can be viewed without dividing teams, and only the owner can 
     setStyle() { return this; }
     setPlaceholder() { return this; }
     setRequired() { return this; }
+    setMinValues() { return this; }
     setMaxLength() { return this; }
     setValue() { return this; }
     setColor() { return this; }
@@ -73,6 +74,7 @@ test('entry roster can be viewed without dividing teams, and only the owner can 
     addFields() { return this; }
     addComponents() { return this; }
   }
+  const config = { entry: { channel: data } };
   vm.runInNewContext(fs.readFileSync(require.resolve('../utils/entryPanel'), 'utf8'), {
     module, Intl, Buffer, require(name) {
       if (name === 'discord.js') return {
@@ -80,49 +82,54 @@ test('entry roster can be viewed without dividing teams, and only the owner can 
         ButtonStyle: {}, EmbedBuilder: Builder, ModalBuilder: Builder, TextInputBuilder: Builder,
         TextInputStyle: {}, LabelBuilder: Builder, StringSelectMenuBuilder: Builder
       };
-      if (name === './store') return { get: () => ({ entry: { channel: data } }), saveLater() {} };
+      if (name === './store') return { get: () => config, save: async () => true };
       if (name === './perm') return { isOwner: interaction => interaction.user.id === 'owner' };
       if (name === './entryScope') return { isEnabled: guildId => guildId === 'guild' };
       if (name === './entryTeams') return { parsePower, splitTeams, strategies };
       throw new Error('Unexpected import ' + name);
     }
   });
-  const replies = [], posts = [];
+  const replies = [], posts = [], edits = [];
   const message = { id: '100', edit: async () => {} };
+  const list = { id: '101', edit: async () => {} };
+  let deleted = false;
+  const announcement = { id: '102', edit: async payload => edits.push(payload), delete: async () => { deleted = true; } };
   const interaction = {
     guildId: 'guild', channelId: 'channel', message, user: { id: 'member' }, guild: {},
     reply: async payload => replies.push(payload), deferUpdate: async () => {},
     followUp: async payload => replies.push(payload), deleteReply: async () => {},
-    channel: { send: async payload => posts.push(payload), messages: { fetch: async () => message } }
+    channel: {
+      send: async payload => { posts.push(payload); return announcement; },
+      messages: { fetch: async id => ({100:message,101:list,102:announcement}[id]) }
+    }
   };
   await module.exports.handle({ ...interaction, customId: 'entry_roster' });
   assert.match(replies.at(-1).content, /A（125,000\/闘志）/);
   assert.equal(replies.at(-1).ephemeral, undefined);
-  assert.match(replies.at(-1).content, /C｜戦力・職業 未登録/);
+  assert.match(replies.at(-1).content, /- C$/);
   assert.equal(posts.length, 0);
-  await module.exports.handle({ ...interaction, customId: 'entry_split' });
+  await module.exports.handle({ ...interaction, customId: 'entry_prepare_100', message: list });
   assert.match(replies.at(-1).content, /募集主/);
   assert.equal(posts.length, 0);
   const owner = { ...interaction, user: { id: 'owner' } };
-  await module.exports.handle({ ...owner, customId: 'entry_split' });
-  assert.match(replies.at(-1).content, /チーム人数と振り分け基準/);
-  await module.exports.handle({ ...owner, customId: 'entry_size', values: ['2'] });
-  await module.exports.handle({ ...owner, customId: 'entry_strategy', values: ['balanced'] });
+  await module.exports.handle({ ...owner, customId: 'entry_prepare_100', message: list });
   assert.equal(posts.length, 0);
-  await module.exports.handle({ ...owner, customId: 'entry_split' });
-  assert.match(posts[0].content, /合計戦力 245,000/);
-  assert.match(posts[0].content, /未登録の1人/);
+  await module.exports.handle({ ...owner, customId: 'entry_strategy_100', message: list, values: ['balanced'] });
+  assert.match(posts[0].content, /TEAM1\./);
+  assert.match(posts[0].content, /のチームが完全ではありません/);
+  await module.exports.handle({ ...owner, customId: 'entry_size_100', message: list, values: ['4'] });
+  assert.equal(posts.length, 1);
+  assert.equal(edits.length, 1);
   await module.exports.handle({ ...interaction, customId: 'entry_roster', message: { id: '99' } });
   assert.match(replies.at(-1).content, /置き換わりました/);
   await module.exports.handle({ ...owner, customId: 'entry_roster' });
-  assert.equal(replies.at(-1).components[0].components[0].options[2].value, '3');
   let modal;
   await module.exports.handle({ ...owner, customId: 'entry_edit_pick_100', values: ['3'], showModal: async value => { modal = value; } });
   assert.equal(modal.id, 'entry_edit_100_3');
-  assert.equal(modal.labels[1].select.options.map(option => option.value).join(','), '闘志,騎士,賢者,魔導');
+  assert.equal(modal.labels[2].select.options.map(option => option.value).join(','), '闘志,騎士,賢者,魔導');
   const edit = {
     customId: 'entry_edit_100_3',
-    fields: { getTextInputValue: () => '12.5万', getStringSelectValues: () => ['騎士'] }
+    fields: { getTextInputValue: field => field === 'power' ? '12.5万' : '', getStringSelectValues: () => ['騎士'] }
   };
   await module.exports.handle({ ...interaction, ...edit });
   assert.equal(data.participants[2].power, undefined);
@@ -133,10 +140,30 @@ test('entry roster can be viewed without dividing teams, and only the owner can 
   assert.equal(replies.length, replyCount);
   assert.equal(data.participants[2].power, 125000);
   assert.equal(data.participants[2].job, '騎士');
-  await module.exports.handle({ ...owner, customId: 'entry_reset' });
+  assert.equal(config.entryProfiles['3'].power, 125000);
+  await module.exports.handle({ ...owner, customId: 'entry_reset_100', message: list });
   assert.match(replies.at(-1).content, /リセットしますか/);
   assert.equal(data.participants[2].power, 125000);
-  await module.exports.handle({ ...owner, customId: 'entry_reset_confirm_100', message: { id: 'confirmation' } });
+  await module.exports.handle({ ...owner, customId: 'entry_reset_confirm_100_101', message: { id: 'confirmation' } });
   assert.equal(data.participants.length, 3);
   assert.ok(data.participants.every(player => !Object.hasOwn(player, 'power') && !Object.hasOwn(player, 'job')));
+  assert.equal(config.entryProfiles['3'].job, '騎士');
+  await module.exports.handle({ ...owner, customId: 'entry_prepare_100', message: list });
+  assert.equal(data.teamStrategy, 'random');
+  assert.equal(posts.length, 1);
+  assert.equal(edits.length, 2);
+  await module.exports.handle({ ...owner, customId: 'entry_delete_100', message: announcement });
+  assert.equal(deleted, true);
+  assert.equal(data.teamMessageId, undefined);
+  const empty = { getTextInputValue: () => '', getStringSelectValues: () => [] };
+  await module.exports.handle({
+    ...interaction, customId: 'entry_register_100', fields: empty, user: { id: '4' },
+    guild: {
+      members: { fetch: async () => ({ displayName: 'サーバー名', roles: { cache: { has: () => true } } }) },
+      roles: { fetch: async () => ({ id: 'role' }) }
+    }
+  });
+  assert.equal(data.participants.at(-1).name, 'サーバー名');
+  assert.equal(data.participants.at(-1).power, undefined);
+  assert.equal(data.participants.at(-1).job, undefined);
 });

@@ -54,6 +54,26 @@ function panel(data) {
   return { embeds: [embed], components: [actions, roster], allowedMentions: noMentions };
 }
 
+async function refresh(guild, botId) {
+  if (!isEnabled(guild.id)) return;
+  const entries = st.get(guild.id).entry;
+  for (const channelId of Object.keys(entries)) {
+    await serialize(channelId, async () => {
+      const data = entries[channelId];
+      if (!data?.msg) return;
+      try {
+        const channel = await guild.channels.fetch(channelId);
+        if (!channel?.isTextBased()) return;
+        const message = await channel.messages.fetch(data.msg);
+        if (message.author.id !== botId) return;
+        await message.edit(panel(data));
+      } catch (error) {
+        if (![10003, 10008].includes(error.code)) console.error('既存の参加募集を更新できませんでした:', error.message);
+      }
+    });
+  }
+}
+
 function registered(player) {
   return Number.isSafeInteger(player.power) && player.power > 0 && jobs.includes(player.job);
 }
@@ -203,7 +223,13 @@ async function handle(interaction) {
     return interaction.showModal(registrationForm(messageId, participant || profiles(interaction.guildId)[interaction.user.id]));
   }
   if (id === 'entry_roster') {
-    return interaction.reply(roster(data, isOwner(interaction)));
+    await interaction.reply(roster(data, isOwner(interaction)));
+    if (interaction.message.components?.length !== 2) {
+      await serialize(interaction.channelId, async () => {
+        if (getEntry(interaction, messageId) === data) await interaction.message.edit(panel(data));
+      });
+    }
+    return;
   }
   if (reset || control || ['entry_reset', 'entry_size', 'entry_strategy', 'entry_split', 'entry_pair', 'entry_team4'].includes(id)) {
     if (!isOwner(interaction)) return privateReply('募集主だけが操作できます。');
@@ -306,4 +332,4 @@ async function handle(interaction) {
   });
 }
 
-module.exports = { panel, handle, serialize, profiles };
+module.exports = { panel, handle, serialize, profiles, refresh };

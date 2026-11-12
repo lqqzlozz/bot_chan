@@ -62,8 +62,8 @@ test('entry roster can be viewed without dividing teams, and only the owner can 
     setStringSelectMenuComponent(select) { this.select = select; return this; }
     setTextInputComponent() { return this; }
     setTitle() { return this; }
-    setLabel() { return this; }
-    setStyle() { return this; }
+    setLabel(label) { this.label = label; return this; }
+    setStyle(style) { this.style = style; return this; }
     setPlaceholder() { return this; }
     setRequired() { return this; }
     setMinValues() { return this; }
@@ -72,14 +72,14 @@ test('entry roster can be viewed without dividing teams, and only the owner can 
     setColor() { return this; }
     setDescription() { return this; }
     addFields() { return this; }
-    addComponents() { return this; }
+    addComponents(...components) { this.components = components; return this; }
   }
   const config = { entry: { channel: data } };
   vm.runInNewContext(fs.readFileSync(require.resolve('../utils/entryPanel'), 'utf8'), {
     module, Intl, Buffer, require(name) {
       if (name === 'discord.js') return {
         escapeMarkdown: text => text, ActionRowBuilder: Builder, ButtonBuilder: Builder,
-        ButtonStyle: {}, EmbedBuilder: Builder, ModalBuilder: Builder, TextInputBuilder: Builder,
+        ButtonStyle: { Primary: 1, Secondary: 2, Danger: 4 }, EmbedBuilder: Builder, ModalBuilder: Builder, TextInputBuilder: Builder,
         TextInputStyle: {}, LabelBuilder: Builder, StringSelectMenuBuilder: Builder
       };
       if (name === './store') return { get: () => config, save: async () => true };
@@ -90,7 +90,8 @@ test('entry roster can be viewed without dividing teams, and only the owner can 
     }
   });
   const replies = [], posts = [], edits = [];
-  const message = { id: '100', edit: async () => {} };
+  let recruitment;
+  const message = { id: '100', author: { id: 'bot' }, edit: async payload => { recruitment = payload; } };
   const list = { id: '101', edit: async () => {} };
   let deleted = false;
   const announcement = { id: '102', edit: async payload => edits.push(payload), delete: async () => { deleted = true; } };
@@ -103,6 +104,13 @@ test('entry roster can be viewed without dividing teams, and only the owner can 
       messages: { fetch: async id => ({100:message,101:list,102:announcement}[id]) }
     }
   };
+  await module.exports.refresh({
+    id: 'guild', channels: { fetch: async () => ({ isTextBased: () => true, messages: interaction.channel.messages }) }
+  }, 'bot');
+  assert.equal(recruitment.components.map(row => row.components.map(button => button.label).join('｜')).join('\n'),
+    '参加する｜辞退する\n参加者情報一覧');
+  assert.equal(recruitment.components[0].components[1].style, 4);
+  assert.equal(data.participants.length, 3);
   await module.exports.handle({ ...interaction, customId: 'entry_roster' });
   assert.match(replies.at(-1).content, /A（125,000\/闘志）/);
   assert.equal(replies.at(-1).ephemeral, undefined);

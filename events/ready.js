@@ -67,6 +67,11 @@ module.exports = {
     setTimeout(() => gn.tick(client).catch(() => null), 60000);
     setInterval(() => gn.tick(client).catch(() => null), 3600000);
 
+    const entryWeekly = require('../utils/entryWeekly');
+    const tickEntry = () => entryWeekly.tick(client).catch(e => console.error('大会募集の週次更新エラー:', e.message));
+    await tickEntry();
+    setInterval(tickEntry, 60000);
+
     // アラーム 1分ごとチェック
     let prev = '';
     setInterval(async () => {

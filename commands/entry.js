@@ -1,5 +1,6 @@
-const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder } = require('discord.js');
 const st = require('../utils/store');
+const { panel, serialize } = require('../utils/entryPanel');
 const { isOwner, deny } = require('../utils/perm');
 
 // このサーバー専用
@@ -14,6 +15,7 @@ module.exports = {
       option.setName('text')
         .setDescription('募集本文を入力してください')
         .setRequired(true)
+        .setMaxLength(4096)
     )
     .addRoleOption(option =>
       option.setName('role')
@@ -21,7 +23,7 @@ module.exports = {
         .setRequired(true)
     ),
 
-  async execute(interaction, client) {
+  async execute(interaction) {
     if (!isEnabled(interaction.guildId)) {
       return interaction.reply({ content: '❌ このサーバーではこのコマンドを使用できません。', ephemeral: true });
     }
@@ -60,36 +62,11 @@ module.exports = {
       participants: initialParticipants
     };
 
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId('entry_join')
-        .setLabel('参加する！')
-        .setStyle(ButtonStyle.Primary),
-
-      new ButtonBuilder()
-        .setCustomId('entry_leave')
-        .setLabel('辞退する')
-        .setStyle(ButtonStyle.Secondary)
-    );
-
-    const embed = new EmbedBuilder()
-      .setColor('#5865F2')
-      .setDescription(text); // 💡 入力された任意のテキストがそのまま反映されます
-
-    if (data.participants.length > 0) {
-      const names = data.participants.map(p => p.name).join(', ');
-      embed.addFields({ name: '現在の参加者', value: names });
-    }
-
-    // 💡 interaction.editReply ではなく、チャンネルに直接新規メッセージとして送信
-    const response = await channel.send({
-      embeds: [embed],
-      components: [row]
+    await serialize(channel.id, async () => {
+      const response = await channel.send(panel(data));
+      st.get(interaction.guildId).entry[channel.id] = { ...data, msg: response.id };
+      await st.save(interaction.guild);
     });
-
-    // チャンネルごとに募集データ保存
-    st.get(interaction.guildId).entry[channel.id] = { ...data, msg: response.id };
-    await st.save(interaction.guild);
     await interaction.deleteReply();
   },
 };

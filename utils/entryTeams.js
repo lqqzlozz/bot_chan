@@ -20,10 +20,10 @@ const strategies = {
 
 function splitTeams(participants, size, strategy = 'balanced', random = Math.random) {
   if (![2, 4].includes(size)) throw new RangeError('Unsupported team size');
-  const sorted = [...participants].sort((a, b) => b.power - a.power || a.id.localeCompare(b.id));
+  const sorted = [...participants].sort((a, b) => (b.power || 0) - (a.power || 0) || a.id.localeCompare(b.id));
   if (!Object.hasOwn(strategies, strategy)) throw new RangeError('Unsupported team strategy');
   if (strategy === 'random' || strategy === 'job') {
-    if (strategy === 'job') sorted.sort((a,b) => a.job.localeCompare(b.job, 'ja'));
+    if (strategy === 'job') sorted.sort((a,b) => (a.job || '未登録').localeCompare(b.job || '未登録', 'ja'));
     else for (let index = sorted.length - 1; index > 0; index--) {
       const other = Math.floor(random() * (index + 1));
       [sorted[index], sorted[other]] = [sorted[other], sorted[index]];
@@ -31,7 +31,7 @@ function splitTeams(participants, size, strategy = 'balanced', random = Math.ran
     const result = [];
     for (let index = 0; index < sorted.length; index += size) {
       const members = sorted.slice(index, index + size);
-      result.push({ members, total: members.reduce((sum, player) => sum + player.power, 0) });
+      result.push({ members, total: members.reduce((sum, player) => sum + (player.power || 0), 0) });
     }
     return result;
   }
@@ -42,16 +42,16 @@ function splitTeams(participants, size, strategy = 'balanced', random = Math.ran
     jobs: new Map()
   }));
   for (const player of sorted) {
-    const job = player.job.normalize('NFKC').trim().toLowerCase().replace(/\s+/g, '');
+    const job = (player.job || '').normalize('NFKC').trim().toLowerCase().replace(/\s+/g, '');
     const candidates = teams.filter(team => team.members.length < team.capacity);
     candidates.sort((a, b) =>
-      (a.jobs.get(job) || 0) - (b.jobs.get(job) || 0) ||
+      (job ? (a.jobs.get(job) || 0) - (b.jobs.get(job) || 0) : 0) ||
       (strategy === 'balanced' ? a.total / a.capacity - b.total / b.capacity : 0) ||
       b.capacity - a.capacity
     );
     const team = candidates[0];
     team.members.push(player);
-    team.total += player.power;
+    team.total += player.power || 0;
     team.jobs.set(job, (team.jobs.get(job) || 0) + 1);
   }
   return teams.map(({ members, total }) => ({ members, total }));

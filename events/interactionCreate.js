@@ -18,9 +18,10 @@ module.exports = {
       try { await require('../utils/entryPanel').handle(interaction); }
       catch (error) {
         console.error('参加募集の操作に失敗:', error);
-        const content = '操作できませんでした。参加者ロールの設定を確認してから、もう一度お試しください。';
-        if (interaction.deferred) await interaction.followUp({ content, ephemeral: true }).catch(() => null);
-        else if (!interaction.replied) await interaction.reply({ content, ephemeral: true }).catch(() => null);
+        const description = '操作できませんでした。参加者ロールの設定を確認してから、もう一度お試しください。';
+        const payload = { embeds: [{ description, color: 0x5865F2 }], ephemeral: true };
+        if (interaction.deferred) await interaction.followUp(payload).catch(() => null);
+        else if (!interaction.replied) await interaction.reply(payload).catch(() => null);
       }
       return;
     }

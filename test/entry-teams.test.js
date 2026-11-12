@@ -98,6 +98,7 @@ test('entry roster can be viewed without dividing teams, and only the owner can 
   const interaction = {
     guildId: 'guild', channelId: 'channel', message, user: { id: 'member' }, guild: {},
     reply: async payload => replies.push(payload), deferUpdate: async () => {},
+    update: async payload => replies.push(payload), editReply: async payload => replies.push(payload),
     followUp: async payload => replies.push(payload), deleteReply: async () => {},
     channel: {
       send: async payload => { posts.push(payload); return announcement; },
@@ -112,24 +113,24 @@ test('entry roster can be viewed without dividing teams, and only the owner can 
   assert.equal(recruitment.components[0].components[1].style, 4);
   assert.equal(data.participants.length, 3);
   await module.exports.handle({ ...interaction, customId: 'entry_roster' });
-  assert.match(replies.at(-1).content, /A（125,000\/闘志）/);
-  assert.equal(replies.at(-1).ephemeral, undefined);
-  assert.match(replies.at(-1).content, /- C$/);
+  assert.match(replies.at(-1).embeds[0].description, /A（125,000\/闘志）/);
+  assert.equal(replies.at(-1).ephemeral, true);
+  assert.match(replies.at(-1).embeds[0].description, /- C$/);
   assert.equal(posts.length, 0);
   await module.exports.handle({ ...interaction, customId: 'entry_prepare_100', message: list });
-  assert.match(replies.at(-1).content, /募集主/);
+  assert.match(replies.at(-1).embeds[0].description, /募集主/);
   assert.equal(posts.length, 0);
   const owner = { ...interaction, user: { id: 'owner' } };
   await module.exports.handle({ ...owner, customId: 'entry_prepare_100', message: list });
   assert.equal(posts.length, 0);
   await module.exports.handle({ ...owner, customId: 'entry_strategy_100', message: list, values: ['balanced'] });
-  assert.match(posts[0].content, /TEAM1\./);
-  assert.match(posts[0].content, /のチームが完全ではありません/);
+  assert.match(posts[0].embeds[0].description, /TEAM1\./);
+  assert.match(posts[0].embeds[0].description, /のチームが完全ではありません/);
   await module.exports.handle({ ...owner, customId: 'entry_size_100', message: list, values: ['4'] });
   assert.equal(posts.length, 1);
   assert.equal(edits.length, 1);
   await module.exports.handle({ ...interaction, customId: 'entry_roster', message: { id: '99' } });
-  assert.match(replies.at(-1).content, /置き換わりました/);
+  assert.match(replies.at(-1).embeds[0].description, /置き換わりました/);
   await module.exports.handle({ ...owner, customId: 'entry_roster' });
   assert.equal(replies.at(-1).components[0].components[0].options[0].value, 'reset');
   let modal;
@@ -151,7 +152,7 @@ test('entry roster can be viewed without dividing teams, and only the owner can 
   assert.equal(data.participants[2].job, '騎士');
   assert.equal(config.entryProfiles['3'].power, 125000);
   await module.exports.handle({ ...owner, customId: 'entry_edit_pick_100_0', values: ['reset'], message: list });
-  assert.match(replies.at(-1).content, /リセットしますか/);
+  assert.match(replies.at(-1).embeds[0].description, /リセットしますか/);
   assert.equal(data.participants[2].power, 125000);
   await module.exports.handle({ ...owner, customId: 'entry_reset_confirm_100_101', message: { id: 'confirmation' } });
   assert.equal(data.participants.length, 3);
@@ -175,16 +176,26 @@ test('entry roster can be viewed without dividing teams, and only the owner can 
   assert.equal(data.participants.at(-1).name, 'サーバー名');
   assert.equal(data.participants.at(-1).power, undefined);
   assert.equal(data.participants.at(-1).job, undefined);
+  data.participants = [];
+  await module.exports.handle({
+    ...interaction, customId: 'entry_join', user: { id: '3' },
+    guild: {
+      members: { fetch: async () => ({ displayName: 'C', roles: { cache: { has: () => true } } }) },
+      roles: { fetch: async () => ({ id: 'role' }) }
+    }
+  });
+  assert.equal(data.participants[0].power, 125000);
+  assert.equal(data.participants[0].job, '騎士');
 });
 
-test('Monday JST weekly reset keeps saved profiles and sends one opt-in reminder', async () => {
+test('Monday JST weekly reset preserves profiles and reposts once with an everyone mention', async () => {
   const data = { msg:'100', roleId:'role', participants:[{id:'123', name:'A', power:105000000, job:'闘志'}] };
   const config = { entry:{channel:data} };
   const calls = { roles:0, sends:[], edits:0 };
   const channel = {
     isTextBased:()=>true,
     messages:{fetch:async()=>({edit:async()=>{calls.edits++;}})},
-    send:async payload=>{calls.sends.push(payload);}
+    send:async payload=>{calls.sends.push(payload);return {id:'101'};}
   };
   const guild = {
     id:'guild', channels:{fetch:async()=>channel}, roles:{fetch:async()=>({id:'role'})},
@@ -195,8 +206,9 @@ test('Monday JST weekly reset keeps saved profiles and sends one opt-in reminder
     module, Intl, console, require(name) {
       if (name==='./store') return {get:()=>config,save:async()=>true};
       if (name==='./entryScope') return {GUILD:'guild'};
+      if (name==='node:crypto') return require(name);
       if (name==='./entryPanel') return {
-        panel:()=>({}), serialize:(_key, action)=>action(),
+        panel:()=>({embeds:[{description:'大会募集'}], components:[{type:1, components:[{custom_id:'entry_join'}]}]}), serialize:(_key, action)=>action(),
         profiles:()=>{config.entryProfiles={123:{power:data.participants[0].power,job:data.participants[0].job}};}
       };
       throw new Error('Unexpected import '+name);
@@ -211,7 +223,10 @@ test('Monday JST weekly reset keeps saved profiles and sends one opt-in reminder
   assert.equal(data.participants.length,0);
   assert.equal(config.entryProfiles['123'].power,105000000);
   assert.equal(calls.sends.length,1);
-  assert.match(calls.sends[0].content,/<@123>/);
-  assert.equal(calls.sends[0].allowedMentions.users.join(','),'123');
-  assert.match(calls.sends[0].components[0].components[0].custom_id,/entry_week_join_100_2026-11-16/);
+  assert.equal(calls.sends[0].content,'@everyone');
+  assert.equal(calls.sends[0].allowedMentions.parse.join(','),'everyone');
+  assert.equal(calls.sends[0].embeds[0].description,'大会募集');
+  assert.equal(calls.sends[0].components[0].components[0].custom_id,'entry_join');
+  assert.equal(data.msg,'101');
+  assert.equal(calls.edits,1);
 });

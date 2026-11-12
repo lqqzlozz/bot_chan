@@ -14,7 +14,7 @@ const inactive = require('../utils/inactive');
 module.exports = {
   name: 'interactionCreate',
   async execute(interaction, client) {
-    if ((interaction.isButton() || interaction.isModalSubmit()) && interaction.customId?.startsWith('entry_')) {
+    if ((interaction.isButton() || interaction.isModalSubmit() || interaction.isUserSelectMenu() || interaction.isStringSelectMenu()) && interaction.customId?.startsWith('entry_')) {
       try { await require('../utils/entryPanel').handle(interaction); }
       catch (error) {
         console.error('参加募集の操作に失敗:', error);

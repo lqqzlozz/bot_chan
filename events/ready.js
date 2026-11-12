@@ -17,6 +17,10 @@ module.exports = {
 
     // 設定を先に戻し、登録済み原神サーバーのコマンドも復元する。
     await st.loadAll(client);
+    for (const guild of client.guilds.cache.values()) {
+      await require('../utils/entryPanel').refresh(guild, client.user.id)
+        .catch(error => console.error('参加募集の起動時更新エラー:', error.message));
+    }
     await require('../utils/seasonPanel').ensure(client).catch(e => console.error('日程パネルの自動設置失敗:', e.message));
     const seasonPosts = require('../utils/seasonPosts');
     await seasonPosts.refresh(client).catch(e => console.error('日程の表示更新エラー:', e.message));

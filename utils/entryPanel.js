@@ -90,7 +90,6 @@ function profiles(guildId) {
   const saved = config.entryProfiles ??= {};
   for (const entry of Object.values(config.entry)) {
     for (const player of entry.participants || []) {
-      if (!player.power && !jobs.includes(player.job)) continue;
       const profile = saved[player.id] ??= {};
       if (player.power) profile.power ??= player.power;
       if (jobs.includes(player.job)) profile.job ??= player.job;
@@ -100,9 +99,10 @@ function profiles(guildId) {
 }
 
 function report(title, body, filename) {
-  const content = `## ${title}\n${body}`;
-  if (content.length <= 2000) return { content, allowedMentions: noMentions };
-  return { content: title, files: [{ attachment: Buffer.from(content), name: filename }], allowedMentions: noMentions };
+  const embeds = [{ title, description: body.length <= 4096 ? body : '全件は添付ファイルをご覧ください。', color: 0x5865F2 }];
+  const payload = { embeds, allowedMentions: noMentions };
+  if (body.length > 4096) payload.files = [{ attachment: Buffer.from(`## ${title}\n${body}`), name: filename }];
+  return payload;
 }
 
 function getEntry(interaction, messageId) {
@@ -130,7 +130,8 @@ function registrationForm(messageId, participant, proxy = false) {
     );
 }
 
-const followError = (interaction, content) => interaction.followUp({ content, ephemeral: true });
+const notice = description => ({ embeds: [{ description, color: 0x5865F2 }], ephemeral: true });
+const followError = (interaction, content) => interaction.followUp(notice(content));
 
 function roster(data, owner, configuring = false) {
   const title = `参加者情報一覧（${data.participants.length}人）`;
@@ -188,17 +189,18 @@ async function announceTeams(interaction, data) {
 }
 
 function confirmReset(interaction, messageId) {
-  return interaction.reply({
-    content: 'この募集の戦力・職業をリセットしますか？ 参加者と保存済みプロフィールは残ります。',
-    ephemeral: true,
-    components: [{type:1, components:[{
-      type:2, style:4, custom_id:'entry_reset_confirm_'+messageId+'_'+interaction.message.id, label:'リセットする'
-    }]}]
+  return interaction.update({
+    embeds: [{ description: 'この募集の戦力・職業をリセットしますか？ 参加者と保存済みプロフィールは残ります。', color: 0x5865F2 }],
+    components: [{type:1, components:[
+      {type:2, style:4, custom_id:'entry_reset_confirm_'+messageId+'_'+interaction.message.id, label:'リセットする'},
+      {type:2, style:2, custom_id:'entry_back_'+messageId, label:'戻る'}
+    ]}],
+    attachments: []
   });
 }
 
 async function handle(interaction) {
-  const privateReply = content => interaction.reply({ content, ephemeral: true });
+  const privateReply = content => interaction.reply(notice(content));
   if (!isEnabled(interaction.guildId)) return privateReply('このサーバーでは使用できません。');
   const id = interaction.customId;
   const proxyEdit = /^entry_edit_(\d+)_(\d+)$/.exec(id);
@@ -232,12 +234,14 @@ async function handle(interaction) {
     if (!participant) return privateReply('募集に参加している人を選んでください。');
     return interaction.showModal(registrationForm(messageId, participant, true));
   }
-  if (id === 'entry_join') {
-    const participant = data.participants.find(p => p.id === interaction.user.id);
-    return interaction.showModal(registrationForm(messageId, participant || profiles(interaction.guildId)[interaction.user.id]));
+  const participant = id === 'entry_join' && data.participants.find(p => p.id === interaction.user.id);
+  const savedProfile = id === 'entry_join' && profiles(interaction.guildId)[interaction.user.id];
+  const quickJoin = weeklyJoin || (id === 'entry_join' && !participant && savedProfile);
+  if (id === 'entry_join' && !quickJoin) {
+    return interaction.showModal(registrationForm(messageId, participant || savedProfile));
   }
   if (id === 'entry_roster') {
-    await interaction.reply(roster(data, isOwner(interaction)));
+    await interaction.reply({ ...roster(data, isOwner(interaction)), ephemeral: true });
     if (interaction.message.components?.length !== 2) {
       await serialize(interaction.channelId, async () => {
         if (getEntry(interaction, messageId) === data) await interaction.message.edit(panel(data));
@@ -260,29 +264,25 @@ async function handle(interaction) {
           delete participant.job;
         }
         await st.save(interaction.guild);
-        const [message, list] = await Promise.all([
-          interaction.channel.messages.fetch(messageId),
-          interaction.channel.messages.fetch(reset[2])
-        ]);
+        const message = await interaction.channel.messages.fetch(messageId);
         await message.edit(panel(current));
-        if (list.id !== message.id) await list.edit({ ...roster(current, true), attachments: [] });
-        return interaction.deleteReply();
+        return interaction.editReply({ ...roster(current, true), attachments: [] });
       }
       if (!action) return interaction.message.edit(panel(current));
-      if (action === 'back') return interaction.message.edit({ ...roster(current, true), attachments: [] });
+      if (action === 'back') return interaction.editReply({ ...roster(current, true), attachments: [] });
       const selected = interaction.values?.[0];
       if (action === 'size' && teamSizes.includes(selected)) current.teamSize = selected;
       if (action === 'strategy' && Object.hasOwn(strategies, selected)) current.teamStrategy = selected;
       const noPower = !current.participants.some(p => p.power);
       if (noPower) current.teamStrategy = 'random';
-      await interaction.message.edit({ ...roster(current, true, true), attachments: [] });
+      await interaction.editReply({ ...roster(current, true, true), attachments: [] });
       if ((action !== 'prepare' || noPower) && Object.hasOwn(strategies, current.teamStrategy) && current.participants.length) {
         await announceTeams(interaction, current);
       }
       await st.save(interaction.guild);
     });
   }
-  if (!registration && !weeklyJoin && id !== 'entry_leave') return privateReply('この操作は利用できません。');
+  if (!registration && !quickJoin && id !== 'entry_leave') return privateReply('この操作は利用できません。');
   const customName = registration ? (interaction.fields.getTextInputValue('name') || '').trim() : '';
   const powerInput = registration ? (interaction.fields.getTextInputValue('power') || '').trim() : '';
   const power = powerInput ? parsePower(powerInput) : null;
@@ -297,8 +297,8 @@ async function handle(interaction) {
     const userId = proxyEdit?.[2] || interaction.user.id;
     const index = current.participants.findIndex(p => p.id === userId);
     const saved = profiles(interaction.guildId);
-    const details = weeklyJoin ? saved[userId] || {} : { ...(power ? { power } : {}), ...(job ? { job } : {}) };
-    if (weeklyJoin && index >= 0) return;
+    const details = quickJoin ? saved[userId] || {} : { ...(power ? { power } : {}), ...(job ? { job } : {}) };
+    if (quickJoin && index >= 0) return;
     if (proxyEdit && index < 0) return followError(interaction, 'この人は現在の参加者一覧にいません。');
     if (proxyEdit) {
       const player = current.participants[index];
@@ -307,13 +307,13 @@ async function handle(interaction) {
       delete player.job;
       Object.assign(player, details);
     } else {
-      if (!registration && !weeklyJoin && index < 0) return followError(interaction, 'この募集には参加していません。');
+      if (!registration && !quickJoin && index < 0) return followError(interaction, 'この募集には参加していません。');
       const [member, role] = await Promise.all([
         interaction.guild.members.fetch(userId),
         interaction.guild.roles.fetch(current.roleId)
       ]);
       if (!role) return followError(interaction, '参加者ロールが見つかりません。');
-      if (registration || weeklyJoin) {
+      if (registration || quickJoin) {
         if (!member.roles.cache.has(role.id)) await member.roles.add(role);
         const player = { id: userId, name: customName || member.displayName, ...details };
         if (customName) player.customName = customName;
@@ -324,11 +324,11 @@ async function handle(interaction) {
         current.participants.splice(index, 1);
       }
     }
-    if (registration && Object.keys(details).length) Object.assign(saved[userId] ??= {}, details);
+    if (registration || quickJoin) Object.assign(saved[userId] ??= {}, details);
     if (!await st.save(interaction.guild)) {
       await followError(interaction, 'bot-configに保存できませんでした。Botの権限を確認してください。');
     }
-    const result = registration || weeklyJoin ? '参加情報を登録しました。' : '参加を辞退しました。';
+    const result = registration || quickJoin ? '参加情報を登録しました。' : '参加を辞退しました。';
     try {
       const message = interaction.message?.id === messageId ? interaction.message : await interaction.channel.messages.fetch(messageId);
       await message.edit(panel(current));

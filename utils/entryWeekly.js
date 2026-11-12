@@ -1,3 +1,4 @@
+const { createHash } = require('node:crypto');
 const st = require('./store');
 const { GUILD } = require('./entryScope');
 const { panel, profiles, serialize } = require('./entryPanel');
@@ -24,12 +25,11 @@ async function resetChannel(guild, config, channelId, date) {
   if (state?.date === date && (state.done || state.messageId !== data.msg)) return;
   const channel = await guild.channels.fetch(channelId);
   if (!channel?.isTextBased()) return;
-  const message = await channel.messages.fetch(data.msg);
   if (state?.date !== date) {
     profiles(guild.id);
     state = {
       date, messageId:data.msg, phase:'reset',
-      users:[...new Set(data.participants.map(p => p.id))], sent:0
+      users:[...new Set(data.participants.map(p => p.id))]
     };
     history[channelId] = state;
     await save(guild);
@@ -50,23 +50,25 @@ async function resetChannel(guild, config, channelId, date) {
     state.phase = 'announce';
     await save(guild);
   }
-  await message.edit(panel(data));
-  const chunks = Math.max(1, Math.ceil(state.users.length / 50));
-  while (state.sent < chunks) {
-    const users = state.users.slice(state.sent * 50, (state.sent + 1) * 50);
-    const mentions = users.map(id => '<@'+id+'>').join(' ');
-    await channel.send({
-      content: [mentions,'今週も振り分けをお願いしたい人は、下のボタンを押してね！'].filter(Boolean).join('\n'),
-      allowedMentions: { parse:[], users },
-      components: [{type:1, components:[{
-        type:2, style:1, label:'今週も参加する', custom_id:'entry_week_join_'+data.msg+'_'+date
-      }]}]
-    });
-    state.sent++;
-    await save(guild);
-  }
+  const previousId = data.msg;
+  const nonce = createHash('sha256').update(`entry-week:${channelId}:${date}`).digest('hex').slice(0,24);
+  const message = await channel.send({
+    ...panel(data),
+    content: '@everyone',
+    allowedMentions: { parse:['everyone'] },
+    nonce,
+    enforceNonce: true
+  });
+  data.msg = message.id;
+  state.messageId = message.id;
   state.done = true;
   await save(guild);
+  try {
+    const previous = await channel.messages.fetch(previousId);
+    await previous.edit({components:[]});
+  } catch (error) {
+    if (error.code !== 10008) console.error('前週の大会募集ボタンを閉じられませんでした:', error.message);
+  }
 }
 
 let running = false;

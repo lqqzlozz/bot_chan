@@ -138,23 +138,22 @@ function roster(data, owner, configuring = false) {
   const payload = report(title, body, 'entry-roster.md');
   if (!owner) return payload;
   const id = data.msg;
-  const reset = button('entry_reset_'+id, '戦力・職業をリセット', ButtonStyle.Danger);
   if (configuring) {
     const size = selectRow('entry_size_'+id, 'チーム人数を指定', teamSizes.map(value => ({ label: value+'人', value })), data.teamSize || '2');
     const strategy = selectRow('entry_strategy_'+id, '振り分け基準を指定',
       Object.entries(strategies).map(([value,label]) => ({ label, value })), data.teamStrategy);
-    payload.components = [new ActionRowBuilder().addComponents(reset, button('entry_back_'+id, '参加者の編集に戻る', ButtonStyle.Secondary)), size, strategy];
+    payload.components = [size, strategy, new ActionRowBuilder().addComponents(
+      button('entry_back_'+id, '参加者の編集に戻る', ButtonStyle.Secondary))];
   } else {
-    payload.components = [new ActionRowBuilder().addComponents(reset)];
-    if (data.participants.length && data.participants.length <= 50) {
-      for (let index = 0; index < data.participants.length; index += 25) {
-        payload.components.push(selectRow('entry_edit_pick_'+id+'_'+index,
-          index ? '編集する参加者を選択（26人目以降）' : '戦力・職業を編集する参加者を選択',
-          data.participants.slice(index,index+25).map(p => ({ label:p.name.slice(0,100), value:p.id }))));
-      }
-    } else if (data.participants.length) {
+    const reset = { label:'戦力・職業をリセットする', value:'reset' };
+    const options = data.participants.map(p => ({ label:p.name.slice(0,100), value:p.id }));
+    const first = data.participants.length <= 49 ? [reset, ...options.slice(0,24)] : [reset];
+    payload.components = [selectRow('entry_edit_pick_'+id+'_0', '参加者の編集・リセット', first)];
+    if (data.participants.length > 49) {
       payload.components.push({type:1, components:[{type:5, custom_id:'entry_edit_pick_'+id,
         placeholder:'戦力・職業を編集する参加者を選択'}]});
+    } else if (options.length > 24) {
+      payload.components.push(selectRow('entry_edit_pick_'+id+'_24', '編集する参加者を選択（25人目以降）', options.slice(24)));
     }
     payload.components.push(new ActionRowBuilder().addComponents(
       button('entry_prepare_'+id, 'この戦力でチームを振り分ける', ButtonStyle.Success)));
@@ -188,17 +187,28 @@ async function announceTeams(interaction, data) {
   else data.teamMessageId = (await interaction.channel.send(payload)).id;
 }
 
+function confirmReset(interaction, messageId) {
+  return interaction.reply({
+    content: 'この募集の戦力・職業をリセットしますか？ 参加者と保存済みプロフィールは残ります。',
+    ephemeral: true,
+    components: [{type:1, components:[{
+      type:2, style:4, custom_id:'entry_reset_confirm_'+messageId+'_'+interaction.message.id, label:'リセットする'
+    }]}]
+  });
+}
+
 async function handle(interaction) {
   const privateReply = content => interaction.reply({ content, ephemeral: true });
   if (!isEnabled(interaction.guildId)) return privateReply('このサーバーでは使用できません。');
   const id = interaction.customId;
   const proxyEdit = /^entry_edit_(\d+)_(\d+)$/.exec(id);
+  const weeklyJoin = /^entry_week_join_(\d+)_(\d{4}-\d{2}-\d{2})$/.exec(id);
   const editPicker = /^entry_edit_pick_(\d+)(?:_\d+)?$/.exec(id);
   const control = /^entry_(prepare|back|size|strategy|reset|delete)_(\d+)$/.exec(id);
   const reset = /^entry_reset_confirm_(\d+)_(\d+)$/.exec(id);
   if ((proxyEdit || editPicker) && !isOwner(interaction)) return privateReply('募集主だけが代理編集できます。');
   const registration = proxyEdit || /^entry_register_(\d+)$/.exec(id);
-  const messageId = registration?.[1] || editPicker?.[1] || reset?.[1] || control?.[2] || interaction.message?.id;
+  const messageId = registration?.[1] || weeklyJoin?.[1] || editPicker?.[1] || reset?.[1] || control?.[2] || interaction.message?.id;
   const data = getEntry(interaction, messageId);
   if (control?.[1] === 'delete') {
     if (!isOwner(interaction)) return privateReply('募集主だけがチーム発表を削除できます。');
@@ -213,7 +223,11 @@ async function handle(interaction) {
     });
   }
   if (!data) return privateReply('この募集は終了したか、別の募集に置き換わりました。');
+  if (weeklyJoin && st.get(interaction.guildId).entryWeekly?.[interaction.channelId]?.date !== weeklyJoin[2]) {
+    return privateReply('この案内は前の週のものです。今週の案内から参加してください。');
+  }
   if (editPicker) {
+    if (interaction.values[0] === 'reset') return confirmReset(interaction, messageId);
     const participant = data.participants.find(p => p.id === interaction.values[0]);
     if (!participant) return privateReply('募集に参加している人を選んでください。');
     return interaction.showModal(registrationForm(messageId, participant, true));
@@ -234,15 +248,7 @@ async function handle(interaction) {
   if (reset || control || ['entry_reset', 'entry_size', 'entry_strategy', 'entry_split', 'entry_pair', 'entry_team4'].includes(id)) {
     if (!isOwner(interaction)) return privateReply('募集主だけが操作できます。');
     const action = control?.[1];
-    if (action === 'reset') {
-      return interaction.reply({
-        content: 'この募集の戦力・職業をリセットしますか？ 参加者と保存済みプロフィールは残ります。',
-        ephemeral: true,
-        components: [{type:1, components:[{
-          type:2, style:4, custom_id:'entry_reset_confirm_'+messageId+'_'+interaction.message.id, label:'リセットする'
-        }]}]
-      });
-    }
+    if (action === 'reset') return confirmReset(interaction, messageId);
     await interaction.deferUpdate();
     return serialize(interaction.channelId, async () => {
       const current = getEntry(interaction, messageId);
@@ -276,7 +282,7 @@ async function handle(interaction) {
       await st.save(interaction.guild);
     });
   }
-  if (!registration && id !== 'entry_leave') return privateReply('この操作は利用できません。');
+  if (!registration && !weeklyJoin && id !== 'entry_leave') return privateReply('この操作は利用できません。');
   const customName = registration ? (interaction.fields.getTextInputValue('name') || '').trim() : '';
   const powerInput = registration ? (interaction.fields.getTextInputValue('power') || '').trim() : '';
   const power = powerInput ? parsePower(powerInput) : null;
@@ -291,7 +297,8 @@ async function handle(interaction) {
     const userId = proxyEdit?.[2] || interaction.user.id;
     const index = current.participants.findIndex(p => p.id === userId);
     const saved = profiles(interaction.guildId);
-    const details = { ...(power ? { power } : {}), ...(job ? { job } : {}) };
+    const details = weeklyJoin ? saved[userId] || {} : { ...(power ? { power } : {}), ...(job ? { job } : {}) };
+    if (weeklyJoin && index >= 0) return;
     if (proxyEdit && index < 0) return followError(interaction, 'この人は現在の参加者一覧にいません。');
     if (proxyEdit) {
       const player = current.participants[index];
@@ -300,13 +307,13 @@ async function handle(interaction) {
       delete player.job;
       Object.assign(player, details);
     } else {
-      if (!registration && index < 0) return followError(interaction, 'この募集には参加していません。');
+      if (!registration && !weeklyJoin && index < 0) return followError(interaction, 'この募集には参加していません。');
       const [member, role] = await Promise.all([
         interaction.guild.members.fetch(userId),
         interaction.guild.roles.fetch(current.roleId)
       ]);
       if (!role) return followError(interaction, '参加者ロールが見つかりません。');
-      if (registration) {
+      if (registration || weeklyJoin) {
         if (!member.roles.cache.has(role.id)) await member.roles.add(role);
         const player = { id: userId, name: customName || member.displayName, ...details };
         if (customName) player.customName = customName;
@@ -321,7 +328,7 @@ async function handle(interaction) {
     if (!await st.save(interaction.guild)) {
       await followError(interaction, 'bot-configに保存できませんでした。Botの権限を確認してください。');
     }
-    const result = registration ? '戦力と職業を登録しました。' : '参加を辞退しました。';
+    const result = registration || weeklyJoin ? '参加情報を登録しました。' : '参加を辞退しました。';
     try {
       const message = interaction.message?.id === messageId ? interaction.message : await interaction.channel.messages.fetch(messageId);
       await message.edit(panel(current));

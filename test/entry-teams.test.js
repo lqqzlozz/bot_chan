@@ -131,6 +131,7 @@ test('entry roster can be viewed without dividing teams, and only the owner can 
   await module.exports.handle({ ...interaction, customId: 'entry_roster', message: { id: '99' } });
   assert.match(replies.at(-1).content, /置き換わりました/);
   await module.exports.handle({ ...owner, customId: 'entry_roster' });
+  assert.equal(replies.at(-1).components[0].components[0].options[0].value, 'reset');
   let modal;
   await module.exports.handle({ ...owner, customId: 'entry_edit_pick_100', values: ['3'], showModal: async value => { modal = value; } });
   assert.equal(modal.id, 'entry_edit_100_3');
@@ -149,7 +150,7 @@ test('entry roster can be viewed without dividing teams, and only the owner can 
   assert.equal(data.participants[2].power, 125000);
   assert.equal(data.participants[2].job, '騎士');
   assert.equal(config.entryProfiles['3'].power, 125000);
-  await module.exports.handle({ ...owner, customId: 'entry_reset_100', message: list });
+  await module.exports.handle({ ...owner, customId: 'entry_edit_pick_100_0', values: ['reset'], message: list });
   assert.match(replies.at(-1).content, /リセットしますか/);
   assert.equal(data.participants[2].power, 125000);
   await module.exports.handle({ ...owner, customId: 'entry_reset_confirm_100_101', message: { id: 'confirmation' } });
@@ -174,4 +175,43 @@ test('entry roster can be viewed without dividing teams, and only the owner can 
   assert.equal(data.participants.at(-1).name, 'サーバー名');
   assert.equal(data.participants.at(-1).power, undefined);
   assert.equal(data.participants.at(-1).job, undefined);
+});
+
+test('Monday JST weekly reset keeps saved profiles and sends one opt-in reminder', async () => {
+  const data = { msg:'100', roleId:'role', participants:[{id:'123', name:'A', power:105000000, job:'闘志'}] };
+  const config = { entry:{channel:data} };
+  const calls = { roles:0, sends:[], edits:0 };
+  const channel = {
+    isTextBased:()=>true,
+    messages:{fetch:async()=>({edit:async()=>{calls.edits++;}})},
+    send:async payload=>{calls.sends.push(payload);}
+  };
+  const guild = {
+    id:'guild', channels:{fetch:async()=>channel}, roles:{fetch:async()=>({id:'role'})},
+    members:{fetch:async()=>({roles:{cache:{has:()=>true}, remove:async()=>{calls.roles++;}}})}
+  };
+  const module = {exports:{}};
+  vm.runInNewContext(fs.readFileSync(require.resolve('../utils/entryWeekly'),'utf8'), {
+    module, Intl, console, require(name) {
+      if (name==='./store') return {get:()=>config,save:async()=>true};
+      if (name==='./entryScope') return {GUILD:'guild'};
+      if (name==='./entryPanel') return {
+        panel:()=>({}), serialize:(_key, action)=>action(),
+        profiles:()=>{config.entryProfiles={123:{power:data.participants[0].power,job:data.participants[0].job}};}
+      };
+      throw new Error('Unexpected import '+name);
+    }
+  });
+  const client={guilds:{cache:new Map([['guild',guild]])}};
+  await module.exports.tick(client,new Date('2026-11-15T22:59:59Z'));
+  assert.equal(calls.roles,0);
+  await module.exports.tick(client,new Date('2026-11-15T23:00:00Z'));
+  await module.exports.tick(client,new Date('2026-11-15T23:01:00Z'));
+  assert.equal(calls.roles,1);
+  assert.equal(data.participants.length,0);
+  assert.equal(config.entryProfiles['123'].power,105000000);
+  assert.equal(calls.sends.length,1);
+  assert.match(calls.sends[0].content,/<@123>/);
+  assert.equal(calls.sends[0].allowedMentions.users.join(','),'123');
+  assert.match(calls.sends[0].components[0].components[0].custom_id,/entry_week_join_100_2026-11-16/);
 });

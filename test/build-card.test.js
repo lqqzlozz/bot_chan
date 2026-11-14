@@ -220,24 +220,31 @@ test('public card identifies its owner and only that owner can change it', async
   const guildId = GI[0];
   st.get(guildId).intro = { user: { uid: '123456789' } };
   const i = { guildId, channelId: 'ch', member: { displayName: 'テストさん' }, user: { id: 'user', displayAvatarURL: () => 'https://example.com/avatar.png' }, channel: { guildId, id: 'ch', send: async p => { posts.push(p); return { url: 'https://discord.com/channels/g/c/m' }; } }, customId: 'bc_open_score', deferReply: async opts => { assert.ok(!opts?.ephemeral); }, deferUpdate: async () => {}, editReply: async p => { i.output = p; }, reply: async p => { i.error = p; }, deleteReply: async () => { i.deleted = true; } };
+  i.message = { id: 'card', edit: i.editReply };
+  i.reply = async p => {
+    if (!p.withResponse) { i.error = p; return; }
+    assert.ok(!p.ephemeral);
+    return { resource: { message: i.message } };
+  };
+  i.editReply = async () => assert.fail('Card updates must not use the interaction webhook');
   try {
     await panel.handle(i);
     assert.match(i.output.content, /<@user>/);
     assert.match(i.output.embeds[0].toJSON().author.name, /テストさん/);
     const id = i.output.components[0].toJSON().components[0].custom_id.split('_')[2];
     const select = async (action, value) => { i.customId = `bc_${action}_${id}`; i.values = [value]; await panel.handle(i); i.output.components?.forEach(r => r.toJSON()); };
-    await select('char', '1'); assert.equal(builds.length, 0);
+    await select('char', '1'); assert.equal(builds.at(-1).base, 'atk');
     await select('base', 'em');
     await select('base', 'hp');
     await select('char', '2');
-    assert.deepEqual(builds.map(b => [b.aid, b.base]), [[1, 'em'], [1, 'hp'], [2, 'hp']]);
+    assert.deepEqual(builds.map(b => [b.aid, b.base]), [[1, 'atk'], [1, 'em'], [1, 'hp'], [2, 'hp']]);
     assert.equal(posts.length, 0);
     const labels = () => i.output.components.map(r => r.toJSON()).find(r => r.components[0].custom_id?.startsWith('bc_on_')).components.map(b => b.label);
     assert.deepEqual(labels(), ['スコア表示ON', 'スコア表示OFF', '終了']);
-    await select('off'); assert.equal(builds.at(-1).showScore, false); assert.equal(i.output.components.length, 2);
+    await select('off'); assert.equal(builds.at(-1).showScore, false); assert.equal(i.output.components.length, 3);
     assert.deepEqual(labels(), ['スコア表示ON', 'スコア表示OFF', '終了']);
     await select('off'); assert.equal(builds.at(-1).showScore, false);
-    await select('on'); assert.equal(builds.at(-1).showScore, true); assert.equal(i.output.components.length, 4);
+    await select('on'); assert.equal(builds.at(-1).showScore, true); assert.equal(i.output.components.length, 5);
     assert.match(i.output.embeds[0].toJSON().description, /計算基準：HP\n`HP%/);
     assert.doesNotMatch(i.output.embeds[0].toJSON().description, /何度でも/);
     assert.deepEqual(labels(), ['スコア表示ON', 'スコア表示OFF', '終了']);

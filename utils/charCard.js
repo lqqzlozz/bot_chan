@@ -100,7 +100,7 @@ function cover(ctx, im, x, y, w, h, fy = 0.35) {
 async function img(url) {
   if (!url) return null;
   try {
-    const r = await fetch(url);
+    const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!r.ok) return null;
     return await loadImage(Buffer.from(await r.arrayBuffer()));
   } catch {
@@ -114,9 +114,12 @@ async function charCard(d, locale = 'ja') {
   const tr = key => i18n.t(locale,key);
   const [ac, tint] = EL[d.el] || ['#888888', '#F2F2F2', ''];
   const elName = i18n.element(locale,d.el);
-  const [primaryArt, wpi, ...ris] = await Promise.all([img(d.art), img(d.wp?.icon), ...d.relics.map(r => img(r.icon))]);
-  const art = primaryArt || (d.artFallback ? await img(d.artFallback) : null);
-  const talents = await Promise.all((d.talIcons || []).map(img));
+  const [art, wpi, talents, ris] = await Promise.all([
+    img(d.art).then(primary => primary || img(d.artFallback)),
+    img(d.wp?.icon),
+    Promise.all((d.talIcons || []).map(img)),
+    Promise.all(d.relics.map(r => img(r.icon))),
+  ]);
 
   const cv = createCanvas(W, H);
   const ctx = cv.getContext('2d');

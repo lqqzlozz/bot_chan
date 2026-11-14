@@ -1,6 +1,7 @@
 // Enka.Network から原神のプロフィールを取る
 const UA = 'bot_chan/1.0 (discord bot)';
 const RAW = 'https://raw.githubusercontent.com/EnkaNetwork/API-docs/master/store/';
+const REQUEST_TIMEOUT_MS = 8000;
 
 const UI = 'https://enka.network/ui/';
 // Enka lists Mannequin (ドール) forms as avatarId-elementVariant.
@@ -26,7 +27,8 @@ async function names() {
   if (nm && Date.now() - nmAt < 86400000) return nm;
   try {
     // 古いstoreは新キャラ・新武器が抜けてるので gi/ と合わせる（セット名は古い方にしか無い）
-    const get = f => fetch(RAW + f).then(r => r.json()).catch(() => ({}));
+    const get = f => fetch(RAW + f, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) })
+      .then(r => r.ok ? r.json() : {}).catch(() => ({}));
     const [c0, c1, l0, l1, pf, relicData, nc0, nc1, pfNew] = await Promise.all(['characters.json', 'gi/avatars.json', 'loc.json', 'gi/locs.json', 'pfps.json', 'gi/relics.json', 'namecards.json', 'gi/namecards.json', 'gi/pfps.json'].map(get));
     namecards = { ...nc0, ...nc1 };
     relicSets = relicData.Sets || {};
@@ -115,15 +117,17 @@ async function player(uid) {
   const c = cache.get(uid);
   if (c && Date.now() - c.at < c.ttl * 1000) return { p: c.p, av: c.av, raw: c.raw };
 
-  let r;
+  let j;
   try {
     // キャラ詳細（凸）も欲しいので?infoは付けない
-    r = await fetch(`https://enka.network/api/uid/${uid}/`, { headers: { 'User-Agent': UA } });
+    const r = await fetch(`https://enka.network/api/uid/${uid}/`, {
+      headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+    if (!r.ok) return { err: r.status };
+    j = await r.json();
   } catch {
-    return { err: 503 };
+    return { err: 0 };
   }
-  if (!r.ok) return { err: r.status };
-  const j = await r.json().catch(() => null);
   if (!j?.playerInfo) return { err: 404 };
   // 凸数 = talentIdListの数（詳細非公開の人は無し）
   const av = {};

@@ -89,18 +89,18 @@ function links(uid) {
   return row(new ButtonBuilder().setLabel('Enka').setStyle(ButtonStyle.Link).setURL(`https://enka.network/u/${uid}/`), new ButtonBuilder().setLabel('Akasha').setStyle(ButtonStyle.Link).setURL(`https://akasha.cv/profile/${uid}`));
 }
 
-async function refresh(i, s) {
+async function refresh(message, s) {
   const a = s.list.find(a => String(a.avatarId) === s.aid);
   if (!a || (s.score && !s.base)) {
     s.buf = null;
     s.embed = null;
-    return i.editReply({ content: owner(s), allowedMentions: { parse: [] }, embeds: [box(['choose','chooseBase','hidden'].map(k=>i18n.t(s.locale,k)).join('\n')).setAuthor(author(s))], attachments: [], components: controls(s) });
+    return message.edit({ content: owner(s), allowedMentions: { parse: [] }, embeds: [box(['choose','chooseBase','hidden'].map(k=>i18n.t(s.locale,k)).join('\n')).setAuthor(author(s))], attachments: [], components: controls(s) });
   }
   const d = await require('./character').build(a, s.uid, s.base, s.score, s.locale);
   s.buf = await require('./charCard').charCard(d, s.locale);
   s.caption = `## ${d.name}${i18n.t(s.locale,'card')}\n${s.score && !a.lim ? `${i18n.t(s.locale,'basis')}：${i18n.basis(s.locale,s.base)}\n\`${localizedFormula(art.FORMULAS[s.base],s.locale)}\`\n${i18n.t(s.locale,'sub')}` : i18n.t(s.locale,'disabled')}${a.lim ? '\n'+i18n.t(s.locale,'limited') : ''}`;
   s.embed = box(s.caption).setAuthor(author(s)).setImage('attachment://build-card.png');
-  return i.editReply({ content: owner(s), allowedMentions: { parse: [] }, embeds: [s.embed], attachments: [], files: [new AttachmentBuilder(s.buf, { name: 'build-card.png' })], components: controls(s) });
+  return message.edit({ content: owner(s), allowedMentions: { parse: [] }, embeds: [s.embed], attachments: [], files: [new AttachmentBuilder(s.buf, { name: 'build-card.png' })], components: controls(s) });
 }
 
 async function handle(i) {
@@ -110,20 +110,21 @@ async function handle(i) {
   if (i.customId.startsWith('bc_open_')) {
     const uid = st.get(i.guildId).intro?.[i.user.id]?.uid;
     if (!uid) return i.reply({ content: i18n.t(i.locale,'noUid'), ephemeral: true });
-    await i.deferReply();
+    const response = await i.reply({ content: 'ビルドカードの情報を取得中…', withResponse: true });
+    const message = response.resource?.message ?? await i.fetchReply();
     let result;
     try { result = await en.player(uid); }
-    catch (e) { console.error('Enka API error:', e); return i.editReply('⚠️ '+enkaError(0)); }
+    catch (e) { console.error('Enka API error:', e); return message.edit('⚠️ '+enkaError(0)); }
     const { p, raw, err } = result;
-    if (!p) return i.editReply('⚠️ '+enkaError(err));
+    if (!p) return message.edit('⚠️ '+enkaError(err));
     const list = raw?.length ? raw : (p.showAvatarInfoList || []).map(a => ({ ...a, lim: true }));
-    if (!list.length) return i.editReply('⚠️ 【E005】キャラクター情報を取得できません。ゲーム内プロフィールでキャラクターを公開しているかご確認ください。');
+    if (!list.length) return message.edit('⚠️ 【E005】キャラクター情報を取得できません。ゲーム内プロフィールでキャラクターを公開しているかご確認ください。');
     for (const [id, old] of sessions) if (old.user === i.user.id && old.channel === i.channelId) sessions.delete(id);
     const s = { id: randomBytes(8).toString('hex'), user: i.user.id, name: i.member?.displayName || i.user.globalName || i.user.username, avatar: i.user.displayAvatarURL(), channel: i.channelId, guild: i.guildId, uid, list, names: await en.names(), score: i.customId.endsWith('score'), locale: i.locale || 'ja', base: 'atk', aid: null, at: Date.now() };
-    sessions.set(s.id, s);
     s.client = i.client;
-    await refresh(i, s);
-    s.messageId = (await i.fetchReply()).id;
+    s.messageId = message.id;
+    await refresh(message, s);
+    sessions.set(s.id, s);
     return place(i.channel);
   }
   if (i.customId.startsWith(DELETE_PREFIX)) {
@@ -140,13 +141,13 @@ async function handle(i) {
   try {
     await i.deferUpdate();
     s.at = Date.now();
-    if (action === 'end') { sessions.delete(id); return i.editReply({ components: finishedControls(s), ...(s.embed ? { embeds: [s.embed] } : {}) }); }
+    if (action === 'end') { sessions.delete(id); return i.message.edit({ components: finishedControls(s), ...(s.embed ? { embeds: [s.embed] } : {}) }); }
     if (action === 'char' && s.list.some(a => String(a.avatarId) === i.values[0])) s.aid = i.values[0];
     if (action === 'base' && art.BASES[i.values[0]]) s.base = i.values[0];
     if (action === 'toggle') s.score = !s.score;
     if (action === 'on') s.score = true;
     if (action === 'off') s.score = false;
-    return await refresh(i, s);
+    return await refresh(i.message, s);
   } finally { s.busy = false; }
 }
 

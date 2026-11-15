@@ -77,7 +77,7 @@ test('Discord command replies with verified data without an image and gates disa
     addFields(x){this.data.fields=[...(this.data.fields || []),...x];return this;}
     setThumbnail(x){this.data.thumbnail=x;return this;}
   }
-  let enabled=true, current=data;
+  let enabled=true, current=data, readCount=0, version=0;
   const module={exports:{}};
   const timers=new Set();
   const code=await fs.readFile(path.join(__dirname,'../utils/genshinStats.js'),'utf8');
@@ -87,7 +87,10 @@ test('Discord command replies with verified data without an image and gates disa
   require(name){
     if(name==='discord.js')return {EmbedBuilder:Embed};
     if(name==='./gi')return {isGI:()=>enabled};
-    if(name==='node:fs')return {readFileSync:()=>JSON.stringify(current)};
+    if(name==='node:fs')return {
+      statSync:()=>({ino:1,mtimeMs:version,ctimeMs:version,size:1}),
+      readFileSync:()=>{readCount++;return JSON.stringify(current);}
+    };
     if(name==='node:path')return path;
     if(name==='./genshinStatsView')return require('../utils/genshinStatsView');
     if(name==='./genshinStatsDetailsView')return require('../utils/genshinStatsDetailsView');
@@ -97,7 +100,7 @@ test('Discord command replies with verified data without an image and gates disa
   const replies=[], defers=[], messageEdits=[];
   let deletes=0;
   const message={id:'message',edit:async x=>messageEdits.push(x),delete:async()=>{deletes++;}};
-  const i={guildId:'test',user:{id:'123'},message,reply:async x=>replies.push(x),deferReply:async x=>defers.push(x),
+  const i={guildId:'test',user:{id:'123'},message,reply:async x=>{replies.push(x);return {resource:{message}};},deferReply:async x=>defers.push(x),
     editReply:async x=>{replies.push(x);return message;},update:async x=>replies.push(x),deferUpdate:async()=>{}};
   await module.exports.execute(i,'usage');
   assert.match(replies.at(-1).embeds[0].data.description,/所持者中/);
@@ -106,11 +109,14 @@ test('Discord command replies with verified data without an image and gates disa
   assert.doesNotMatch(replies.at(-1).embeds[0].data.description,/2026-10/);
   assert.match(replies.at(-1).embeds[0].data.footer.text,/出典 AZA.GG.*2026-10/);
   assert.equal(replies.at(-1).embeds[0].data.url,undefined);
+  version++;
   current={...data,characters:data.characters.map(row=>({...row, constellations:[{level:0,rate:64.33}], artifacts:[{sets:{14001:4},rate:81.11}]})),teams:[{half:1,members:[10000002,10000003,10000005,10000007],rate:12.77}]};
   await module.exports.execute(i,'team');
   assert.match(replies.at(-1).embeds[0].data.fields[0].value,/神里綾華.*12\.77%/);
   await module.exports.execute(i,'char');
-  assert.equal(defers.at(-1),undefined);
+  assert.equal(defers.length,0);
+  assert.equal(readCount,2);
+  assert.equal(replies.at(-1).withResponse,true);
   const menus=replies.at(-1).components;
   assert.equal(menus.length,2);
   assert.ok(menus[0].components[0].options.some(option=>option.label==='か行'));
@@ -152,6 +158,8 @@ test('Discord command replies with verified data without an image and gates disa
   await module.exports.handleButton({...i,customId:'gstats_char_close_123'});
   assert.equal(timers.size,0);
   assert.equal(replies.at(-1).components[0].components[0].label,'🗑️');
+  assert.equal(readCount,2);
+  version++;
   current={};await module.exports.execute(i,'pull');assert.match(replies.at(-1).content,/検証済み/);
   enabled=false;await module.exports.execute(i,'usage');assert.equal(replies.at(-1).ephemeral,true);
 });

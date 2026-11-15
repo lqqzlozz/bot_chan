@@ -2,7 +2,7 @@ const { EmbedBuilder } = require('discord.js');
 const { isGI } = require('./gi');
 const fs = require('node:fs');
 const path = require('node:path');
-const ROOT = path.join(__dirname, '..', 'data');
+const SNAPSHOT_PATH = path.join(__dirname, '..', 'data', 'genshinStats.json');
 const {valid, description} = require('./genshinStatsView');
 const {label,characterGroups,characterMenus,characterIcon,teamSections,characterFields} = require('./genshinStatsDetailsView');
 const pickupHistory = require('../data/genshinPickupHistory.json');
@@ -55,11 +55,26 @@ const TYPES = {
   usage: { title: '螺旋におけるキャラクター使用率', key: 'usage' },
   team: { title: '螺旋における人気パーティー', key: 'teams' }
 };
+const emptySnapshot = {ownership:[],usage:[],teams:[]};
+let cachedSnapshot;
 function snapshot() {
-  try { return JSON.parse(fs.readFileSync(path.join(ROOT,'genshinStats.json'),'utf8')); }
-  catch { return {ownership:[],usage:[],teams:[]}; }
+  try {
+    const stat = fs.statSync(SNAPSHOT_PATH);
+    const version = [stat.ino, stat.mtimeMs, stat.ctimeMs, stat.size].join(':');
+    if (cachedSnapshot?.version !== version) {
+      const data = JSON.parse(fs.readFileSync(SNAPSHOT_PATH,'utf8'));
+      const verified = valid(data);
+      cachedSnapshot = {
+        version, data, verified,
+        groups: verified && data.characters?.length && Array.isArray(data.teams)
+          ? characterGroups(data.characters) : null
+      };
+    }
+    return cachedSnapshot;
+  } catch {
+    return cachedSnapshot || {data:emptySnapshot, verified:false, groups:null};
+  }
 }
-const hasDetails = data => valid(data) && data.characters?.length && Array.isArray(data.teams);
 function footer(data) {
   const date = value => new Date(value).toLocaleDateString('ja-JP',{timeZone:'Asia/Tokyo'});
   const period = data.period?.split(' ～ ').map(date).join(' ～ ');
@@ -97,14 +112,14 @@ function characterReply(data, groups, owner, group, row) {
 }
 async function execute(i,type) {
   if (!i.guildId || !isGI(i.guildId)) return i.reply({content:'原神機能がONのサーバーでのみ利用できます。',ephemeral:true});
-  await i.deferReply();
   try {
-    const data=snapshot();
+    const {data, verified, groups} = snapshot();
     if (type==='team' || type==='char') {
-      if (!hasDetails(data)) return await i.editReply({content:'統計は準備中です。'});
+      if (!groups) return await i.reply({content:'統計は準備中です。'});
       if (type==='char') {
         const owner=i.user.id;
-        const message=await i.editReply(characterReply(data,characterGroups(data.characters),owner));
+        const response=await i.reply({...characterReply(data,groups,owner),withResponse:true});
+        const message=response?.resource?.message ?? await i.fetchReply();
         const session={message,owner};
         characterSessions.set(message.id,session);
         resetCharacterTimer(session);
@@ -113,11 +128,11 @@ async function execute(i,type) {
       const embed=detailEmbed(data,'深境螺旋12層の人気チーム')
         .setDescription('前半・後半それぞれの採用率トップ10')
         .addFields(teamSections(data,10));
-      return await i.editReply({embeds:[embed],allowedMentions:{parse:[]}});
+      return await i.reply({embeds:[embed],allowedMentions:{parse:[]}});
     }
     const config=TYPES[type];
     if (!config) throw new Error('Unknown stats type');
-    if (!valid(data)) return await i.editReply({content:'検証済みの★5統計は準備中です。'});
+    if (!verified) return await i.reply({content:'検証済みの★5統計は準備中です。'});
     const embeds=description(data,config.key).map((text,index) => {
       const embed=new EmbedBuilder().setTitle(config.title+(index?'（続き）':''))
         .setDescription(text).setColor(0x5865f2);
@@ -128,22 +143,21 @@ async function execute(i,type) {
       }
       return embed;
     });
-    await i.editReply({embeds,allowedMentions:{parse:[]}});
+    await i.reply({embeds,allowedMentions:{parse:[]}});
   } catch(error) {
     console.error('原神統計表示エラー:',error);
-    await i.editReply({content:'統計を表示できませんでした。管理者にログの確認を依頼してください。'}).catch(()=>null);
+    if (!i.replied) await i.reply({content:'統計を表示できませんでした。管理者にログの確認を依頼してください。'}).catch(()=>null);
   }
 }
 async function handleSelect(i) {
   if (!i.guildId || !isGI(i.guildId)) return i.reply({content:'原神機能がONのサーバーでのみ利用できます。',ephemeral:true});
   const session=characterSession(i);
   if (typeof session.then==='function') return session;
-  const data=snapshot();
-  if (!hasDetails(data)) {
+  const {data, groups}=snapshot();
+  if (!groups) {
     clearCharacterSession(i.message.id);
     return i.update({content:'統計は準備中です。',embeds:[],components:closedControls(session.owner)});
   }
-  const groups=characterGroups(data.characters);
   const value=i.values[0];
   if (i.customId==='gstats_char_page') {
     const group=groups.find(item=>item.name===value);
@@ -200,4 +214,4 @@ async function handleButton(i) {
   await i.reply({content:'ページ送りは廃止しました。コマンドを再実行してください。',ephemeral:true});
   return true;
 }
-module.exports={execute,handleButton,handleSelect,TYPES,valid,loadSnapshot:async()=>snapshot()};
+module.exports={execute,handleButton,handleSelect,TYPES,valid,loadSnapshot:async()=>snapshot().data};

@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const st = require('../utils/store');
 const { panel, serialize, profiles } = require('../utils/entryPanel');
 const { isOwner, deny } = require('../utils/perm');
@@ -29,46 +29,54 @@ module.exports = {
     }
     if (!isOwner(interaction)) return deny(interaction);
 
-    // 💡 誰が使ったか非表示にするため、最初から ephemeral: true でコマンド自体への応答を完了させる
-    await interaction.deferReply({ ephemeral: true });
-
-    const text = interaction.options.getString('text');
-    const role = interaction.options.getRole('role');
-    const channel = interaction.channel;
-
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    let posted;
     try {
-      await interaction.guild.members.fetch({ withPresences: false });
-    } catch (error) {
-      console.error(error);
-    }
+      const text = interaction.options.getString('text', true);
+      const role = interaction.options.getRole('role', true);
+      const channel = interaction.channel;
+      const replyError = description => interaction.editReply({ embeds: [{ description, color: 0x5865F2 }] });
 
-    const initialParticipants = [];
-    const targetRole = await interaction.guild.roles.fetch(role.id);
-    
-    if (targetRole) {
-      targetRole.members.forEach(member => {
-        if (!member.user.bot) {
-          initialParticipants.push({
-            id: member.id,
-            name: member.displayName
-          });
+      await serialize(channel.id, async () => {
+        const targetRole = await interaction.guild.roles.fetch(role.id);
+        if (!targetRole || targetRole.id === interaction.guildId || targetRole.managed || !targetRole.editable) {
+          await replyError('Botが付与・解除できる参加者ロールを選んでください。');
+          return;
         }
+
+        const config = st.get(interaction.guildId);
+        const previous = config.entry[channel.id];
+        const saved = profiles(interaction.guildId);
+        const participants = new Map();
+        // Keep known participants from the current recruitment when reusing its role.
+        if (previous?.roleId === role.id) {
+          for (const player of previous.participants) participants.set(player.id, player);
+        }
+        // Use cached role members without waiting for a server-wide Gateway request.
+        for (const member of targetRole.members.values()) {
+          if (member.user.bot || participants.has(member.id)) continue;
+          participants.set(member.id, { id: member.id, name: member.displayName, ...saved[member.id] });
+        }
+        const data = { text, roleId: role.id, participants: [...participants.values()] };
+        posted = await channel.send(panel(data));
+        config.entry[channel.id] = { ...data, msg: posted.id };
+        if (!await st.save(interaction.guild)) {
+          // Preserve the previous configuration if this message can be rolled back.
+          await posted.delete();
+          if (previous) config.entry[channel.id] = previous;
+          else delete config.entry[channel.id];
+          posted = undefined;
+          await replyError('募集を保存できませんでした。#bot-config にBotが投稿・ファイル添付できるか確認してください。');
+          return;
+        }
+        await interaction.deleteReply().catch(error => console.error('/entry の処理中表示を消せませんでした:', error));
       });
+    } catch (error) {
+      console.error('/entry の募集作成に失敗:', error);
+      const description = posted
+        ? '募集は投稿されましたが、設定を保存できませんでした。#bot-config の権限を確認してください。'
+        : '募集を投稿できませんでした。Botの投稿・埋め込み権限と、参加者ロールの設定を確認してください。';
+      await interaction.editReply({ embeds: [{ description, color: 0x5865F2 }] });
     }
-
-    const data = {
-      text: text,
-      roleId: role.id,
-      participants: initialParticipants
-    };
-
-    await serialize(channel.id, async () => {
-      const saved = profiles(interaction.guildId);
-      for (const player of initialParticipants) Object.assign(player, saved[player.id]);
-      const response = await channel.send(panel(data));
-      st.get(interaction.guildId).entry[channel.id] = { ...data, msg: response.id };
-      await st.save(interaction.guild);
-    });
-    await interaction.deleteReply();
   },
 };

@@ -76,7 +76,16 @@ module.exports = {
       if (interaction.guild && !['setup', 'setgenshin', 'servers'].includes(interaction.commandName) && !st.findCh(interaction.guild)) {
         return interaction.reply({ content: '⚠️ このBotは設定保存用の #bot-config が必要です。サーバー管理者が `/setup` を実行してください。原神サーバーとして登録する場合は `/setgenshin` でも準備できます。操作は #bot-config の管理パネルから行ってください。', allowedMentions: { parse: [] } });
       }
-      try { await command.execute(interaction, client); } catch (error) { console.error(error); }
+      try {
+        await command.execute(interaction, client);
+      } catch (error) {
+        console.error('コマンド実行エラー:', interaction.commandName, error);
+        if (interaction.commandName === 'entry' && !interaction.replied) {
+          const payload = { embeds: [{ description: '大会募集を開始できませんでした。もう一度お試しください。', color: 0x5865F2 }] };
+          if (interaction.deferred) await interaction.editReply(payload).catch(() => null);
+          else await interaction.reply({ ...payload, flags: MessageFlags.Ephemeral }).catch(() => null);
+        }
+      }
       return;
     }
 

@@ -220,3 +220,52 @@ test('lost board metadata recovers the original message and a deleted post is re
   assert.equal(f.sends.length, 2);
   assert.notEqual(venue.messageId, original);
 }));
+
+test('designated channel is persisted and its setup button creates venues with an automatic board', async () => isolated(async () => {
+  const f = fixture();
+  f.channel.id = model.DEFAULT_CHANNEL;
+  const data = model.config(f.guild.id);
+  const unassigned = model.addVenue(data, '未設定の会場');
+  const elsewhere = model.addVenue(data, '別の会場');
+  elsewhere.channelId = 'other-channel';
+  await panel.ensureSetup(f.client);
+  assert.equal(data.channelId, model.DEFAULT_CHANNEL);
+  assert.equal(unassigned.channelId, model.DEFAULT_CHANNEL);
+  assert.equal(elsewhere.channelId, 'other-channel');
+  const original = data.setupMessageId;
+  await panel.ensureSetup(f.client);
+  assert.equal(f.sends.length, 1);
+  delete data.setupMessageId;
+  await panel.ensureSetup(f.client);
+  assert.equal(data.setupMessageId, original);
+  assert.equal(f.sends.length, 1);
+  const denied = f.interaction('visit_manage'); denied.memberPermissions.has = () => false;
+  await panel.handle(denied);
+  assert.match(denied.responses[0].embeds[0].toJSON().description, /管理者/);
+  const open = f.interaction('visit_manage');
+  await panel.handle(open);
+  const add = f.interaction(idFrom(open.responses[0], 'add'));
+  await panel.handle(add);
+  const submit = f.interaction(add.responses[0].data.custom_id);
+  submit.fields.getTextInputValue = () => '新しい会場';
+  await panel.handle(submit);
+  const venue = data.venues.at(-1);
+  assert.equal(venue.channelId, model.DEFAULT_CHANNEL);
+  assert.ok(venue.messageId);
+  assert.equal(f.sends.length, 2);
+}));
+
+test('failed channel setup cannot publish a panel or leave an unsaved channel assignment', async () => isolated(async () => {
+  const f = fixture();
+  const venue = model.addVenue(model.config(f.guild.id), '会場');
+  f.channel.permissionsFor = () => ({ has: () => false });
+  await assert.rejects(panel.ensureSetup(f.client), /権限/);
+  assert.equal(f.sends.length, 0);
+  assert.equal(model.config(f.guild.id).channelId, undefined);
+  f.channel.permissionsFor = () => ({ has: () => true });
+  st.save = async () => false;
+  await assert.rejects(panel.ensureSetup(f.client), /保存/);
+  assert.equal(f.sends.length, 0);
+  assert.equal(model.config(f.guild.id).channelId, undefined);
+  assert.equal(model.config(f.guild.id).venues.find(item => item.id === venue.id).channelId, null);
+}));

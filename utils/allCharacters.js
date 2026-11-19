@@ -1,0 +1,88 @@
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
+const st = require('./store');
+const enka = require('./enka');
+const { isGI } = require('./gi');
+const store = require('./hoyolabStore');
+const links = require('./hoyolabLink');
+const PAGE_SIZE = 20;
+const button = (owner, action, label, style = ButtonStyle.Secondary) => new ButtonBuilder()
+  .setCustomId(`allchar:${owner}:${action}`).setLabel(label).setStyle(style);
+const embed = text => new EmbedBuilder().setColor('#1D9E75').setDescription(text);
+const payload = text => ({ embeds: [embed(text)], components: [], allowedMentions: { parse: [] } });
+const width = value => [...value].reduce((sum, char) => sum + (char.codePointAt(0) > 255 ? 2 : 1), 0);
+
+function render(owner, result, page = 0) {
+  const value = result.value;
+  if (!value) {
+    const response = payload('HoYoLabと連携すると、所持しているキャラ全員の名前・レベル・凸数を表示できます。');
+    response.embeds[0].setTitle('所持キャラクター一覧');
+    response.components = [new ActionRowBuilder().addComponents(button(owner, 'connect', 'HoYoLabと連携', ButtonStyle.Primary), button(owner, 'delete', '🗑️'))];
+    return response;
+  }
+  const pages = Math.max(1, Math.ceil(value.characters.length / PAGE_SIZE));
+  const current = Math.max(0, Math.min(pages - 1, Math.trunc(Number(page) || 0)));
+  const characters = value.characters.slice(current * PAGE_SIZE, (current + 1) * PAGE_SIZE);
+  const nameWidth = Math.max(8, ...characters.map(character => width(character.name)));
+  const lines = characters.map(character => `${character.name.replace(/[\r\n`]/g, '')}${' '.repeat(Math.max(2, nameWidth - width(character.name) + 2))}Lv.${String(character.level).padEnd(3)} ${character.constellation}凸`);
+  const response = payload(characters.length ? '```text\nキャラ名' + ' '.repeat(Math.max(2, nameWidth - 8 + 2)) + 'レベル  凸数\n' + lines.join('\n') + '\n```' : '所持キャラの登録はありません。');
+  response.embeds[0].setTitle(`所持キャラクター一覧（${value.characters.length}名）`);
+  const fetched = new Date(value.fetchedAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', hour12: false });
+  const note = result.status === 'auth' ? ' • 再連携が必要です。保存済みの一覧を表示中' : result.status === 'cached' ? ' • 更新できなかったため保存済みの一覧を表示中' : '';
+  response.embeds[0].setFooter({ text: `HoYoLab • UID ${value.uid} • 取得 ${fetched} • ${current + 1}/${pages}${note}` });
+  const controls = [];
+  if (pages > 1) controls.push(button(owner, `page_${current - 1}`, '◀').setDisabled(current === 0), button(owner, `page_${current + 1}`, '▶').setDisabled(current === pages - 1));
+  controls.push(button(owner, 'refresh', '更新'), button(owner, 'connect', result.status === 'auth' ? 'HoYoLabへ再連携' : '連携し直す'), button(owner, 'delete', '🗑️'));
+  response.components = [new ActionRowBuilder().addComponents(...controls), new ActionRowBuilder().addComponents(button(owner, 'unlink', '連携を解除'))];
+  return response;
+}
+
+function uidFor(interaction) {
+  return enka.cleanUid(st.get(interaction.guildId).intro?.[interaction.user.id]?.uid || '');
+}
+
+async function execute(interaction) {
+  if (!isGI(interaction.guildId)) return interaction.reply(payload('このサーバーでは原神機能が有効になっていません。'));
+  const uid = uidFor(interaction);
+  if (!uid) return interaction.reply(payload('先にサーバーのUID登録パネルから、自分のUIDを登録してください。'));
+  await interaction.deferReply();
+  try { return await interaction.editReply(render(interaction.user.id, await store.roster(interaction.guild, interaction.user.id, uid))); }
+  catch { return interaction.editReply(payload('一覧を表示できませんでした。少し待ってから試してください。#bot-config に保存できることも確認してください。')); }
+}
+
+async function handle(interaction) {
+  const [, owner, action] = interaction.customId.split(':');
+  if (owner !== interaction.user.id || !isGI(interaction.guildId)) return interaction.reply(payload('コマンドを実行した本人が操作してください。'));
+  if (action === 'delete') { await interaction.deferUpdate(); return interaction.deleteReply(); }
+  if (action === 'unlink') {
+    const response = payload('bot-configに保存したHoYoLabの認証情報とキャラ一覧データを削除しますか？');
+    response.components = [new ActionRowBuilder().addComponents(button(owner, 'unlink_confirm', '連携を解除する', ButtonStyle.Danger), button(owner, 'cancel', '戻る'))];
+    return interaction.update(response);
+  }
+  if (action === 'unlink_confirm') {
+    await interaction.deferUpdate();
+    try { links.revoke(interaction.guildId, owner); await store.unlink(interaction.guild, owner); return interaction.editReply(render(owner, { value: null, status: 'unlinked' })); }
+    catch { return interaction.editReply(payload('連携情報を削除できませんでした。#bot-config の保存権限を確認してやり直してください。')); }
+  }
+  const uid = uidFor(interaction);
+  if (!uid) return interaction.reply(payload('先にサーバーのUID登録パネルから、自分のUIDを登録してください。'));
+  if (action === 'connect') {
+    // An authentication link can bind an account. Only its owner may receive it.
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    try {
+      const url = links.create(interaction.guildId, owner, uid);
+      const response = payload('本人専用の連携リンクです。有効期限は10分です。\n認証情報を含むリンクのため、この案内だけ本人に表示しています。');
+      response.components = [new ActionRowBuilder().addComponents(new ButtonBuilder().setLabel('HoYoLab連携ページを開く').setStyle(ButtonStyle.Link).setURL(url))];
+      return interaction.editReply(response);
+    } catch { return interaction.editReply(payload('HoYoLab連携の設定がまだ完了していません。Bot管理者に連絡してください。')); }
+  }
+  await interaction.deferUpdate();
+  try {
+    const result = action.startsWith('page_') || action === 'cancel'
+      ? { value: store.entry(interaction.guildId, owner), status: store.entry(interaction.guildId, owner)?.needsAuth ? 'auth' : 'ok' }
+      : await store.roster(interaction.guild, owner, uid, action === 'refresh');
+    if (result.value?.uid !== uid) result.value = null;
+    return interaction.editReply(render(owner, result, action.startsWith('page_') ? Number(action.slice(5)) : 0));
+  } catch { return interaction.editReply(payload('一覧を更新できませんでした。少し待ってから試してください。')); }
+}
+
+module.exports = { execute, handle, render };

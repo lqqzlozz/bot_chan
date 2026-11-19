@@ -3,7 +3,7 @@ const { isGI, guildIds } = require('./gi');
 
 // Only commands without an equivalent management-panel action are published.
 // Legacy command handlers remain in the repository for internal compatibility.
-const VISIBLE_COMMANDS = new Set(['entry', 'servers', 'spec', 'stats-pull', 'stats-usage', 'stats-team', 'stats-char', 'visit']);
+const VISIBLE_COMMANDS = new Set(['entry', 'servers', 'spec', 'stats-pull', 'stats-usage', 'stats-team', 'stats-char', 'visit', 'all-char']);
 const visible = c => VISIBLE_COMMANDS.has(c.data.name);
 
 function guildCommands(client, id) {

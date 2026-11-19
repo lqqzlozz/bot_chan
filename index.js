@@ -60,6 +60,13 @@ if (fs.existsSync(commandsPath)) {
 // Render・UptimeRobotの常時起動用HTTPサーバー（ポート3000）
 const PORT = process.env.PORT || 3000;
 http.createServer((req, res) => {
+  if (require('./utils/hoyolabLink').serve(req, res)) return;
+  if (req.url?.split('?')[0] === '/api/hoyolab') {
+    return require('./utils/hoyolabLink').handle(req, res, client).catch(() => {
+      if (!res.headersSent) res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ error: '連携処理を完了できませんでした。' }));
+    });
+  }
   if (req.url?.startsWith('/api/spec-post?')) return require('./utils/specSessions').handle(req, res, client);
   if (req.url?.split('?')[0] === '/spec' || req.url?.split('?')[0] === '/spec/') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" });

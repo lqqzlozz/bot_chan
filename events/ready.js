@@ -18,6 +18,7 @@ module.exports = {
     // 設定を先に戻し、登録済み原神サーバーのコマンドも復元する。
     await st.loadAll(client);
     const visit = require('../utils/visitPanel');
+    await visit.ensureSetup(client).catch(error => console.error('来場予約の設定パネル設置失敗:', error.message));
     await visit.tick(client, true).catch(error => console.error('来場予約表の復元失敗:', error.message));
     setInterval(() => visit.tick(client).catch(error => console.error('来場予約表の更新失敗:', error.message)), 60000);
     for (const guild of client.guilds.cache.values()) {

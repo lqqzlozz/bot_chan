@@ -186,6 +186,13 @@ function cancellationScreen(session) {
 
 async function handle(interaction) {
   if (interaction.guildId !== model.GUILD) return interaction.reply(payload('来場予約', 'この機能は社内サーバーで利用できます。'));
+  if (interaction.customId === 'visit_manage') {
+    const data = model.config(interaction.guildId);
+    if (interaction.channelId !== data.channelId || interaction.message?.id !== data.setupMessageId) {
+      return interaction.reply(payload('来場予約', '最新の設定パネル、または /visit から開いてください。'));
+    }
+    return openManagement(interaction);
+  }
   const [prefix, key, action] = interaction.customId.split(':');
   if (prefix !== 'visit_session') {
     const venue = model.config(interaction.guildId).venues.find(item => item.id === key);
@@ -279,8 +286,10 @@ async function handleManagement(interaction, session, action) {
         if (action === 'add_submit') session.venueId = model.addVenue(data, name).id;
         else model.renameVenue(data, session.venueId, name);
       });
-      if (action === 'rename_submit') await publish(interaction.guild, session.venueId);
-      return interaction.editReply(management(session));
+      const warning = await publish(interaction.guild, session.venueId);
+      const result = management(session);
+      if (warning) result.embeds[0].addFields({ name: '表示更新', value: warning });
+      return interaction.editReply(result);
     });
   }
   if (action === 'channel' && venue) {
@@ -347,6 +356,46 @@ async function handleCancellation(interaction, session, action) {
   }
 }
 
+async function ensureSetup(client) {
+  const guild = client.guilds.cache.get(model.GUILD);
+  if (!guild) return;
+  return model.serialized(guild.id, async () => {
+    const data = model.config(guild.id);
+    const channelId = data.channelId || model.DEFAULT_CHANNEL;
+    const channel = await guild.channels.fetch(channelId);
+    const me = guild.members.me || await guild.members.fetchMe();
+    const required = [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks, PermissionFlagsBits.AttachFiles, PermissionFlagsBits.ReadMessageHistory];
+    if (channel?.type !== ChannelType.GuildText || !channel.permissionsFor(me)?.has(required)) {
+      throw new Error('来場予約の表示先でBotの閲覧・投稿・埋め込み・添付・履歴の権限を許可してください。');
+    }
+    if (!data.channelId || data.venues.some(venue => !venue.channelId)) {
+      await model.saveChange(guild, current => {
+        current.channelId = channelId;
+        for (const venue of current.venues) {
+          if (!venue.channelId) { venue.channelId = channelId; venue.dirty = true; }
+        }
+      });
+    }
+    let message = await fetchMessage(channel, data.setupMessageId);
+    if (message && message.author.id !== client.user.id) throw new Error('来場予約の設定パネルを確認できません。');
+    if (!message) {
+      const recent = await channel.messages.fetch({ limit: 100 });
+      message = recent.find(item => item.author.id === client.user.id && item.components?.some(component =>
+        component.components?.some(button => button.customId === 'visit_manage')));
+    }
+    if (!message) {
+      message = await channel.send(payload('来場予約一覧', '見学会場を登録すると、このチャンネルに会場別の予約表が表示されます。\n会場の追加・名前の変更・表示先の設定は、管理者が下のボタンから操作できます。', [
+        row(button('visit_manage', '会場・予約表を設定', ButtonStyle.Primary)),
+      ]));
+    }
+    if (data.setupMessageId !== message.id) {
+      data.setupMessageId = message.id;
+      if (!await st.save(guild)) throw new Error('来場予約の設定パネルを保存できませんでした。');
+    }
+    console.log('来場予約の設定パネルを準備しました:', channel.id, message.id);
+  });
+}
+
 async function tick(client, force = false) {
   const guild = client.guilds.cache.get(model.GUILD);
   if (!guild) return;
@@ -367,4 +416,4 @@ async function reportError(interaction, error) {
   return interaction.reply(response);
 }
 
-module.exports = { openManagement, handle, tick, reportError, boardPayload };
+module.exports = { openManagement, handle, tick, ensureSetup, reportError, boardPayload };

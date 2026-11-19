@@ -2,6 +2,7 @@ const { randomUUID } = require('node:crypto');
 const st = require('./store');
 
 const GUILD = '1496054346385723472';
+const DEFAULT_CHANNEL = '1572797944158101627';
 const DAYS_PER_PAGE = 3;
 const locks = new Map();
 
@@ -48,7 +49,7 @@ function addVenue(data, name) {
   const cleaned = normalize(name);
   if (!cleaned || cleaned.length > 60) throw new Error('会場名は1〜60文字で入力してください。');
   if (data.venues.some(venue => normalize(venue.name) === cleaned)) throw new Error('同じ名前の会場が登録されています。');
-  const venue = { id: randomUUID(), name: cleaned, channelId: null, messageId: null, page: 0, dirty: true };
+  const venue = { id: randomUUID(), name: cleaned, channelId: data.channelId || null, messageId: null, page: 0, dirty: true };
   data.venues.push(venue);
   return venue;
 }
@@ -94,4 +95,4 @@ function schedule(data, venueId, page = 0, fromDate = today()) {
   return { dates: visibleDates, times: [...times].sort(), bookings: bookings.filter(item => visibleDates.includes(item.date)), page: current, pages, total: bookings.length };
 }
 
-module.exports = { GUILD, DAYS_PER_PAGE, today, validDate, validTime, config, serialized, saveChange, addVenue, renameVenue, addBooking, schedule };
+module.exports = { GUILD, DEFAULT_CHANNEL, DAYS_PER_PAGE, today, validDate, validTime, config, serialized, saveChange, addVenue, renameVenue, addBooking, schedule };

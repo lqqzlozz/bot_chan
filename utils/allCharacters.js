@@ -6,11 +6,15 @@ const store = require('./hoyolabStore');
 const links = require('./hoyolabLink');
 const { hiragana } = require('./genshinStatsDetailsView');
 const collator = new Intl.Collator('ja');
+const rarityById = new Map(require('../data/genshinStats.json').characters.map(row => [String(row.avatarId), row.rarity]));
 const button = (owner, action, label, style = ButtonStyle.Secondary) => new ButtonBuilder()
   .setCustomId(`allchar:${owner}:${action}`).setLabel(label).setStyle(style);
 const embed = text => new EmbedBuilder().setColor('#1D9E75').setDescription(text);
 const payload = text => ({ embeds: [embed(text)], components: [], allowedMentions: { parse: [] } });
-const width = value => [...value].reduce((sum, char) => sum + (char.codePointAt(0) > 255 ? 2 : 1), 0);
+const rarityFor = character => {
+  const rarity = character.rarity ?? rarityById.get(String(character.id));
+  return rarity === 105 ? 5 : [4, 5].includes(rarity) ? rarity : '?';
+};
 
 function render(owner, result) {
   const value = result.value;
@@ -23,11 +27,12 @@ function render(owner, result) {
   const characters = [...value.characters].sort((a, b) =>
     b.level - a.level || b.constellation - a.constellation ||
     collator.compare(hiragana(a.name), hiragana(b.name)) || String(a.id).localeCompare(String(b.id)));
-  const nameWidth = Math.max(8, ...characters.map(character => width(character.name)));
-  const lines = characters.map(character => `${character.name.replace(/[\r\n`]/g, '')}${' '.repeat(Math.max(2, nameWidth - width(character.name) + 2))}Lv.${String(character.level).padEnd(3)} ${character.constellation}凸`);
+  // Put variable-width names last: Android's Japanese font fallback does not
+  // reliably match the width of ASCII spaces, even inside a code block.
+  const lines = characters.map(character => `★${rarityFor(character)}   Lv.${String(character.level).padStart(3)}  ${character.constellation}凸   ${character.name.replace(/[\r\n`]/g, '')}`);
   // Keep every character in the same message; long lists use consecutive embeds
   // to stay within Discord's per-description limit without page controls.
-  const header = '```text\nキャラ名' + ' '.repeat(Math.max(2, nameWidth - 8 + 2)) + 'レベル  凸数\n';
+  const header = '```text\nレア  レベル  凸数  キャラ名\n';
   const sections = [];
   let section = header;
   for (const line of lines) {

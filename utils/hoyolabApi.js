@@ -143,7 +143,8 @@ function normalizeCharacters(data) {
     const id = String(item.id), level = item.level, constellation = item.actived_constellation_num;
     if (!/^\d+$/.test(id) || ids.has(id) || typeof item.name !== 'string' || !item.name.trim() || item.name.length > 80 || !Number.isInteger(level) || level < 1 || !Number.isInteger(constellation) || constellation < 0 || constellation > 6) throw new HoyoError('キャラ一覧に未対応の形式が含まれています。');
     ids.add(id);
-    return { id, name: item.name.trim(), level, constellation };
+    const rarity = [4, 5].includes(item.rarity) ? item.rarity : item.rarity === 105 ? 5 : undefined;
+    return { id, name: item.name.trim(), level, constellation, ...(rarity ? { rarity } : {}) };
   }).sort((a, b) => a.name.localeCompare(b.name, 'ja'));
 }
 

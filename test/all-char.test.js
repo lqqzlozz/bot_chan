@@ -58,12 +58,14 @@ test('encrypted cookies bind to both guild and user and reject tampering or a mi
 
 test('character data requires explicit levels and constellations and retains Japanese names', () => {
   const list = api.normalizeCharacters({ list: [
-    { id: 2, name: 'フリーナ', level: 90, actived_constellation_num: 0 },
-    { id: 1, name: 'ナヒーダ', level: 100, actived_constellation_num: 6 },
+    { id: 2, name: 'フリーナ', level: 90, actived_constellation_num: 0, rarity: 5 },
+    { id: 1, name: 'ナヒーダ', level: 100, actived_constellation_num: 6, rarity: 4 },
   ] });
   assert.deepEqual(list.map(item => item.name), ['ナヒーダ', 'フリーナ']);
   assert.equal(list[0].level, 100);
   assert.equal(list[1].constellation, 0);
+  assert.equal(list[0].rarity, 4);
+  assert.equal(list[1].rarity, 5);
   assert.throws(() => api.normalizeCharacters({ list: [{ id: 1, name: '名前', level: 90 }] }), /未対応/);
   assert.throws(() => api.normalizeCharacters({ avatars: [] }), /応答形式/);
 });
@@ -201,6 +203,21 @@ test('all owned characters fit in one message without paging, sorted by level, c
   assert.ok(sorted.indexOf('宵宮') < sorted.indexOf('雷電将軍'));
   assert.ok(sorted.indexOf('雷電将軍') < sorted.indexOf('ナヒーダ'));
   assert.equal(value.characters, characters);
+});
+
+test('numeric columns stay fixed before mixed-width names, and cached characters show their verified rarity', () => {
+  const value = { uid: '800000001', fetchedAt: Date.now(), characters: [
+    { id: '10000002', name: '神里綾華', level: 100, constellation: 6 },
+    { id: '10000021', name: 'アンバー', level: 90, constellation: 0 },
+    { id: '9999', name: 'ABC・長いキャラ名', level: 1, constellation: 2, rarity: 5 },
+    { id: '9998', name: '不明', level: 1, constellation: 0 },
+  ] };
+  const text = view.render('member', { value, status: 'ok' }).embeds[0].toJSON().description;
+  assert.ok(text.includes('★5   Lv.100  6凸   神里綾華'));
+  assert.ok(text.includes('★4   Lv. 90  0凸   アンバー'));
+  assert.ok(text.includes('★5   Lv.  1  2凸   ABC・長いキャラ名'));
+  assert.ok(text.includes('★?   Lv.  1  0凸   不明'));
+  assert.ok(text.split('\n').filter(line => line.startsWith('★')).every(line => line.indexOf('凸') === 14));
 });
 
 test('command is scoped to Genshin guilds', () => {

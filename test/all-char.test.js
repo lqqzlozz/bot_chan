@@ -181,7 +181,7 @@ test('initial reply never waits for the roster refresh and unlinked users need n
   } finally { store.roster = original; release?.({ value: null, status: 'unlinked' }); }
 }));
 
-test('all owned characters fit in one message without paging, sorted by level, constellation and Japanese reading', () => {
+test('all owned characters fit in one message, sorted by constellation, rarity, level and Japanese reading', () => {
   const names = require('../data/genshinCharacterNamesJa.json');
   const characters = Object.entries(names).map(([id, name]) => ({ id, name, level: 90, constellation: 6 }));
   const value = { uid: '800000001', fetchedAt: Date.now(), characters };
@@ -194,14 +194,19 @@ test('all owned characters fit in one message without paging, sorted by level, c
   assert.ok(!display.components.flatMap(item => item.toJSON().components).some(item => item.custom_id.includes(':page_')));
   assert.ok(text.indexOf('宵宮') < text.indexOf('雷電将軍'));
   const sorted = view.render('member', { value: { ...value, characters: [
-    { id: '1', name: '雷電将軍', level: 90, constellation: 2 },
-    { id: '2', name: '宵宮', level: 90, constellation: 2 },
-    { id: '3', name: 'ナヒーダ', level: 80, constellation: 6 },
-    { id: '4', name: 'フリーナ', level: 90, constellation: 6 },
+    { id: '1', name: '雷電将軍', level: 90, constellation: 2, rarity: 5 },
+    { id: '2', name: '宵宮', level: 90, constellation: 2, rarity: 5 },
+    { id: '3', name: 'ナヒーダ', level: 80, constellation: 6, rarity: 5 },
+    { id: '4', name: 'フリーナ', level: 90, constellation: 6, rarity: 5 },
+    { id: '5', name: '香菱', level: 100, constellation: 6, rarity: 4 },
+    { id: '6', name: '久岐忍', level: 1, constellation: 6, rarity: 4 },
   ] }, status: 'ok' }).embeds[0].toJSON().description;
   assert.ok(sorted.indexOf('フリーナ') < sorted.indexOf('宵宮'));
+  assert.ok(sorted.indexOf('フリーナ') < sorted.indexOf('ナヒーダ'));
+  assert.ok(sorted.indexOf('ナヒーダ') < sorted.indexOf('香菱'));
+  assert.ok(sorted.indexOf('香菱') < sorted.indexOf('久岐忍'));
+  assert.ok(sorted.indexOf('久岐忍') < sorted.indexOf('宵宮'));
   assert.ok(sorted.indexOf('宵宮') < sorted.indexOf('雷電将軍'));
-  assert.ok(sorted.indexOf('雷電将軍') < sorted.indexOf('ナヒーダ'));
   assert.equal(value.characters, characters);
 });
 

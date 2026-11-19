@@ -25,7 +25,7 @@ function render(owner, result) {
     return response;
   }
   const characters = [...value.characters].sort((a, b) =>
-    b.level - a.level || b.constellation - a.constellation ||
+    b.constellation - a.constellation || (Number(rarityFor(b)) || 0) - (Number(rarityFor(a)) || 0) || b.level - a.level ||
     collator.compare(hiragana(a.name), hiragana(b.name)) || String(a.id).localeCompare(String(b.id)));
   // Put variable-width names last: Android's Japanese font fallback does not
   // reliably match the width of ASCII spaces, even inside a code block.

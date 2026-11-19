@@ -14,6 +14,12 @@ const inactive = require('../utils/inactive');
 module.exports = {
   name: 'interactionCreate',
   async execute(interaction, client) {
+    if (interaction.customId?.startsWith('visit_') && (interaction.isButton() || interaction.isStringSelectMenu() || interaction.isChannelSelectMenu() || interaction.isModalSubmit())) {
+      const visit = require('../utils/visitPanel');
+      try { await visit.handle(interaction); }
+      catch (error) { await visit.reportError(interaction, error).catch(() => null); }
+      return;
+    }
     if ((interaction.isButton() || interaction.isModalSubmit() || interaction.isUserSelectMenu() || interaction.isStringSelectMenu()) && interaction.customId?.startsWith('entry_')) {
       try { await require('../utils/entryPanel').handle(interaction); }
       catch (error) {

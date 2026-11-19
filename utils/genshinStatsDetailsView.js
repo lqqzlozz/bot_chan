@@ -80,4 +80,4 @@ function characterFields(data, row) {
     {name:'天賦レベル平均',value:'集計データなし'}
   ];
 }
-module.exports={label,characterGroups,characterMenus,characterIcon,teamSections,characterFields};
+module.exports={label,hiragana,characterGroups,characterMenus,characterIcon,teamSections,characterFields};

@@ -15,8 +15,9 @@ module.exports = {
   name: 'interactionCreate',
   async execute(interaction, client) {
     if (interaction.customId?.startsWith('allchar:') && interaction.isButton()) {
-      try { await require('../utils/allCharacters').handle(interaction); }
-      catch { console.error('所持キャラ一覧の操作を完了できませんでした。'); }
+      const allCharacters = require('../utils/allCharacters');
+      try { await allCharacters.handle(interaction); }
+      catch (error) { await allCharacters.reportError(interaction, error); }
       return;
     }
     if (interaction.customId?.startsWith('visit_') && (interaction.isButton() || interaction.isStringSelectMenu() || interaction.isChannelSelectMenu() || interaction.isModalSubmit())) {

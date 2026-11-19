@@ -15,14 +15,14 @@ function publicOrigin() {
   return new URL(value).origin;
 }
 
-function create(guildId, userId, uid) {
+function create(guildId, userId, uid, onSuccess) {
   store.encryptionKey();
   const origin = publicOrigin();
   for (const [key, value] of sessions) if (value.expires < Date.now()) sessions.delete(key);
   if (sessions.size >= 1000) throw new Error('連携処理が混み合っています。少し待ってから試してください。');
   const token = crypto.randomBytes(32).toString('hex');
   const session = { guildId, userId, uid, expires: Date.now() + TTL, deviceId: crypto.randomBytes(8).toString('hex'),
-    attempts: 0, busy: false, credentials: null, challenge: null, ticket: null };
+    attempts: 0, busy: false, credentials: null, challenge: null, ticket: null, onSuccess };
   sessions.set(token, session);
   setTimeout(() => sessions.delete(token), TTL).unref();
   // Fragments are not included in HTTP access logs or Referer headers.
@@ -141,7 +141,11 @@ async function handle(req, res, client) {
     session.attempts++;
     if (session.attempts > 12) return send(res, 429, { error: '試行回数が多いため、Discordから連携をやり直してください。' });
     const result = await processLogin(session, body, guild);
-    if (result.step === 'success') sessions.delete(token);
+    if (result.step === 'success') {
+      sessions.delete(token);
+      try { await session.onSuccess?.(store.entry(guild.id, session.userId)); }
+      catch { console.error('all-char: 連携後のDiscord表示更新に失敗'); }
+    }
     return send(res, 200, result);
   } catch (error) {
     // Never log bodies, passwords, captcha tickets, cookies or upstream objects.

@@ -50,8 +50,8 @@ function render(owner, result) {
   const note = result.status === 'auth' ? ' • 再連携が必要です。保存済みの一覧を表示中' : result.status === 'cached' ? ' • 更新できなかったため保存済みの一覧を表示中' : '';
   response.embeds.at(-1).setFooter({ text: `HoYoLab • UID ${value.uid} • 取得 ${fetched}${note}` });
   const controls = [];
-  controls.push(button(owner, 'refresh', '更新'), button(owner, 'connect', result.status === 'auth' ? 'HoYoLabへ再連携' : '連携し直す'), button(owner, 'delete', '🗑️'));
-  response.components = [new ActionRowBuilder().addComponents(...controls), new ActionRowBuilder().addComponents(button(owner, 'unlink', '連携を解除'))];
+  controls.push(button(owner, 'refresh', '更新'), button(owner, 'delete', '🗑️'));
+  response.components = [new ActionRowBuilder().addComponents(...controls)];
   return response;
 }
 
@@ -70,7 +70,9 @@ async function execute(interaction) {
   try {
     // Respond to the interaction itself. Initial linking never needs a network
     // request, and an existing snapshot can be displayed before refreshing it.
-    await interaction.reply(render(interaction.user.id, { value, status: value?.needsAuth ? 'auth' : 'ok' }));
+    const response = render(interaction.user.id, { value, status: value?.needsAuth ? 'auth' : 'ok' });
+    if (!value) response.flags = MessageFlags.Ephemeral;
+    await interaction.reply(response);
     console.log('all-char: 初回応答完了', { elapsedMs: Date.now() - started });
     if (!value || value.needsAuth) return;
     const result = await store.roster(interaction.guild, interaction.user.id, uid);
@@ -83,6 +85,34 @@ async function reportError(interaction, error) {
   const response = payload('一覧を表示できませんでした。もう一度 /all-char を実行してください。');
   if (interaction.replied || interaction.deferred) return interaction.editReply(response).catch(() => null);
   return interaction.reply(response).catch(() => null);
+}
+
+async function showLink(interaction, owner, uid) {
+  let removePrompt;
+  const source = interaction.message;
+  const url = links.create(interaction.guildId, owner, uid, async value => {
+    const response = render(owner, { value, status: 'ok' });
+    const tasks = [];
+    if (source?.flags?.has(MessageFlags.Ephemeral)) {
+      // A private initial reply cannot become public: publish the roster once,
+      // then remove both private prompts using this interaction's webhook.
+      await interaction.channel.send(response);
+      tasks.push(interaction.webhook.deleteMessage(source.id));
+    } else if (source) tasks.push(source.edit(response));
+    if (removePrompt) tasks.push(removePrompt());
+    const results = await Promise.allSettled(tasks);
+    if (results.some(result => result.status === 'rejected')) console.error('all-char: 連携案内の後片付けに失敗');
+  });
+  const response = payload('HoYoLabにログインして連携してください。連携が終わると、この案内は自動で消えます。\nリンクの有効期限は10分です。');
+  response.components = [new ActionRowBuilder().addComponents(new ButtonBuilder().setLabel('HoYoLab連携ページを開く').setStyle(ButtonStyle.Link).setURL(url))];
+  if (interaction.deferred || interaction.replied) {
+    const message = await interaction.followUp({ ...response, flags: MessageFlags.Ephemeral });
+    removePrompt = () => interaction.webhook.deleteMessage(message.id);
+  } else {
+    await interaction.reply({ ...response, flags: MessageFlags.Ephemeral });
+    removePrompt = () => interaction.deleteReply();
+  }
+  console.log('all-char: 本人専用の連携案内を表示');
 }
 
 async function handle(interaction) {
@@ -104,12 +134,7 @@ async function handle(interaction) {
   if (action === 'connect') {
     // An authentication link can bind an account. Only its owner may receive it.
     try {
-      const url = links.create(interaction.guildId, owner, uid);
-      const response = payload('本人専用の連携リンクです。有効期限は10分です。\n認証情報を含むリンクのため、この案内だけ本人に表示しています。');
-      response.components = [new ActionRowBuilder().addComponents(new ButtonBuilder().setLabel('HoYoLab連携ページを開く').setStyle(ButtonStyle.Link).setURL(url))];
-      await interaction.reply({ ...response, flags: MessageFlags.Ephemeral });
-      console.log('all-char: 本人専用の連携案内を表示');
-      return;
+      return await showLink(interaction, owner, uid);
     } catch (error) {
       console.error('all-char: 連携案内の表示失敗', { code: Number(error.code) || null });
       if (interaction.replied || interaction.deferred) return reportError(interaction, error);
@@ -122,7 +147,8 @@ async function handle(interaction) {
       ? { value: store.entry(interaction.guildId, owner), status: store.entry(interaction.guildId, owner)?.needsAuth ? 'auth' : 'ok' }
       : await store.roster(interaction.guild, owner, uid, action === 'refresh');
     if (result.value?.uid !== uid) result.value = null;
-    return interaction.editReply(render(owner, result));
+    await interaction.editReply(render(owner, result));
+    if (action === 'refresh' && (!result.value || result.status === 'auth')) return showLink(interaction, owner, uid);
   } catch { return interaction.editReply(payload('一覧を更新できませんでした。少し待ってから試してください。')); }
 }
 

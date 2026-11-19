@@ -1,6 +1,6 @@
 const { EmbedBuilder, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle,
   StringSelectMenuBuilder, ChannelSelectMenuBuilder, ChannelType, ModalBuilder,
-  TextInputBuilder, TextInputStyle, PermissionFlagsBits } = require('discord.js');
+  TextInputBuilder, TextInputStyle, PermissionFlagsBits, escapeMarkdown } = require('discord.js');
 const { randomUUID } = require('node:crypto');
 const model = require('./visitReservations');
 const st = require('./store');
@@ -109,12 +109,13 @@ function dateScreen(session) {
   const values = Array.from({ length: maxDay }, (_, i) => i + 1).filter(value => session.dayPage ? value >= 25 : value <= 24);
   const days = options(values, '日', day);
   days.push({ label: session.dayPage ? '1〜24日を表示' : '25〜31日を表示', value: 'switch' });
-  return payload('来場日を選択', `**${venue?.name || '見学会場を選択してください'}**\n現在の選択　**${year}年${month}月${day}日**`, [
+  const completed = session.lastCompleted ? `\n\n**入力完了**　${escapeMarkdown(session.lastCompleted)}\n続けて入力するか、「終了」で閉じてください。` : '';
+  return payload('来場日を選択', `**${venue?.name || '見学会場を選択してください'}**\n現在の選択　**${year}年${month}月${day}日**${completed}`, [
     select(actionId(session, 'booking_venue'), '見学会場を選択', venueOptions(data, session)),
     select(actionId(session, 'year'), '年', options([currentYear, currentYear + 1, currentYear + 2, currentYear + 3], '年', year)),
     select(actionId(session, 'month'), '月', options(Array.from({ length: 12 }, (_, i) => i + 1), '月', month)),
     select(actionId(session, 'day'), '日', days),
-    row(button(actionId(session, 'time'), '時間を選ぶ', ButtonStyle.Primary), button(actionId(session, 'close'), '終了')),
+    row(button(actionId(session, 'time'), session.lastCompleted ? '続けて入力' : '時間を選ぶ', ButtonStyle.Primary), button(actionId(session, 'close'), '終了')),
   ]);
 }
 
@@ -122,10 +123,12 @@ function timeScreen(session) {
   session.screen = 'time';
   const venue = model.config(session.guildId).venues.find(item => item.id === session.venueId);
   const [hour, minute] = session.time.split(':');
-  return payload('来場時間を選択', `**${venue?.name || '見学会場'}**\n**${session.date}　${session.time}**\n9時半など、通常の表示時間外も登録できます。`, [
+  const name = session.name ? `\nお客様名　**${escapeMarkdown(session.name)} 様**` : '';
+  return payload('来場時間を選択', `**${venue?.name || '見学会場'}**\n**${session.date}　${session.time}**${name}\n9時半など、通常の表示時間外も登録できます。`, [
     select(actionId(session, 'hour'), '時', options(Array.from({ length: 24 }, (_, i) => i), '時', hour)),
     select(actionId(session, 'minute'), '分', options([0, 15, 30, 45], '分', minute)),
-    row(button(actionId(session, 'name'), 'お客様名を入力', ButtonStyle.Primary), button(actionId(session, 'date'), '日付に戻る'), button(actionId(session, 'close'), '終了')),
+    row(button(actionId(session, 'name'), session.name ? 'お客様名を変更' : 'お客様名を入力', ButtonStyle.Primary),
+      button(actionId(session, 'date'), '日付に戻る'), button(actionId(session, session.confirmationId ? `finish:${session.confirmationId}` : 'finish'), '入力完了', ButtonStyle.Success).setDisabled(!session.name)),
   ]);
 }
 
@@ -240,7 +243,7 @@ function cancellationScreen(session) {
 
 async function handle(interaction) {
   await handleAction(interaction);
-  if (interaction.guildId === model.GUILD && !interaction.customId.startsWith('visit_page:')) await saveDrafts(interaction.guild);
+  if (interaction.guildId === model.GUILD && !interaction.customId.startsWith('visit_page:') && interaction.customId.split(':')[2] !== 'finish') await saveDrafts(interaction.guild);
 }
 
 async function handleAction(interaction) {
@@ -252,7 +255,7 @@ async function handleAction(interaction) {
     }
     return openManagement(interaction);
   }
-  const [prefix, key, action] = interaction.customId.split(':');
+  const [prefix, key, action, confirmationId] = interaction.customId.split(':');
   if (!['visit_session', 'visit_resume'].includes(prefix)) {
     const venue = model.config(interaction.guildId).venues.find(item => item.id === key);
     if (!venue || venue.channelId !== interaction.channelId || venue.messageId !== interaction.message?.id) return interaction.reply(payload('来場予約', '最新の予約表から操作してください。'));
@@ -324,15 +327,36 @@ async function handleAction(interaction) {
     session.time = action === 'hour' ? interaction.values[0] + ':' + minute : hour + ':' + interaction.values[0];
     return interaction.update(timeScreen(session));
   }
-  if (action === 'name') return interaction.showModal(textModal(session, 'submit', '来場予約を登録', 'お客様名（敬称略）'));
+  if (action === 'name') return interaction.showModal(textModal(session, 'submit', 'お客様名を入力', 'お客様名（敬称略）', session.name || ''));
   if (action === 'submit') {
+    session.name = model.bookingName(interaction.fields.getTextInputValue('text'));
+    session.confirmationId = randomUUID();
+    return interaction.update(timeScreen(session));
+  }
+  if (action === 'finish') {
     await interaction.deferUpdate();
     return model.serialized(interaction.guildId, async () => {
-      await model.saveChange(interaction.guild, data => model.addBooking(data, { venueId: session.venueId, date: session.date, time: session.time, name: interaction.fields.getTextInputValue('text'), userId: interaction.user.id }));
-      delete drafts(interaction.guildId)[key];
+      if (!session.name || session.confirmationId !== confirmationId) return interaction.editReply(session.name || !session.lastCompleted ? timeScreen(session) : dateScreen(session));
+      const previous = { name: session.name, time: session.time, lastCompleted: session.lastCompleted, screen: session.screen, confirmationId: session.confirmationId };
+      try {
+        await model.saveChange(interaction.guild, data => {
+          const booking = model.addBooking(data, { venueId: session.venueId, date: session.date, time: session.time, name: session.name, userId: interaction.user.id });
+          session.lastCompleted = `${booking.date} ${booking.time}　${booking.name} 様`;
+          session.name = '';
+          session.confirmationId = null;
+          session.time = '10:00';
+          session.screen = 'date';
+        });
+      } catch (error) {
+        Object.assign(session, previous);
+        const result = timeScreen(session);
+        result.embeds[0].addFields({ name: '登録できませんでした', value: error.message });
+        return interaction.editReply(result);
+      }
       const warning = await publish(interaction.guild, session.venueId);
-      if (warning) return interaction.editReply(payload('来場予約', warning));
-      return interaction.deleteReply();
+      const result = dateScreen(session);
+      if (warning) result.embeds[0].addFields({ name: '表示更新', value: warning });
+      return interaction.editReply(result);
     });
   }
 }

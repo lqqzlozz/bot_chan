@@ -101,19 +101,31 @@ function management(session) {
 
 function dateScreen(session) {
   session.screen = 'date';
+  const today = model.today();
+  if (session.date < today) session.date = today;
   const data = model.config(session.guildId);
   const venue = data.venues.find(item => item.id === session.venueId);
   const [year, month, day] = session.date.split('-').map(Number);
-  const currentYear = Number(model.today().slice(0, 4));
+  const [currentYear, currentMonth] = today.split('-').map(Number);
   const maxDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  const values = Array.from({ length: maxDay }, (_, i) => i + 1).filter(value => session.dayPage ? value >= 25 : value <= 24);
+  const availableDays = Array.from({ length: maxDay }, (_, i) => i + 1)
+    .filter(value => `${year}-${pad(month)}-${pad(value)}` >= today);
+  const earlierDays = availableDays.filter(value => value <= 24);
+  const laterDays = availableDays.filter(value => value >= 25);
+  if (!earlierDays.length) session.dayPage = 1;
+  if (!laterDays.length) session.dayPage = 0;
+  const values = session.dayPage ? laterDays : earlierDays;
   const days = options(values, '日', day);
-  days.push({ label: session.dayPage ? '1〜24日を表示' : '25〜31日を表示', value: 'switch' });
+  if (earlierDays.length && laterDays.length) {
+    const otherDays = session.dayPage ? earlierDays : laterDays;
+    days.push({ label: `${otherDays[0]}〜${otherDays.at(-1)}日を表示`, value: 'switch' });
+  }
+  const months = Array.from({ length: 12 }, (_, i) => i + 1).filter(value => year > currentYear || value >= currentMonth);
   const completed = session.lastCompleted ? `\n\n**入力完了**　${escapeMarkdown(session.lastCompleted)}\n続けて入力するか、「終了」で閉じてください。` : '';
   return payload('来場日を選択', `**${venue?.name || '見学会場を選択してください'}**\n現在の選択　**${year}年${month}月${day}日**${completed}`, [
     select(actionId(session, 'booking_venue'), '見学会場を選択', venueOptions(data, session)),
     select(actionId(session, 'year'), '年', options([currentYear, currentYear + 1, currentYear + 2, currentYear + 3], '年', year)),
-    select(actionId(session, 'month'), '月', options(Array.from({ length: 12 }, (_, i) => i + 1), '月', month)),
+    select(actionId(session, 'month'), '月', options(months, '月', month)),
     select(actionId(session, 'day'), '日', days),
     row(button(actionId(session, 'time'), session.lastCompleted ? '続けて入力' : '時間を選ぶ', ButtonStyle.Primary), button(actionId(session, 'close'), '終了')),
   ]);
@@ -123,12 +135,13 @@ function timeScreen(session) {
   session.screen = 'time';
   const venue = model.config(session.guildId).venues.find(item => item.id === session.venueId);
   const [hour, minute] = session.time.split(':');
-  const name = session.name ? `\nお客様名　**${escapeMarkdown(session.name)} 様**` : '';
-  return payload('来場時間を選択', `**${venue?.name || '見学会場'}**\n**${session.date}　${session.time}**${name}\n9時半など、通常の表示時間外も登録できます。`, [
+  const name = session.name ? `　${escapeMarkdown(session.name)} 様` : '';
+  return payload('来場時間を選択', `**${venue?.name || '見学会場'}**\n**${session.date}　${session.time}${name}**`, [
     select(actionId(session, 'hour'), '時', options(Array.from({ length: 24 }, (_, i) => i), '時', hour)),
     select(actionId(session, 'minute'), '分', options([0, 15, 30, 45], '分', minute)),
-    row(button(actionId(session, 'name'), session.name ? 'お客様名を変更' : 'お客様名を入力', ButtonStyle.Primary),
-      button(actionId(session, 'date'), '日付に戻る'), button(actionId(session, session.confirmationId ? `finish:${session.confirmationId}` : 'finish'), '入力完了', ButtonStyle.Success).setDisabled(!session.name)),
+    row(button(actionId(session, 'date'), '←戻る'), button(actionId(session, 'name'), 'お客様名を登録', ButtonStyle.Primary),
+      button(actionId(session, session.confirmationId ? `finish:${session.confirmationId}` : 'finish'), '入力完了', ButtonStyle.Success).setDisabled(!session.name),
+      button(actionId(session, 'close'), '終了')),
   ]);
 }
 
@@ -500,20 +513,22 @@ async function tick(client, force = false) {
   });
   let changed = false;
   for (const session of Object.values(drafts(guild.id))) {
-    if (session.expires >= Date.now() || session.closed || !session.messageId) continue;
+    const expired = session.expires < Date.now();
+    if ((!expired && !(force && session.kind === 'booking')) || session.closed || !session.messageId) continue;
     try {
       const expires = session.expires;
       const channel = await guild.channels.fetch(session.channelId);
       const message = await fetchMessage(channel, session.messageId);
       if (session.expires !== expires || drafts(guild.id)[session.id] !== session) continue;
       if (message?.author.id === client.user.id) {
-        await message.edit(payload('来場予約', '操作を終了しました。入力途中の内容から再開できます。', [
+        const closed = payload('来場予約', '操作を終了しました。入力途中の内容から再開できます。', [
           row(button(`visit_resume:${session.id}`, '入力を再開', ButtonStyle.Primary), button(actionId(session, 'close'), '終了')),
-        ]));
+        ]);
+        await message.edit(expired ? closed : session.screen === 'time' ? timeScreen(session) : dateScreen(session));
       }
-      session.closed = true;
+      session.closed = expired;
       changed = true;
-    } catch (error) { console.error('来場予約の入力画面を閉じられませんでした:', error.message); }
+    } catch (error) { console.error('来場予約の入力画面を更新できませんでした:', error.message); }
   }
   if (changed) await saveDrafts(guild);
 }

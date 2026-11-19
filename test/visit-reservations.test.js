@@ -383,7 +383,7 @@ test('confirm updates the image and returns the same form to dates for another g
     assert.match(submit.responses[0].embeds[0].toJSON().description, new RegExp(guest + ' 様'));
     const controls = submit.responses[0].components.map(component => component.toJSON());
     assert.ok(controls.at(-1).components.some(button => button.label === '入力完了' && !button.disabled));
-    assert.ok(!controls.at(-1).components.some(button => button.label === '終了'));
+    assert.deepEqual(controls.at(-1).components.map(button => button.label), ['←戻る', 'お客様名を登録', '入力完了', '終了']);
     const finishId = idFrom(submit.responses[0], 'finish');
     const finish = f.interaction(finishId);
     await Promise.all([panel.handle(finish), panel.handle(f.interaction(finishId))]);
@@ -437,4 +437,67 @@ test('a failed confirm preserves the preview and an old confirm cannot register 
   assert.equal(st.get(f.guild.id).visitDrafts[id].name, '佐藤');
   await panel.handle(f.interaction(idFrom(second.responses[0], 'finish')));
   assert.equal(model.config(f.guild.id).bookings.length, 2);
+}));
+
+test('time preview has one date-time-name line and its permanent close deletes an unconfirmed form', async () => isolated(async () => {
+  const f = fixture(), venue = model.addVenue(model.config(f.guild.id), '会場');
+  venue.channelId = f.channel.id;
+  await panel.tick(f.client, true);
+  const start = f.interaction('visit_book:' + venue.id);
+  await panel.handle(start);
+  const id = idFrom(start.responses[0], 'time').split(':')[1];
+  const submit = f.interaction(`visit_session:${id}:submit`);
+  await panel.handle(submit);
+  const preview = submit.responses[0];
+  assert.equal(preview.embeds[0].toJSON().description, `**会場**\n**${model.today()}　10:00　山田 様**`);
+  assert.doesNotMatch(preview.embeds[0].toJSON().description, /お客様名|9時半/);
+  assert.deepEqual(preview.components.at(-1).toJSON().components.map(button => button.label), ['←戻る', 'お客様名を登録', '入力完了', '終了']);
+  const input = await f.channel.send(preview);
+  const draft = st.get(f.guild.id).visitDrafts[id];
+  draft.messageId = input.id;
+  const expires = draft.expires;
+  await panel.tick(f.client, true);
+  const refreshed = f.edits.at(-1);
+  assert.deepEqual(refreshed.components.at(-1).toJSON().components.map(button => button.label), ['←戻る', 'お客様名を登録', '入力完了', '終了']);
+  assert.equal(draft.expires, expires);
+  let deleted = false;
+  const close = f.interaction(idFrom(preview, 'close'));
+  close.deleteReply = async () => { deleted = true; };
+  await panel.handle(close);
+  assert.equal(deleted, true);
+  assert.equal(model.config(f.guild.id).bookings.length, 0);
+  assert.equal(st.get(f.guild.id).visitDrafts[id], undefined);
+}));
+
+test('date menus omit past days and months, handle month-end pages, and refresh after midnight', async () => isolated(async () => {
+  const previousToday = model.today;
+  model.today = () => '2026-11-26';
+  try {
+    const f = fixture(), venue = model.addVenue(model.config(f.guild.id), '会場');
+    venue.channelId = f.channel.id;
+    await panel.tick(f.client, true);
+    const start = f.interaction('visit_book:' + venue.id);
+    await panel.handle(start);
+    const id = idFrom(start.responses[0], 'time').split(':')[1];
+    const values = (screen, action) => screen.components.flatMap(row => row.toJSON().components)
+      .find(component => component.custom_id?.endsWith(':' + action)).options.map(option => option.value);
+    assert.deepEqual(values(start.responses[0], 'month'), ['11', '12']);
+    assert.deepEqual(values(start.responses[0], 'day'), ['26', '27', '28', '29', '30']);
+    for (const component of start.responses[0].components) component.toJSON();
+    const december = f.interaction(`visit_session:${id}:month`, ['12']);
+    await panel.handle(december);
+    assert.ok(values(december.responses[0], 'day').includes('switch'));
+    const early = f.interaction(`visit_session:${id}:day`, ['switch']);
+    await panel.handle(early);
+    assert.ok(values(early.responses[0], 'day').includes('01'));
+    const nextYear = f.interaction(`visit_session:${id}:year`, ['2027']);
+    await panel.handle(nextYear);
+    assert.equal(values(nextYear.responses[0], 'month').length, 12);
+    Object.assign(st.get(f.guild.id).visitDrafts[id], { date: '2026-11-26', dayPage: 0 });
+    model.today = () => '2026-11-27';
+    const refreshed = f.interaction(`visit_session:${id}:date`);
+    await panel.handle(refreshed);
+    assert.deepEqual(values(refreshed.responses[0], 'day'), ['27', '28', '29', '30']);
+    assert.equal(st.get(f.guild.id).visitDrafts[id].date, '2026-11-27');
+  } finally { model.today = previousToday; }
 }));

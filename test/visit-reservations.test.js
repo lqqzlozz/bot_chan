@@ -105,7 +105,7 @@ async function isolated(run) {
 
 function idFrom(response, suffix) {
   const components = response.components.flatMap(item => item.toJSON().components || []);
-  return components.find(item => item.custom_id?.endsWith(':' + suffix)).custom_id;
+  return components.find(item => item.custom_id?.endsWith(':' + suffix) || item.custom_id?.split(':')[2] === suffix).custom_id;
 }
 
 test('save failure rolls back reservations and concurrent successful registrations both persist', async () => isolated(async () => {
@@ -132,7 +132,11 @@ test('board registration updates one persistent post, restart restores it and ca
   const name = f.interaction(`visit_session:${sessionId}:name`);
   await panel.handle(name);
   assert.doesNotThrow(() => name.responses[0].toJSON());
-  await panel.handle(f.interaction(`visit_session:${sessionId}:submit`));
+  const submit = f.interaction(`visit_session:${sessionId}:submit`);
+  await panel.handle(submit);
+  assert.equal(data.bookings.length, 0);
+  assert.match(submit.responses[0].embeds[0].toJSON().description, /山田 様/);
+  await panel.handle(f.interaction(idFrom(submit.responses[0], 'finish')));
   assert.equal(data.bookings.length, 1);
   assert.equal(f.sends.length, 1);
   assert.equal(venue.messageId, boardId);
@@ -163,9 +167,11 @@ test('a failed image update keeps saved bookings and is retried by the regular t
   const sessionId = idFrom(start.responses[0], 'time').split(':')[1];
   const submit = f.interaction(`visit_session:${sessionId}:submit`);
   await panel.handle(submit);
+  const finish = f.interaction(idFrom(submit.responses[0], 'finish'));
+  await panel.handle(finish);
   assert.equal(model.config(f.guild.id).bookings.length, 1);
   assert.equal(venue.dirty, true);
-  assert.match(submit.responses[0].embeds[0].toJSON().description, /保存されています/);
+  assert.match(JSON.stringify(finish.responses[0].embeds[0].toJSON()), /保存されています/);
   message.edit = edit;
   await panel.tick(f.client);
   assert.equal(venue.dirty, false);
@@ -288,11 +294,15 @@ test('name submission and close survive a process restart with the selected date
   const name = f.interaction(`visit_session:${id}:name`);
   await restarted.handle(name);
   const modal = name.responses[0].toJSON();
-  assert.equal(modal.title, '来場予約を登録');
+  assert.equal(modal.title, 'お客様名を入力');
   assert.equal(modal.components[0].components[0].value, undefined);
-  await restarted.handle(f.interaction(modal.custom_id));
+  const submit = f.interaction(modal.custom_id);
+  await restarted.handle(submit);
+  assert.equal(model.config(f.guild.id).bookings.length, 0);
+  await restarted.handle(f.interaction(idFrom(submit.responses[0], 'finish')));
   assert.equal(model.config(f.guild.id).bookings[0].time, '09:30');
-  assert.equal(st.get(f.guild.id).visitDrafts[id], undefined);
+  assert.equal(st.get(f.guild.id).visitDrafts[id].name, '');
+  assert.equal(st.get(f.guild.id).visitDrafts[id].screen, 'date');
   const next = f.interaction('visit_book:' + venue.id);
   await restarted.handle(next);
   const close = f.interaction(idFrom(next.responses[0], 'close'));
@@ -345,7 +355,7 @@ test('existing time screens recover safely after deployment and stale actions up
   const name = f.interaction(`visit_session:${id}:name`);
   name.message = input;
   await panel.handle(name);
-  assert.equal(name.responses[0].toJSON().title, '来場予約を登録');
+  assert.equal(name.responses[0].toJSON().title, 'お客様名を入力');
   assert.equal(st.get(f.guild.id).visitDrafts[id].venueId, venue.id);
   const stale = f.interaction('visit_session:missing:name');
   stale.message = { id: 'missing', embeds: [], components: [] };
@@ -355,4 +365,76 @@ test('existing time screens recover safely after deployment and stale actions up
   await panel.handle(stale);
   assert.equal(replies, 0);
   assert.equal(updates, 1);
+}));
+
+test('confirm updates the image and returns the same form to dates for another guest, then close removes it', async () => isolated(async () => {
+  const f = fixture(), data = model.config(f.guild.id), venue = model.addVenue(data, '会場');
+  venue.channelId = f.channel.id;
+  await panel.tick(f.client, true);
+  const start = f.interaction('visit_book:' + venue.id);
+  await panel.handle(start);
+  const id = idFrom(start.responses[0], 'time').split(':')[1];
+  for (const [index, guest] of ['山田', '佐藤'].entries()) {
+    const submit = f.interaction(`visit_session:${id}:submit`);
+    submit.fields.getTextInputValue = () => guest;
+    await panel.handle(submit);
+    assert.equal(data.bookings.length, index);
+    assert.equal(f.edits.length, index);
+    assert.match(submit.responses[0].embeds[0].toJSON().description, new RegExp(guest + ' 様'));
+    const controls = submit.responses[0].components.map(component => component.toJSON());
+    assert.ok(controls.at(-1).components.some(button => button.label === '入力完了' && !button.disabled));
+    assert.ok(!controls.at(-1).components.some(button => button.label === '終了'));
+    const finishId = idFrom(submit.responses[0], 'finish');
+    const finish = f.interaction(finishId);
+    await Promise.all([panel.handle(finish), panel.handle(f.interaction(finishId))]);
+    assert.equal(data.bookings.length, index + 1);
+    assert.equal(f.edits.length, index + 1);
+    assert.equal(finish.responses[0].embeds[0].toJSON().title, '来場日を選択');
+    const nextButtons = finish.responses[0].components.at(-1).toJSON().components;
+    assert.ok(nextButtons.some(button => button.label === '続けて入力'));
+    assert.ok(nextButtons.some(button => button.label === '終了'));
+    assert.equal(st.get(f.guild.id).visitDrafts[id].name, '');
+  }
+  const close = f.interaction(`visit_session:${id}:close`);
+  let deleted = false;
+  close.deleteReply = async () => { deleted = true; };
+  await panel.handle(close);
+  assert.equal(deleted, true);
+  assert.equal(st.get(f.guild.id).visitDrafts[id], undefined);
+  const another = f.interaction('visit_book:' + venue.id);
+  another.user.id = 'another-staff';
+  await panel.handle(another);
+  const newId = idFrom(another.responses[0], 'time').split(':')[1];
+  assert.notEqual(newId, id);
+  assert.equal(st.get(f.guild.id).visitDrafts[newId].userId, 'another-staff');
+  assert.equal(st.get(f.guild.id).visitDrafts[newId].name, undefined);
+  assert.equal(f.sends.length, 1);
+}));
+
+test('a failed confirm preserves the preview and an old confirm cannot register a later guest', async () => isolated(async () => {
+  const f = fixture(), venue = model.addVenue(model.config(f.guild.id), '会場');
+  venue.channelId = f.channel.id;
+  await panel.tick(f.client, true);
+  const start = f.interaction('visit_book:' + venue.id);
+  await panel.handle(start);
+  const id = idFrom(start.responses[0], 'time').split(':')[1];
+  const submit = f.interaction(`visit_session:${id}:submit`);
+  await panel.handle(submit);
+  const finishId = idFrom(submit.responses[0], 'finish');
+  st.save = async () => false;
+  const failed = f.interaction(finishId);
+  await panel.handle(failed);
+  assert.equal(model.config(f.guild.id).bookings.length, 0);
+  assert.equal(st.get(f.guild.id).visitDrafts[id].name, '山田');
+  assert.match(JSON.stringify(failed.responses[0].embeds[0].toJSON()), /登録できませんでした/);
+  st.save = async () => true;
+  await panel.handle(f.interaction(finishId));
+  const second = f.interaction(`visit_session:${id}:submit`);
+  second.fields.getTextInputValue = () => '佐藤';
+  await panel.handle(second);
+  await panel.handle(f.interaction(finishId));
+  assert.equal(model.config(f.guild.id).bookings.length, 1);
+  assert.equal(st.get(f.guild.id).visitDrafts[id].name, '佐藤');
+  await panel.handle(f.interaction(idFrom(second.responses[0], 'finish')));
+  assert.equal(model.config(f.guild.id).bookings.length, 2);
 }));

@@ -64,11 +64,16 @@ function renameVenue(data, venueId, name) {
   venue.dirty = true;
 }
 
+function bookingName(value) {
+  const name = normalize(value).replace(/(?:\s*(?:様|さん))+$/u, '').trim();
+  if (!name || name.length > 60) throw new Error('お客様名は1〜60文字で入力してください。');
+  return name;
+}
+
 function addBooking(data, input, fromDate = today()) {
   const venue = data.venues.find(item => item.id === input.venueId);
   if (!venue) throw new Error('登録済みの会場を選択してください。');
-  const name = normalize(input.name).replace(/(?:\s*(?:様|さん))+$/u, '').trim();
-  if (!name || name.length > 60) throw new Error('お客様名は1〜60文字で入力してください。');
+  const name = bookingName(input.name);
   if (!validDate(input.date) || input.date < fromDate || !validTime(input.time)) throw new Error('来場日時を確認してください。');
   const duplicate = data.bookings.find(item => item.venueId === venue.id && item.date === input.date && item.time === input.time && item.name === name);
   if (duplicate) return duplicate;
@@ -95,4 +100,4 @@ function schedule(data, venueId, page = 0, fromDate = today()) {
   return { dates: visibleDates, times: [...times].sort(), bookings: bookings.filter(item => visibleDates.includes(item.date)), page: current, pages, total: bookings.length };
 }
 
-module.exports = { GUILD, DEFAULT_CHANNEL, DAYS_PER_PAGE, today, validDate, validTime, config, serialized, saveChange, addVenue, renameVenue, addBooking, schedule };
+module.exports = { GUILD, DEFAULT_CHANNEL, DAYS_PER_PAGE, today, validDate, validTime, bookingName, config, serialized, saveChange, addVenue, renameVenue, addBooking, schedule };

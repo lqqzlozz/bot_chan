@@ -4,14 +4,15 @@ const enka = require('./enka');
 const { isGI } = require('./gi');
 const store = require('./hoyolabStore');
 const links = require('./hoyolabLink');
-const PAGE_SIZE = 20;
+const { hiragana } = require('./genshinStatsDetailsView');
+const collator = new Intl.Collator('ja');
 const button = (owner, action, label, style = ButtonStyle.Secondary) => new ButtonBuilder()
   .setCustomId(`allchar:${owner}:${action}`).setLabel(label).setStyle(style);
 const embed = text => new EmbedBuilder().setColor('#1D9E75').setDescription(text);
 const payload = text => ({ embeds: [embed(text)], components: [], allowedMentions: { parse: [] } });
 const width = value => [...value].reduce((sum, char) => sum + (char.codePointAt(0) > 255 ? 2 : 1), 0);
 
-function render(owner, result, page = 0) {
+function render(owner, result) {
   const value = result.value;
   if (!value) {
     const response = payload('HoYoLabと連携すると、所持しているキャラ全員の名前・レベル・凸数を表示できます。');
@@ -19,18 +20,31 @@ function render(owner, result, page = 0) {
     response.components = [new ActionRowBuilder().addComponents(button(owner, 'connect', 'HoYoLabと連携', ButtonStyle.Primary), button(owner, 'delete', '🗑️'))];
     return response;
   }
-  const pages = Math.max(1, Math.ceil(value.characters.length / PAGE_SIZE));
-  const current = Math.max(0, Math.min(pages - 1, Math.trunc(Number(page) || 0)));
-  const characters = value.characters.slice(current * PAGE_SIZE, (current + 1) * PAGE_SIZE);
+  const characters = [...value.characters].sort((a, b) =>
+    b.level - a.level || b.constellation - a.constellation ||
+    collator.compare(hiragana(a.name), hiragana(b.name)) || String(a.id).localeCompare(String(b.id)));
   const nameWidth = Math.max(8, ...characters.map(character => width(character.name)));
   const lines = characters.map(character => `${character.name.replace(/[\r\n`]/g, '')}${' '.repeat(Math.max(2, nameWidth - width(character.name) + 2))}Lv.${String(character.level).padEnd(3)} ${character.constellation}凸`);
-  const response = payload(characters.length ? '```text\nキャラ名' + ' '.repeat(Math.max(2, nameWidth - 8 + 2)) + 'レベル  凸数\n' + lines.join('\n') + '\n```' : '所持キャラの登録はありません。');
+  // Keep every character in the same message; long lists use consecutive embeds
+  // to stay within Discord's per-description limit without page controls.
+  const header = '```text\nキャラ名' + ' '.repeat(Math.max(2, nameWidth - 8 + 2)) + 'レベル  凸数\n';
+  const sections = [];
+  let section = header;
+  for (const line of lines) {
+    if (section.length + line.length + 5 > 4096) {
+      sections.push(section + '```');
+      section = header;
+    }
+    section += line + '\n';
+  }
+  sections.push(lines.length ? section + '```' : '所持キャラの登録はありません。');
+  const response = payload(sections[0]);
+  response.embeds.push(...sections.slice(1).map(embed));
   response.embeds[0].setTitle(`所持キャラクター一覧（${value.characters.length}名）`);
   const fetched = new Date(value.fetchedAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', hour12: false });
   const note = result.status === 'auth' ? ' • 再連携が必要です。保存済みの一覧を表示中' : result.status === 'cached' ? ' • 更新できなかったため保存済みの一覧を表示中' : '';
-  response.embeds[0].setFooter({ text: `HoYoLab • UID ${value.uid} • 取得 ${fetched} • ${current + 1}/${pages}${note}` });
+  response.embeds.at(-1).setFooter({ text: `HoYoLab • UID ${value.uid} • 取得 ${fetched}${note}` });
   const controls = [];
-  if (pages > 1) controls.push(button(owner, `page_${current - 1}`, '◀').setDisabled(current === 0), button(owner, `page_${current + 1}`, '▶').setDisabled(current === pages - 1));
   controls.push(button(owner, 'refresh', '更新'), button(owner, 'connect', result.status === 'auth' ? 'HoYoLabへ再連携' : '連携し直す'), button(owner, 'delete', '🗑️'));
   response.components = [new ActionRowBuilder().addComponents(...controls), new ActionRowBuilder().addComponents(button(owner, 'unlink', '連携を解除'))];
   return response;
@@ -103,7 +117,7 @@ async function handle(interaction) {
       ? { value: store.entry(interaction.guildId, owner), status: store.entry(interaction.guildId, owner)?.needsAuth ? 'auth' : 'ok' }
       : await store.roster(interaction.guild, owner, uid, action === 'refresh');
     if (result.value?.uid !== uid) result.value = null;
-    return interaction.editReply(render(owner, result, action.startsWith('page_') ? Number(action.slice(5)) : 0));
+    return interaction.editReply(render(owner, result));
   } catch { return interaction.editReply(payload('一覧を更新できませんでした。少し待ってから試してください。')); }
 }
 

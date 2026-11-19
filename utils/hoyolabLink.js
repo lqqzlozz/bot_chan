@@ -151,4 +151,4 @@ async function handle(req, res, client) {
   } finally { session.busy = false; }
 }
 
-module.exports = { create, revoke, serve, handle, captchaResult };
+module.exports = { create, revoke, serve, handle };

@@ -10,7 +10,9 @@
   async function post(data) {
     const response = await fetch('/api/hoyolab', { method: 'POST', cache: 'no-store', credentials: 'omit',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(data) });
-    const result = await response.json();
+    let result;
+    try { result = await response.json(); }
+    catch { throw new Error('連携サーバーに接続できません。少し待ってからDiscordの連携ボタンで開き直してください。'); }
     if (!response.ok) throw new Error(result.error || '処理を完了できませんでした。');
     return result;
   }

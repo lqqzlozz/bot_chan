@@ -152,4 +152,4 @@ async function characters(cookies, role) {
   return normalizeCharacters(data);
 }
 
-module.exports = { HoyoError, encryptCredentials, login, verifyEmail, account, characters, normalizeCharacters, dynamicSecret };
+module.exports = { HoyoError, encryptCredentials, login, verifyEmail, account, characters, normalizeCharacters };

@@ -44,9 +44,26 @@ async function execute(interaction) {
   if (!isGI(interaction.guildId)) return interaction.reply(payload('このサーバーでは原神機能が有効になっていません。'));
   const uid = uidFor(interaction);
   if (!uid) return interaction.reply(payload('先にサーバーのUID登録パネルから、自分のUIDを登録してください。'));
-  await interaction.deferReply();
-  try { return await interaction.editReply(render(interaction.user.id, await store.roster(interaction.guild, interaction.user.id, uid))); }
-  catch { return interaction.editReply(payload('一覧を表示できませんでした。少し待ってから試してください。#bot-config に保存できることも確認してください。')); }
+  const started = Date.now();
+  const saved = store.entry(interaction.guildId, interaction.user.id);
+  const value = saved?.uid === uid ? saved : null;
+  console.log('all-char: 初回応答開始', { linked: !!value });
+  try {
+    // Respond to the interaction itself. Initial linking never needs a network
+    // request, and an existing snapshot can be displayed before refreshing it.
+    await interaction.reply(render(interaction.user.id, { value, status: value?.needsAuth ? 'auth' : 'ok' }));
+    console.log('all-char: 初回応答完了', { elapsedMs: Date.now() - started });
+    if (!value || value.needsAuth) return;
+    const result = await store.roster(interaction.guild, interaction.user.id, uid);
+    if (result.value !== value || result.status !== 'ok') await interaction.editReply(render(interaction.user.id, result));
+  } catch (error) { return reportError(interaction, error); }
+}
+
+async function reportError(interaction, error) {
+  console.error('all-char: 応答失敗', { code: Number(error.code) || null });
+  const response = payload('一覧を表示できませんでした。もう一度 /all-char を実行してください。');
+  if (interaction.replied || interaction.deferred) return interaction.editReply(response).catch(() => null);
+  return interaction.reply(response).catch(() => null);
 }
 
 async function handle(interaction) {
@@ -67,13 +84,18 @@ async function handle(interaction) {
   if (!uid) return interaction.reply(payload('先にサーバーのUID登録パネルから、自分のUIDを登録してください。'));
   if (action === 'connect') {
     // An authentication link can bind an account. Only its owner may receive it.
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     try {
       const url = links.create(interaction.guildId, owner, uid);
       const response = payload('本人専用の連携リンクです。有効期限は10分です。\n認証情報を含むリンクのため、この案内だけ本人に表示しています。');
       response.components = [new ActionRowBuilder().addComponents(new ButtonBuilder().setLabel('HoYoLab連携ページを開く').setStyle(ButtonStyle.Link).setURL(url))];
-      return interaction.editReply(response);
-    } catch { return interaction.editReply(payload('HoYoLab連携の設定がまだ完了していません。Bot管理者に連絡してください。')); }
+      await interaction.reply({ ...response, flags: MessageFlags.Ephemeral });
+      console.log('all-char: 本人専用の連携案内を表示');
+      return;
+    } catch (error) {
+      console.error('all-char: 連携案内の表示失敗', { code: Number(error.code) || null });
+      if (interaction.replied || interaction.deferred) return reportError(interaction, error);
+      return interaction.reply({ ...payload('HoYoLab連携ページを開けませんでした。もう一度操作してください。'), flags: MessageFlags.Ephemeral });
+    }
   }
   await interaction.deferUpdate();
   try {
@@ -85,4 +107,4 @@ async function handle(interaction) {
   } catch { return interaction.editReply(payload('一覧を更新できませんでした。少し待ってから試してください。')); }
 }
 
-module.exports = { execute, handle, render };
+module.exports = { execute, handle, render, reportError };

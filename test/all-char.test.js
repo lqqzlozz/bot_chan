@@ -140,16 +140,43 @@ test('expired authentication shows the saved roster until relinking succeeds', a
 test('command uses public embeds while only its owner receives the private authentication link', async () => isolated(async () => {
   const f = fixture();
   await command.execute(f.interaction);
-  assert.equal(f.interaction.deferred, true);
+  assert.equal(f.interaction.deferred, undefined);
+  assert.equal(f.responses[0].flags, undefined);
   assert.equal(f.responses[0].embeds[0].toJSON().title, '所持キャラクター一覧');
   f.interaction.customId = 'allchar:member:connect';
   await view.handle(f.interaction);
-  assert.equal(f.interaction.deferred.flags, MessageFlags.Ephemeral);
+  assert.equal(f.responses.at(-1).flags, MessageFlags.Ephemeral);
   const url = f.responses.at(-1).components[0].toJSON().components[0].url;
   assert.match(url, /^https:\/\/bot\.example\/hoyolab#[a-f0-9]{64}$/);
   f.interaction.user.id = 'other';
   await view.handle(f.interaction);
   assert.match(f.responses.at(-1).embeds[0].toJSON().description, /本人/);
+}));
+
+test('initial reply never waits for the roster refresh and unlinked users need no network', async () => isolated(async () => {
+  const f = fixture();
+  const original = store.roster;
+  let refreshCalled = false;
+  let release;
+  const pending = new Promise(resolve => { release = resolve; });
+  store.roster = async () => {
+    refreshCalled = true;
+    assert.equal(f.responses.length, 1);
+    assert.match(f.responses[0].embeds[0].toJSON().description, /ナヒーダ/);
+    return pending;
+  };
+  try {
+    await command.execute(f.interaction);
+    assert.equal(refreshCalled, false);
+    f.responses.length = 0;
+    st.get(f.guild.id).hoyolab = { member: { uid: '800000001', characters: roster, fetchedAt: Date.now() } };
+    const running = command.execute(f.interaction);
+    await Promise.resolve();
+    assert.equal(refreshCalled, true);
+    assert.equal(f.interaction.deferred, undefined);
+    release({ value: store.entry(f.guild.id, 'member'), status: 'ok' });
+    await running;
+  } finally { store.roster = original; release?.({ value: null, status: 'unlinked' }); }
 }));
 
 test('pagination renders all characters across pages and the command is scoped to Genshin guilds', () => {

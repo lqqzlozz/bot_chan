@@ -32,7 +32,7 @@
     <p>HoYoLabから届いたメールの6桁の認証コードを入力してください。</p>
     <form id="email-form"><label for="code">認証コード</label><input id="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required><button type="submit">認証する</button></form>
   </section>
-  <section id="success" hidden><p id="complete"></p><p>Discordに戻って <strong>/all-char</strong> を実行すると一覧を表示できます。</p><p class="notice">認証が切れたら、再連携のボタンからもう一度ログインしてください。保存済みの認証情報と一覧は、Discordの「連携を解除」から削除できます。</p></section>
+  <section id="success" hidden><p id="complete"></p><p>Discordに戻ると一覧を確認できます。表示されない場合は <strong>/all-char</strong> を実行してください。</p><p class="notice">認証が切れたら、一覧の「更新」からもう一度ログインできます。</p></section>
   <p id="status" class="status" role="status" aria-live="polite"></p>
   <button id="restart" type="button" hidden>ログインからやり直す</button>
 </main><script src="/hoyolab.js" defer></script></body>

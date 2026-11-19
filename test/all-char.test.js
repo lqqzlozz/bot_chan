@@ -139,17 +139,21 @@ test('expired authentication shows the saved roster until relinking succeeds', a
   assert.equal(fresh.status, 'ok'); assert.equal(fresh.value.characters[0].constellation, 3);
 }));
 
-test('command uses public embeds while only its owner receives the private authentication link', async () => isolated(async () => {
+test('unlinked command and authentication link are private, while linked rosters stay public with only refresh and delete', async () => isolated(async () => {
   const f = fixture();
   await command.execute(f.interaction);
   assert.equal(f.interaction.deferred, undefined);
-  assert.equal(f.responses[0].flags, undefined);
+  assert.equal(f.responses[0].flags, MessageFlags.Ephemeral);
   assert.equal(f.responses[0].embeds[0].toJSON().title, '所持キャラクター一覧');
   f.interaction.customId = 'allchar:member:connect';
   await view.handle(f.interaction);
   assert.equal(f.responses.at(-1).flags, MessageFlags.Ephemeral);
   const url = f.responses.at(-1).components[0].toJSON().components[0].url;
   assert.match(url, /^https:\/\/bot\.example\/hoyolab#[a-f0-9]{64}$/);
+  st.get(f.guild.id).hoyolab = { member: { uid: '800000001', characters: roster, fetchedAt: Date.now() } };
+  await command.execute(f.interaction);
+  assert.equal(f.responses.at(-1).flags, undefined);
+  assert.deepEqual(f.responses.at(-1).components.flatMap(row => row.toJSON().components).map(item => item.custom_id), ['allchar:member:refresh', 'allchar:member:delete']);
   f.interaction.user.id = 'other';
   await view.handle(f.interaction);
   assert.match(f.responses.at(-1).embeds[0].toJSON().description, /本人/);
@@ -237,6 +241,58 @@ async function serverFor(client, run) {
   try { await run(`http://127.0.0.1:${server.address().port}`); }
   finally { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }
 }
+
+test('successful login publishes the roster and deletes both private prompts; failed login preserves them', async () => isolated(async () => {
+  const f = fixture(), sent = [], removed = [];
+  f.interaction.customId = 'allchar:member:connect';
+  f.interaction.message = { id: 'initial-prompt', flags: { has: flag => flag === MessageFlags.Ephemeral } };
+  f.interaction.channel = { send: async response => { sent.push(response); } };
+  f.interaction.webhook = { deleteMessage: async id => { removed.push(id); } };
+  f.interaction.deleteReply = async () => { removed.push('link-prompt'); };
+  await view.handle(f.interaction);
+  const url = f.responses.at(-1).components[0].toJSON().components[0].url;
+  const token = new URL(url).hash.slice(1);
+  api.account = async () => ({ uid: '800000001', server: 'os_asia' }); api.characters = async () => roster;
+  await serverFor(f.client, async base => {
+    const post = () => networkFetch(base, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'https://bot.example', Authorization: 'Bearer ' + token }, body: JSON.stringify({ action: 'login', email: 'test@example.invalid', password: 'test-password' }) });
+    api.login = async () => { throw new api.HoyoError('認証に失敗しました。'); };
+    assert.equal((await post()).status, 400);
+    assert.equal(sent.length, 0); assert.deepEqual(removed, []);
+    api.login = async () => ({ step: 'success', cookies });
+    assert.equal((await (await post()).json()).step, 'success');
+    assert.equal(sent.length, 1);
+    assert.match(sent[0].embeds[0].toJSON().description, /ナヒーダ/);
+    assert.equal(sent[0].flags, undefined);
+    assert.deepEqual(removed.sort(), ['initial-prompt', 'link-prompt']);
+    assert.equal((await post()).status, 403);
+    assert.equal(sent.length, 1);
+  });
+}));
+
+test('refresh keeps the roster public and opens a private login only when authentication expires', async () => isolated(async () => {
+  const f = fixture();
+  api.account = async () => ({ uid: '800000001', server: 'os_asia' }); api.characters = async () => roster;
+  await store.link(f.guild, 'member', '800000001', cookies);
+  f.interaction.customId = 'allchar:member:refresh';
+  f.interaction.deferUpdate = async () => { f.interaction.deferred = true; };
+  let followUps = 0, sourceEdits = 0, removed = 0;
+  f.interaction.followUp = async response => { followUps++; f.responses.push(response); return { id: 'private-link' }; };
+  f.interaction.message = { flags: { has: () => false }, edit: async response => { sourceEdits++; assert.equal(response.flags, undefined); } };
+  f.interaction.webhook = { deleteMessage: async id => { assert.equal(id, 'private-link'); removed++; } };
+  await view.handle(f.interaction);
+  assert.equal(followUps, 0);
+  api.characters = async () => { throw new api.HoyoError('expired', 'auth'); };
+  await view.handle(f.interaction);
+  assert.equal(followUps, 1);
+  assert.equal(f.responses.at(-1).flags, MessageFlags.Ephemeral);
+  const token = new URL(f.responses.at(-1).components[0].toJSON().components[0].url).hash.slice(1);
+  api.login = async () => ({ step: 'success', cookies }); api.characters = async () => roster;
+  await serverFor(f.client, async base => {
+    const response = await networkFetch(base, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'https://bot.example', Authorization: 'Bearer ' + token }, body: JSON.stringify({ action: 'login', email: 'test@example.invalid', password: 'test-password' }) });
+    assert.equal((await response.json()).step, 'success');
+  });
+  assert.equal(sourceEdits, 1); assert.equal(removed, 1);
+}));
 
 test('HTTP linking rejects missing origin or token and consumes a successful link without leaking credentials', async () => isolated(async () => {
   const f = fixture();

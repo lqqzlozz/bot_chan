@@ -124,6 +124,12 @@ test('server members can update their own power and assign teams from a recruitm
   assert.ok(longTable.length <= 1024);
   assert.match(longTable, /チーム🏳️‍🌈長い名前ˋ…/);
   assert.match(longTable, /\nほか \d+ 人\n```$/);
+  const largeRoster = { ...data, participants: many.map((player, index) => ({ ...player, id: String(index + 1) })) };
+  const middlePage = module.exports.panel(largeRoster, 1).components[1].components[0].options;
+  assert.equal(middlePage.length, 25);
+  assert.equal(middlePage[1].value, '23');
+  assert.equal(middlePage.at(-2).value, 'page_0');
+  assert.equal(middlePage.at(-1).value, 'page_2');
   await module.exports.handle({ ...interaction, customId: 'entry_roster' });
   assert.match(replies.at(-1).embeds[0].description, /募集投稿/);
   assert.equal(replies.at(-1).ephemeral, true);
@@ -202,8 +208,14 @@ test('server members can update their own power and assign teams from a recruitm
   const joined = { ...interaction, user: { id: '3' } };
   await module.exports.handle({ ...joined, customId: 'entry_join' });
   assert.match(replies.at(-1).embeds[0].description, /すでに参加しています/);
-  await module.exports.handle({ ...joined, customId: 'entry_power_100', message: list, showModal: async value => { modal = value; } });
-  assert.equal(modal.id, 'entry_power_save_100');
+  const publicEdits = [];
+  const editPublicPost = async payload => publicEdits.push(payload);
+  await module.exports.handle({ ...interaction, customId: 'entry_power', editReply: editPublicPost });
+  const editPicker = publicEdits.at(-1).components[1].components[0];
+  assert.equal(editPicker.id, 'entry_power_pick');
+  assert.equal(editPicker.options.map(option => option.label).join(','), '自分の戦力・職業,C');
+  await module.exports.handle({ ...interaction, customId: 'entry_power_pick', values: ['3'], showModal: async value => { modal = value; } });
+  assert.equal(modal.id, 'entry_power_save_100_3');
   assert.equal(modal.labels.length, 2);
   assert.equal(modal.labels[0].input.value, '125000');
   assert.equal(modal.labels[1].select.options.find(option => option.default).value, '騎士');
@@ -219,11 +231,20 @@ test('server members can update their own power and assign teams from a recruitm
     getTextInputValue: () => '',
     fields: new Map([['job', { values: ['賢者'] }]])
   };
-  await module.exports.handle({ ...joined, ...powerSubmit, fields: jobOnly });
+  const repliesBeforeUpdate = replies.length;
+  await module.exports.handle({
+    ...interaction, customId: modal.id, fields: jobOnly, editReply: editPublicPost
+  });
   assert.equal(data.participants[0].job, '賢者');
   assert.equal(data.participants[0].power, 103000000);
   assert.equal(config.entryProfiles['3'].job, '賢者');
-  assert.match(recruitment.embeds[0].fields[0].value, /103M  賢者/);
+  assert.equal(config.entryProfiles.member, undefined);
+  assert.equal(replies.length, repliesBeforeUpdate);
+  assert.equal(publicEdits.at(-1).components.length, 1);
+  assert.match(publicEdits.at(-1).embeds[0].fields[0].value, /103M  賢者/);
+  await module.exports.handle({ ...interaction, customId: 'entry_power_save_100_99', fields: jobOnly });
+  assert.match(replies.at(-1).embeds[0].description, /現在の参加者一覧にいません/);
+  assert.equal(config.entryProfiles['99'], undefined);
   await module.exports.handle({ ...interaction, ...powerSubmit });
   assert.equal(config.entryProfiles.member.power, 103000000);
   assert.equal(data.participants.length, 1);

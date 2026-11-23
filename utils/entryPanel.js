@@ -37,11 +37,24 @@ async function serialize(channelId, operation) {
 
 const button = (id, label, style) => new ButtonBuilder().setCustomId(id).setLabel(label).setStyle(style);
 
-function panel(data) {
+function powerPickerRow(data, requestedPage) {
+  const pageSize = 22;
+  const pageCount = Math.max(1, Math.ceil(data.participants.length / pageSize));
+  const page = Math.min(requestedPage, pageCount - 1);
+  const options = [{ label: '自分の戦力・職業', value: 'self' }];
+  for (const participant of data.participants.slice(page * pageSize, (page + 1) * pageSize)) {
+    options.push({ label: participant.name.slice(0, 100), value: participant.id });
+  }
+  if (page > 0) options.push({ label: '前のページ', value: 'page_'+(page - 1) });
+  if (page + 1 < pageCount) options.push({ label: '次のページ', value: 'page_'+(page + 1) });
+  return selectRow('entry_power_pick', '編集する人を選択', options);
+}
+
+function panel(data, powerPage = null) {
   const actions = new ActionRowBuilder().addComponents(
     button('entry_join', '参加', ButtonStyle.Primary),
     button('entry_leave', '辞退', ButtonStyle.Danger),
-    button('entry_power', '戦力変更', ButtonStyle.Secondary),
+    button(powerPage === null ? 'entry_power' : 'entry_power_close', '戦力変更', ButtonStyle.Secondary),
     button('entry_teams', 'チーム分け', ButtonStyle.Success)
   );
   const embed = new EmbedBuilder().setColor('#5865F2').setDescription(data.text);
@@ -51,7 +64,9 @@ function panel(data) {
     name: `現在の参加者（${participants.length}人・登録済み ${ready}人）`,
     value: participantTable(participants)
   });
-  return { embeds: [embed], components: [actions], allowedMentions: noMentions };
+  const components = [actions];
+  if (powerPage !== null) components.push(powerPickerRow(data, powerPage));
+  return { embeds: [embed], components, allowedMentions: noMentions };
 }
 
 async function refresh(guild, botId) {
@@ -172,12 +187,15 @@ function registrationForm(messageId, participant, proxy = false) {
     );
 }
 
-function powerForm(messageId, power, job) {
+function powerForm(messageId, power, job, target, name) {
   const input = new TextInputBuilder().setCustomId('power').setStyle(TextInputStyle.Short)
     .setPlaceholder('例：1B、103M、75.6M').setRequired(false).setMaxLength(24);
   if (power) input.setValue(String(power));
-  return new ModalBuilder().setCustomId('entry_power_save_'+messageId)
-    .setTitle('戦力・職業の変更')
+  const id = 'entry_power_save_'+messageId+(target ? '_'+target : '');
+  const displayName = name && Array.from(tableName(name).text).slice(0, 16).join('');
+  const title = displayName ? displayName + 'の戦力・職業を変更' : '戦力・職業の変更';
+  return new ModalBuilder().setCustomId(id)
+    .setTitle(title)
     .addLabelComponents(
       new LabelBuilder().setLabel('戦力').setTextInputComponent(input),
       new LabelBuilder().setLabel('職業').setStringSelectMenuComponent(jobSelect(job, '職業を選択'))
@@ -263,11 +281,12 @@ async function handle(interaction) {
   const editPicker = /^entry_edit_pick_(\d+)(?:_\d+)?$/.exec(id);
   const control = /^entry_(prepare|back|manage|size|strategy|reset|delete)_(\d+)$/.exec(id);
   const reset = /^entry_reset_confirm_(\d+)_(\d+)$/.exec(id);
-  const powerAction = /^entry_power(?:_(save_)?(\d+))?$/.exec(id);
+  const powerSave = /^entry_power_save_(\d+)(?:_(self|\d+))?$/.exec(id);
+  const oldPowerButton = /^entry_power_(\d+)$/.exec(id);
   if ((proxyEdit || editPicker) && !isOwner(interaction)) return privateReply('募集主だけが代理編集できます。');
   const registration = proxyEdit || /^entry_register_(\d+)$/.exec(id);
   const messageId = registration?.[1] || weeklyJoin?.[1] || editPicker?.[1] || reset?.[1] || control?.[2] ||
-    powerAction?.[2] || interaction.message?.id;
+    powerSave?.[1] || oldPowerButton?.[1] || interaction.message?.id;
   const data = getEntry(interaction, messageId);
   if (control?.[1] === 'delete') {
     if (!isOwner(interaction)) return privateReply('募集主だけがチーム発表を削除できます。');
@@ -291,13 +310,29 @@ async function handle(interaction) {
     if (!participant) return privateReply('募集に参加している人を選んでください。');
     return interaction.showModal(registrationForm(messageId, participant, true));
   }
-  if (powerAction) {
-    const userId = interaction.user.id;
-    if (!powerAction[1]) {
-      const participant = data.participants.find(p => p.id === userId);
-      const saved = profiles(interaction.guildId)[userId];
-      return interaction.showModal(powerForm(messageId, participant?.power ?? saved?.power, participant?.job ?? saved?.job));
-    }
+  const pickedPowerTarget = id === 'entry_power_pick' ? interaction.values[0] : undefined;
+  const powerPage = /^page_(\d+)$/.exec(pickedPowerTarget ?? '');
+  if (id === 'entry_power' || id === 'entry_power_close' || powerPage) {
+    await interaction.deferUpdate();
+    return serialize(interaction.channelId, async () => {
+      const current = getEntry(interaction, messageId);
+      if (!current) return followError(interaction, 'この募集は終了しました。');
+      const page = id === 'entry_power_close' ? null : Number(powerPage?.[1] ?? 0);
+      return interaction.editReply(panel(current, page));
+    });
+  }
+  if (pickedPowerTarget || oldPowerButton) {
+    const self = !pickedPowerTarget || pickedPowerTarget === 'self';
+    const userId = self ? interaction.user.id : pickedPowerTarget;
+    const participant = data.participants.find(p => p.id === userId);
+    if (!self && !participant) return privateReply('募集に参加している人を選んでください。');
+    const saved = profiles(interaction.guildId)[userId];
+    return interaction.showModal(powerForm(messageId, participant?.power ?? saved?.power,
+      participant?.job ?? saved?.job, pickedPowerTarget, participant?.name));
+  }
+  if (powerSave) {
+    const target = powerSave[2];
+    const userId = target && target !== 'self' ? target : interaction.user.id;
     const powerInput = interaction.fields.getTextInputValue('power')?.trim();
     const power = powerInput ? parsePower(powerInput) : null;
     const job = interaction.fields.fields.get('job')?.values?.[0];
@@ -308,15 +343,18 @@ async function handle(interaction) {
     const keys = Object.keys(changes);
     const updated = power && job ? '戦力・職業を更新しました。'
       : power ? `戦力を${powerLabel(power)}に更新しました。` : `職業を${job}に更新しました。`;
-    await interaction.deferReply({ ephemeral: true });
+    if (target) await interaction.deferUpdate();
+    else await interaction.deferReply({ ephemeral: true });
     return serialize(interaction.channelId, async () => {
-      const reply = content => interaction.editReply({ embeds: notice(content).embeds });
+      const reply = content => target ? followError(interaction, content)
+        : interaction.editReply({ embeds: notice(content).embeds });
       const current = getEntry(interaction, messageId);
       if (!current) return reply('この募集は終了しました。');
+      const participant = current.participants.find(p => p.id === userId);
+      if (target && target !== 'self' && !participant) return reply('この人は現在の参加者一覧にいません。');
       const savedProfiles = profiles(interaction.guildId);
       const existing = savedProfiles[userId];
       const saved = savedProfiles[userId] ??= { awaitingRegistration: true };
-      const participant = current.participants.find(p => p.id === userId);
       const targets = participant ? [saved, participant] : [saved];
       const previous = targets.map(target => ({ ...target }));
       for (const target of targets) Object.assign(target, changes);
@@ -330,10 +368,10 @@ async function handle(interaction) {
         if (!existing && savedProfiles[userId] === saved && saved.awaitingRegistration && !saved.power && !saved.job) delete savedProfiles[userId];
         return reply('変更を保存できませんでした。もう一度お試しください。');
       }
-      if (participant) {
+      if (target || participant) {
         try {
-          const message = await interaction.channel.messages.fetch(messageId);
-          await message.edit(panel(current));
+          if (target) return await interaction.editReply(panel(current));
+          await (await interaction.channel.messages.fetch(messageId)).edit(panel(current));
         } catch (error) {
           console.error('参加募集の表示更新に失敗:', error);
           return reply(updated + '募集メッセージの表示を更新できませんでした。');

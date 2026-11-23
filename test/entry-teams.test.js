@@ -193,7 +193,7 @@ test('server members can update their own power and assign teams from a recruitm
   await module.exports.handle({ ...owner, customId: randomRun, message: list });
   assert.equal(posts.length, 1);
   assert.equal(edits.length, 2);
-  await module.exports.handle({ ...owner, customId: 'entry_delete_100', message: announcement });
+  await module.exports.handle({ ...interaction, client: { user: { id: 'bot' } }, customId: 'entry_delete_100', message: { ...announcement, author: { id: 'bot' } } });
   assert.equal(deleted, true);
   assert.equal(data.teamMessageId, undefined);
   const empty = { getTextInputValue: () => '', getStringSelectValues: () => [] };

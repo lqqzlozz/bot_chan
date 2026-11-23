@@ -296,10 +296,17 @@ async function handle(interaction) {
     powerSave?.[1] || oldPowerButton?.[1] || interaction.message?.id;
   const data = getEntry(interaction, messageId);
   if (control?.[1] === 'delete') {
-    if (!isOwner(interaction)) return privateReply('募集主だけがチーム発表を削除できます。');
     await interaction.deferUpdate();
     return serialize(interaction.channelId, async () => {
-      await interaction.message.delete();
+      if (interaction.message.author.id !== interaction.client.user.id) return;
+      try {
+        await interaction.message.delete();
+      } catch (error) {
+        if (error.code !== 10008) {
+          console.error('チーム発表の削除に失敗:', error);
+          return followError(interaction, 'チーム発表を削除できませんでした。もう一度お試しください。');
+        }
+      }
       const current = getEntry(interaction, messageId);
       if (current?.teamMessageId === interaction.message.id) {
         delete current.teamMessageId;

@@ -443,14 +443,7 @@ async function handle(interaction) {
   if (registration && ((powerInput && !power) || (job && !jobs.includes(job)) || customName.length > 40)) {
     return privateReply('戦力は1B、103M、75.6Mなどの形式、職業は4択から入力してください。どちらも空欄で参加できます。');
   }
-  if (proxyEdit) await interaction.deferUpdate();
-  else await interaction.deferReply({ ephemeral: true });
-  const replyStatus = content => interaction.editReply({ embeds: notice(content).embeds });
-  const reply = proxyEdit ? content => followError(interaction, content) : replyStatus;
-  let progress = Promise.resolve();
-  const progressTimer = proxyEdit ? null : setTimeout(() => {
-    progress = replyStatus('参加者情報を更新しています。').catch(() => {});
-  }, 5000);
+  await interaction.deferUpdate();
   let result;
   try {
     result = await serialize(interaction.channelId, async () => {
@@ -501,17 +494,13 @@ async function handle(interaction) {
       }
       const savedOk = await saving;
       if (!savedOk) return 'bot-configに保存できませんでした。Botの権限を確認してください。' + displayFailure;
-      if (proxyEdit) return displayFailure;
-      return (registration || quickJoin ? '参加情報を登録しました。' : '参加を辞退しました。') + displayFailure;
+      return displayFailure;
     });
   } catch (error) {
     console.error('大会募集の参加情報を更新できませんでした:', error);
     result = '参加者情報を更新できませんでした。参加者ロールの設定を確認してください。';
-  } finally {
-    clearTimeout(progressTimer);
-    await progress;
   }
-  if (result) await reply(result);
+  if (result) await followError(interaction, result);
 }
 
 module.exports = { panel, handle, serialize, profiles, refresh };

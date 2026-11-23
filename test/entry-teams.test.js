@@ -77,7 +77,7 @@ test('server members can update their own power and assign teams from a recruitm
   const config = { entry: { channel: data } };
   let saveResult;
   vm.runInNewContext(fs.readFileSync(require.resolve('../utils/entryPanel'), 'utf8'), {
-    module, Intl, Buffer, setTimeout, clearTimeout, require(name) {
+    module, Intl, Buffer, require(name) {
       if (name === 'discord.js') return {
         escapeMarkdown: text => text, ActionRowBuilder: Builder, ButtonBuilder: Builder,
         ButtonStyle: { Primary: 1, Secondary: 2, Danger: 4 }, EmbedBuilder: Builder, ModalBuilder: Builder, TextInputBuilder: Builder,
@@ -201,8 +201,12 @@ test('server members can update their own power and assign teams from a recruitm
   saveResult = new Promise(resolve => { finishSave = resolve; });
   let showJoined;
   const joinedOnPost = new Promise(resolve => { showJoined = resolve; });
+  const repliesBeforeJoin = replies.length;
+  let acknowledgedJoin = false;
   const joining = module.exports.handle({
     ...interaction, customId: 'entry_join', user: { id: '3' },
+    deferUpdate: async () => { acknowledgedJoin = true; },
+    deferReply: async () => assert.fail('Joining should not create a pending message'),
     message: { ...message, edit: async payload => { recruitment = payload; showJoined(); } },
     guild: {
       members: { fetch: async () => ({ displayName: 'C', roles: { cache: { has: () => true } } }) },
@@ -215,7 +219,8 @@ test('server members can update their own power and assign teams from a recruitm
   saveResult = undefined;
   assert.equal(data.participants[0].power, 125000);
   assert.equal(data.participants[0].job, '騎士');
-  assert.match(replies.at(-1).embeds[0].description, /参加情報を登録しました/);
+  assert.equal(acknowledgedJoin, true);
+  assert.equal(replies.length, repliesBeforeJoin);
   const joined = { ...interaction, user: { id: '3' } };
   await module.exports.handle({ ...joined, customId: 'entry_join' });
   assert.match(replies.at(-1).embeds[0].description, /すでに参加しています/);
@@ -279,6 +284,21 @@ test('server members can update their own power and assign teams from a recruitm
   assert.equal(data.participants[0].power, 103000000);
   await module.exports.handle({ ...joined, ...powerSubmit, guildId: 'other' });
   assert.match(replies.at(-1).embeds[0].description, /このサーバーでは使用できません/);
+  const repliesBeforeLeave = replies.length;
+  let acknowledgedLeave = false;
+  let removedRole;
+  await module.exports.handle({
+    ...joined, customId: 'entry_leave',
+    deferUpdate: async () => { acknowledgedLeave = true; },
+    deferReply: async () => assert.fail('Leaving should not create a pending message'),
+    member: { roles: { cache: new Map([['role', {}]]), remove: async role => { removedRole = role.id; } } },
+    guild: { roles: { cache: new Map([['role', { id: 'role' }]]), fetch: async () => assert.fail('Role is cached') } }
+  });
+  assert.equal(acknowledgedLeave, true);
+  assert.equal(removedRole, 'role');
+  assert.equal(replies.length, repliesBeforeLeave);
+  assert.equal(data.participants.length, 0);
+  assert.equal(recruitment.embeds[0].fields[0].value, 'まだ参加者はいません。');
 });
 
 test('Monday JST weekly reset saves the new post before deleting the previous recruitment', async () => {

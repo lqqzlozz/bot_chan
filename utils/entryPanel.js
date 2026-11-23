@@ -265,8 +265,7 @@ async function announceTeams(interaction, data, size, strategy) {
   const channel = interaction.channel ?? await interaction.guild.channels.fetch(interaction.channelId);
   if (data.teamMessageId) {
     try {
-      const previous = await channel.messages.fetch(data.teamMessageId);
-      await previous.edit({ ...payload, attachments: [] });
+      const previous = await channel.messages.edit(data.teamMessageId, { ...payload, attachments: [] });
       return previous.id;
     } catch (error) {
       if (error.code !== 10008) throw error;
@@ -305,23 +304,31 @@ async function handle(interaction) {
     powerSave?.[1] || oldPowerButton?.[1] || interaction.message?.id;
   const data = getEntry(interaction, messageId);
   if (control?.[1] === 'delete') {
+    if (interaction.message.author.id !== interaction.client.user.id) return privateReply('この発表は削除できません。');
+    console.info('[entry] 削除受付', interaction.message.id);
     await interaction.deferUpdate();
-    return serialize('entry-result:'+messageId, async () => {
-      if (interaction.message.author.id !== interaction.client.user.id) return;
-      try {
-        await interaction.message.delete();
-      } catch (error) {
-        if (error.code !== 10008) {
-          console.error('チーム発表の削除に失敗:', error);
-          return followError(interaction, 'チーム発表を削除できませんでした。もう一度お試しください。');
+    try {
+      await serialize('entry-result:'+messageId, async () => {
+        try {
+          // A component acknowledgement targets the clicked announcement, including older results.
+          await interaction.deleteReply();
+        } catch {
+          // Some existing bot posts can only be deleted through the channel endpoint.
+          try { await interaction.message.delete(); }
+          catch (error) { if (error.code !== 10008) throw error; }
         }
-      }
-      const current = getEntry(interaction, messageId);
-      if (current?.teamMessageId === interaction.message.id) {
-        delete current.teamMessageId;
-        await st.save(interaction.guild);
-      }
-    });
+        const current = getEntry(interaction, messageId);
+        if (current?.teamMessageId === interaction.message.id) {
+          delete current.teamMessageId;
+          void st.save(interaction.guild);
+        }
+      });
+      console.info('[entry] 発表を削除', interaction.message.id);
+    } catch (error) {
+      console.error('[entry] 発表を削除できませんでした', interaction.message.id, error.code ?? error.name);
+      return followError(interaction, 'チーム発表を削除できませんでした。もう一度お試しください。');
+    }
+    return;
   }
   if (!data) return privateReply('この募集は終了したか、別の募集に置き換わりました。');
   if (weeklyJoin && st.get(interaction.guildId).entryWeekly?.[interaction.channelId]?.date !== weeklyJoin[2]) {
@@ -445,34 +452,44 @@ async function handle(interaction) {
     const size = choice[1] === 'size' ? selected : choice[3] || data.teamSize || '2';
     const strategy = choice[1] === 'strategy' ? selected : choice[3] || teamStrategy(data);
     if (!teamSizes.includes(size) || !Object.hasOwn(strategies, strategy)) return privateReply('条件を選び直してください。');
-    data.teamSize = size;
-    data.teamStrategy = strategy;
-    void st.save(interaction.guild);
-    return interaction.update(teamSetup(data));
+    return interaction.update(teamSetup({ ...data, teamSize: size, teamStrategy: strategy }));
   }
   if (run && !Object.hasOwn(strategies, run[3])) return privateReply('振り分け基準を選び直してください。');
   if (run) {
-    await interaction.update({ embeds: notice('振り分けています…').embeds, components: [] });
-    return serialize('entry-result:'+messageId, async () => {
-      const current = getEntry(interaction, messageId);
-      if (!current || !current.participants.length) {
-        return interaction.editReply({ embeds: notice(current ? 'まだ参加者はいません。' : 'この募集は終了しました。').embeds, components: [] });
-      }
-      const chosen = { ...current, teamSize: run[2], teamStrategy: run[3] };
-      let resultId;
-      try {
-        resultId = await announceTeams(interaction, current, Number(run[2]), teamStrategy(chosen));
-      } catch (error) {
-        console.error('チーム分けの投稿に失敗:', error);
-        return interaction.editReply(teamSetup(chosen, '結果を投稿できませんでした。もう一度お試しください。'));
-      }
-      if (getEntry(interaction, messageId) === current) {
-        current.teamMessageId = resultId;
-        void st.save(interaction.guild);
-      }
-      const url = `https://discord.com/channels/${interaction.guildId}/${interaction.channelId}/${resultId}`;
-      return interaction.editReply(teamSetup(chosen, `[振り分け結果を見る](${url})`));
-    });
+    console.info('[entry] 振り分け受付', messageId, run[2], run[3]);
+    await interaction.deferUpdate();
+    let resultId;
+    let status;
+    try {
+      await serialize('entry-result:'+messageId, async () => {
+        const current = getEntry(interaction, messageId);
+        if (!current || !current.participants.length) {
+          status = current ? 'まだ参加者はいません。' : 'この募集は終了しました。';
+          return;
+        }
+        if (teamStrategy({ ...current, teamStrategy: run[3] }) !== run[3]) {
+          status = '戦力が入力されている参加者がいません。振り分け基準を選び直してください。';
+          return;
+        }
+        resultId = await announceTeams(interaction, current, Number(run[2]), run[3]);
+        if (getEntry(interaction, messageId) === current) {
+          Object.assign(current, { teamSize: run[2], teamStrategy: run[3], teamMessageId: resultId });
+          void st.save(interaction.guild);
+        }
+      });
+    } catch (error) {
+      console.error('[entry] 振り分け失敗', messageId, run[2], run[3], error.code ?? error.name);
+      status = '結果を投稿できませんでした。もう一度お試しください。';
+    }
+    if (resultId) {
+      console.info('[entry] 振り分け完了', messageId, run[2], run[3], resultId);
+      status = `[振り分け結果を見る](https://discord.com/channels/${interaction.guildId}/${interaction.channelId}/${resultId})`;
+    }
+    // Webhook feedback may be delayed independently of channel edits and deletes.
+    const active = getEntry(interaction, messageId);
+    const response = active?.participants.length ? teamSetup({ ...active, teamSize: run[2], teamStrategy: run[3] }, status)
+      : { embeds: notice(status).embeds, components: [] };
+    return interaction.editReply(response);
   }
   if (reset || control || ['entry_reset', 'entry_size', 'entry_strategy', 'entry_split', 'entry_pair', 'entry_team4'].includes(id)) {
     const owner = isOwner(interaction);

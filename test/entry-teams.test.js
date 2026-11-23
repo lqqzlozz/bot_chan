@@ -103,7 +103,10 @@ test('server members can update their own power and assign teams from a recruitm
     followUp: async payload => replies.push(payload), deleteReply: async () => {},
     channel: {
       send: async payload => { posts.push(payload); return announcement; },
-      messages: { fetch: async id => ({100:message,101:list,102:announcement}[id]) }
+      messages: {
+        fetch: async id => ({100:message,101:list,102:announcement}[id]),
+        edit: async (id, payload) => { assert.equal(id, announcement.id); await announcement.edit(payload); return announcement; }
+      }
     }
   };
   await module.exports.refresh({
@@ -206,7 +209,7 @@ test('server members can update their own power and assign teams from a recruitm
   await module.exports.handle({ ...owner, customId: randomRun, message: list });
   assert.equal(posts.length, 1);
   assert.equal(edits.length, 2);
-  await module.exports.handle({ ...interaction, client: { user: { id: 'bot' } }, customId: 'entry_delete_100', message: { ...announcement, author: { id: 'bot' } } });
+  await module.exports.handle({ ...interaction, client: { user: { id: 'bot' } }, customId: 'entry_delete_100', deleteReply: async () => { throw Object.assign(new Error(), { code: 10008 }); }, message: { ...announcement, author: { id: 'bot' } } });
   assert.equal(deleted, true);
   assert.equal(data.teamMessageId, undefined);
   const empty = { getTextInputValue: () => '', getStringSelectValues: () => [] };
@@ -364,6 +367,73 @@ test('server members can update their own power and assign teams from a recruitm
   assert.deepEqual(roleChanges, ['remove', 'add']);
   assert.equal(data.participants[0].id, '3');
 
+});
+
+test('real Discord components publish every size and strategy while private feedback or storage is delayed', { timeout: 4000 }, async () => {
+  const discord = require('discord.js');
+  const module = { exports: {} };
+  const participants = [
+    { id: '11', name: 'きつね', power: 130000000, job: '騎士' },
+    { id: '12', name: 'かのん', power: 132000000, job: '賢者' },
+    { id: '13', name: 'Anma chan', power: 13, job: '騎士' }
+  ];
+  const data = { msg: '100', participants };
+  const config = { entry: { channel: data } };
+  let finishSave;
+  const slowSave = new Promise(resolve => { finishSave = resolve; });
+  vm.runInNewContext(fs.readFileSync(require.resolve('../utils/entryPanel'), 'utf8'), {
+    module, Intl, Buffer, require(name) {
+      if (name === './store') return { get: () => config, save: () => slowSave };
+      if (name === 'discord.js') return discord;
+      return require('../utils/' + name.slice(2));
+    }
+  });
+  const handle = module.exports.handle;
+  let payload, setup, sent = 0, edited = 0, deleted = 0;
+  const currentMessage = { id: '102', author: { id: 'bot' } };
+  const i = {
+    guildId: require('../utils/entryScope').GUILD, channelId: 'channel', user: { id: 'member' },
+    client: { user: { id: 'bot' } }, message: { id: '100' },
+    reply: async p => { setup = p; }, update: async p => { setup = p; },
+    deferUpdate: async () => {}, editReply: async p => { setup = p; },
+    channel: {
+      send: async p => { sent++; payload = p; return currentMessage; },
+      messages: { edit: async (id, p) => { assert.equal(id, currentMessage.id); edited++; payload = p; return currentMessage; } }
+    }
+  };
+  const control = row => setup.components[row].toJSON().components[0].custom_id;
+  for (const size of [2, 4]) {
+    for (const strategy of Object.keys(strategies)) {
+      await handle({ ...i, customId: 'entry_teams' });
+      await handle({ ...i, customId: control(0), values: [String(size)] });
+      await handle({ ...i, customId: control(1), values: [strategy] });
+      assert.equal(control(2), `entry_run_100_${size}_${strategy}`);
+      await handle({ ...i, customId: control(2) });
+      assert.match(setup.embeds[0].description, /102\)/);
+      const result = payload.embeds[0].description;
+      assert.equal((result.match(/\*\*TEAM/g) || []).length, Math.ceil(3 / size));
+      for (const player of participants) assert.equal(result.split(player.name + ' ').length, 2);
+    }
+  }
+  assert.equal(sent, 1);
+  assert.equal(edited, 7);
+  const trash = payload.components[0].toJSON().components[0].custom_id;
+  let feedbackStarted, finishFeedback;
+  const started = new Promise(resolve => { feedbackStarted = resolve; });
+  const slowFeedback = new Promise(resolve => { finishFeedback = resolve; });
+  const pendingRun = handle({ ...i, customId: control(2), editReply: () => { feedbackStarted(); return slowFeedback; } });
+  try {
+    await started;
+    await handle({ ...i, customId: trash, message: currentMessage, deleteReply: async () => { deleted++; } });
+    assert.equal(deleted, 1);
+    assert.equal(data.teamMessageId, undefined);
+    await handle({ ...i, customId: control(2) });
+    assert.equal(sent, 2);
+  } finally {
+    finishFeedback();
+    finishSave(true);
+    await pendingRun;
+  }
 });
 
 test('Monday JST weekly reset saves the new post before deleting the previous recruitment', async () => {

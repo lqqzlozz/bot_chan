@@ -30,9 +30,9 @@ module.exports = {
       try { await require('../utils/entryPanel').handle(interaction); }
       catch (error) {
         console.error('参加募集の操作に失敗:', error);
-        const description = '操作できませんでした。参加者ロールの設定を確認してから、もう一度お試しください。';
+        const description = '操作を完了できませんでした。もう一度お試しください。';
         const payload = { embeds: [{ description, color: 0x5865F2 }], ephemeral: true };
-        if (interaction.deferred) await interaction.followUp(payload).catch(() => null);
+        if (interaction.deferred || interaction.replied) await interaction.followUp(payload).catch(() => null);
         else if (!interaction.replied) await interaction.reply(payload).catch(() => null);
       }
       return;

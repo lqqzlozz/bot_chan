@@ -206,16 +206,26 @@ const notice = description => ({ embeds: [{ description, color: 0x5865F2 }], eph
 const followError = (interaction, content) => interaction.followUp(notice(content));
 const alreadyJoined = 'すでに参加しています。戦力・職業は「戦力変更」から変更できます。';
 
-function teamSetup(data, owner) {
+function teamStrategy(data) {
+  if (!data.participants.some(player => player.power)) return 'random';
+  return Object.hasOwn(strategies, data.teamStrategy) ? data.teamStrategy : 'balanced';
+}
+
+function teamSetup(data, owner, status) {
   const id = data.msg;
-  const size = selectRow('entry_size_'+id, 'チーム人数を指定', teamSizes.map(value => ({ label: value+'人', value })), data.teamSize || '2');
-  const strategy = selectRow('entry_strategy_'+id, '振り分け基準を指定',
-    Object.entries(strategies).map(([value,label]) => ({ label, value })), data.teamStrategy);
-  const embeds = [{ title: 'チーム振り分け', color: 0x5865F2 }];
-  const components = [size, strategy];
-  if (owner) components.push(new ActionRowBuilder().addComponents(
-    button('entry_manage_'+id, '参加者を編集', ButtonStyle.Secondary)));
-  return { embeds, components };
+  const size = teamSizes.includes(data.teamSize) ? data.teamSize : '2';
+  const strategy = teamStrategy(data);
+  const buttons = [button(`entry_run_${id}_${size}_${strategy}`, '振り分けを実行', ButtonStyle.Success)];
+  if (owner) buttons.push(button('entry_manage_'+id, '参加者を編集', ButtonStyle.Secondary));
+  return {
+    embeds: [{ title: 'チーム振り分け', description: status, color: 0x5865F2 }],
+    components: [
+      selectRow('entry_size_'+id, 'チーム人数を指定', teamSizes.map(value => ({ label: value+'人', value })), size),
+      selectRow('entry_strategy_'+id, '振り分け基準を指定',
+        Object.entries(strategies).map(([value,label]) => ({ label, value })), strategy),
+      new ActionRowBuilder().addComponents(...buttons)
+    ]
+  };
 }
 
 function manageParticipants(data) {
@@ -235,11 +245,7 @@ function manageParticipants(data) {
   return { embeds: [{ title: '参加者の編集', color: 0x5865F2 }], components };
 }
 
-async function announceTeams(interaction, data) {
-  if (!data.participants.length) return followError(interaction, '参加者がいません。');
-  const size = Number(data.teamSize || '2');
-  const strategy = data.participants.some(player=>player.power) ? data.teamStrategy : 'random';
-  if (!Object.hasOwn(strategies, strategy)) return;
+async function announceTeams(interaction, data, size, strategy) {
   const teams = splitTeams(data.participants, size, strategy);
   const lines = teams.map(({members}, index) => {
     const players = members.map(p => [p.name.replaceAll('`','ˋ'), p.power ? powerLabel(p.power) : '戦力未入力',
@@ -280,12 +286,13 @@ async function handle(interaction) {
   const weeklyJoin = /^entry_week_join_(\d+)_(\d{4}-\d{2}-\d{2})$/.exec(id);
   const editPicker = /^entry_edit_pick_(\d+)(?:_\d+)?$/.exec(id);
   const control = /^entry_(prepare|back|manage|size|strategy|reset|delete)_(\d+)$/.exec(id);
+  const run = /^entry_run_(\d+)_(2|4)_([a-z]+)$/.exec(id);
   const reset = /^entry_reset_confirm_(\d+)_(\d+)$/.exec(id);
   const powerSave = /^entry_power_save_(\d+)(?:_(self|\d+))?$/.exec(id);
   const oldPowerButton = /^entry_power_(\d+)$/.exec(id);
   if ((proxyEdit || editPicker) && !isOwner(interaction)) return privateReply('募集主だけが代理編集できます。');
   const registration = proxyEdit || /^entry_register_(\d+)$/.exec(id);
-  const messageId = registration?.[1] || weeklyJoin?.[1] || editPicker?.[1] || reset?.[1] || control?.[2] ||
+  const messageId = registration?.[1] || weeklyJoin?.[1] || editPicker?.[1] || reset?.[1] || control?.[2] || run?.[1] ||
     powerSave?.[1] || oldPowerButton?.[1] || interaction.message?.id;
   const data = getEntry(interaction, messageId);
   if (control?.[1] === 'delete') {
@@ -410,17 +417,15 @@ async function handle(interaction) {
   }
   if (id === 'entry_teams') {
     if (!data.participants.length) return privateReply('まだ参加者はいません。');
-    const noPower = !data.participants.some(p => p.power);
-    const setupData = noPower ? { ...data, teamStrategy: 'random' } : data;
-    await interaction.reply({ ...teamSetup(setupData, isOwner(interaction)), ephemeral: true });
-    if (!noPower) return;
+    return interaction.reply({ ...teamSetup(data, isOwner(interaction)), ephemeral: true });
   }
-  if (reset || control || ['entry_teams', 'entry_reset', 'entry_size', 'entry_strategy', 'entry_split', 'entry_pair', 'entry_team4'].includes(id)) {
+  if (run && !Object.hasOwn(strategies, run[3])) return privateReply('振り分け基準を選び直してください。');
+  if (reset || control || run || ['entry_reset', 'entry_size', 'entry_strategy', 'entry_split', 'entry_pair', 'entry_team4'].includes(id)) {
     const owner = isOwner(interaction);
-    const action = id === 'entry_teams' ? 'prepare' : control?.[1];
+    const action = run ? 'run' : control?.[1];
     if ((reset || !action || action === 'reset' || action === 'manage') && !owner) return privateReply('募集主だけが操作できます。');
     if (action === 'reset') return confirmReset(interaction, messageId);
-    if (id !== 'entry_teams') await interaction.deferUpdate();
+    await interaction.deferUpdate();
     return serialize(interaction.channelId, async () => {
       const current = getEntry(interaction, messageId);
       if (!current) return followError(interaction, 'この募集は終了しました。');
@@ -440,17 +445,23 @@ async function handle(interaction) {
       if (!current.participants.length) {
         return interaction.editReply({ embeds: notice('まだ参加者はいません。').embeds, components: [], attachments: [] });
       }
-      if (action === 'back') return interaction.editReply({ ...teamSetup(current, owner), attachments: [] });
+      if (action === 'back' || action === 'prepare') return interaction.editReply({ ...teamSetup(current, owner), attachments: [] });
+      if (run) {
+        const chosen = { ...current, teamSize: run[2], teamStrategy: run[3] };
+        try {
+          await announceTeams(interaction, current, Number(run[2]), teamStrategy(chosen));
+        } catch (error) {
+          console.error('チーム分けの投稿に失敗:', error);
+          return interaction.editReply(teamSetup(chosen, owner, '結果を投稿できませんでした。もう一度お試しください。'));
+        }
+        void st.save(interaction.guild);
+        return interaction.editReply(teamSetup(chosen, owner, 'このチャンネルにチーム分けの結果を表示しました。'));
+      }
       const selected = interaction.values?.[0];
       if (action === 'size' && teamSizes.includes(selected)) current.teamSize = selected;
       if (action === 'strategy' && Object.hasOwn(strategies, selected)) current.teamStrategy = selected;
-      const noPower = !current.participants.some(p => p.power);
-      if (noPower) current.teamStrategy = 'random';
-      if (id !== 'entry_teams') await interaction.editReply({ ...teamSetup(current, owner), attachments: [] });
-      if ((action !== 'prepare' || noPower) && Object.hasOwn(strategies, current.teamStrategy) && current.participants.length) {
-        await announceTeams(interaction, current);
-      }
-      await st.save(interaction.guild);
+      void st.save(interaction.guild);
+      return interaction.editReply({ ...teamSetup(current, owner), attachments: [] });
     });
   }
   if (!registration && !quickJoin && id !== 'entry_leave') return privateReply('この操作は利用できません。');

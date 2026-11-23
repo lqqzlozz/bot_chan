@@ -45,7 +45,7 @@ test('four-player teams keep all participants exactly once, including remainders
   assert.equal(teams.reduce((sum, team) => sum + team.total, 0), 66);
 });
 
-test('entry roster can be viewed without dividing teams, and only the owner can post teams', async () => {
+test('server members can update their own power and assign teams from a recruitment', async () => {
   const data = {
     msg: '100', roleId: 'role', text: '募集',
     participants: [
@@ -60,7 +60,7 @@ test('entry roster can be viewed without dividing teams, and only the owner can 
     addOptions(options) { this.options = options; return this; }
     addLabelComponents(...labels) { this.labels = labels; return this; }
     setStringSelectMenuComponent(select) { this.select = select; return this; }
-    setTextInputComponent() { return this; }
+    setTextInputComponent(input) { this.input = input; return this; }
     setTitle() { return this; }
     setLabel(label) { this.label = label; return this; }
     setStyle(style) { this.style = style; return this; }
@@ -68,7 +68,7 @@ test('entry roster can be viewed without dividing teams, and only the owner can 
     setRequired() { return this; }
     setMinValues() { return this; }
     setMaxLength() { return this; }
-    setValue() { return this; }
+    setValue(value) { this.value = value; return this; }
     setColor() { return this; }
     setDescription() { return this; }
     addFields() { return this; }
@@ -97,7 +97,7 @@ test('entry roster can be viewed without dividing teams, and only the owner can 
   const announcement = { id: '102', edit: async payload => edits.push(payload), delete: async () => { deleted = true; } };
   const interaction = {
     guildId: 'guild', channelId: 'channel', message, user: { id: 'member' }, guild: {},
-    reply: async payload => replies.push(payload), deferUpdate: async () => {},
+    reply: async payload => replies.push(payload), deferUpdate: async () => {}, deferReply: async () => {},
     update: async payload => replies.push(payload), editReply: async payload => replies.push(payload),
     followUp: async payload => replies.push(payload), deleteReply: async () => {},
     channel: {
@@ -109,21 +109,21 @@ test('entry roster can be viewed without dividing teams, and only the owner can 
     id: 'guild', channels: { fetch: async () => ({ isTextBased: () => true, messages: interaction.channel.messages }) }
   }, 'bot');
   assert.equal(recruitment.components.map(row => row.components.map(button => button.label).join('｜')).join('\n'),
-    '参加する｜辞退する\n参加者情報一覧');
+    '参加する｜辞退する｜戦力を入力し直す\n参加者情報一覧｜チームを振り分ける');
   assert.equal(recruitment.components[0].components[1].style, 4);
   assert.equal(data.participants.length, 3);
   await module.exports.handle({ ...interaction, customId: 'entry_roster' });
   assert.match(replies.at(-1).embeds[0].description, /A（125,000\/闘志）/);
   assert.equal(replies.at(-1).ephemeral, true);
   assert.match(replies.at(-1).embeds[0].description, /- C$/);
+  assert.equal(replies.at(-1).components[0].components.map(button => button.id).join(','),
+    'entry_power_100,entry_prepare_100');
   assert.equal(posts.length, 0);
-  await module.exports.handle({ ...interaction, customId: 'entry_prepare_100', message: list });
-  assert.match(replies.at(-1).embeds[0].description, /募集主/);
+  await module.exports.handle({ ...interaction, customId: 'entry_teams' });
+  assert.equal(replies.at(-1).components[1].components[0].id, 'entry_strategy_100');
   assert.equal(posts.length, 0);
   const owner = { ...interaction, user: { id: 'owner' } };
-  await module.exports.handle({ ...owner, customId: 'entry_prepare_100', message: list });
-  assert.equal(posts.length, 0);
-  await module.exports.handle({ ...owner, customId: 'entry_strategy_100', message: list, values: ['balanced'] });
+  await module.exports.handle({ ...interaction, customId: 'entry_strategy_100', message: list, values: ['balanced'] });
   assert.match(posts[0].embeds[0].description, /TEAM1\./);
   assert.match(posts[0].embeds[0].description, /のチームが完全ではありません/);
   await module.exports.handle({ ...owner, customId: 'entry_size_100', message: list, values: ['4'] });
@@ -186,6 +186,33 @@ test('entry roster can be viewed without dividing teams, and only the owner can 
   });
   assert.equal(data.participants[0].power, 125000);
   assert.equal(data.participants[0].job, '騎士');
+  const joined = { ...interaction, user: { id: '3' } };
+  await module.exports.handle({ ...joined, customId: 'entry_join' });
+  assert.match(replies.at(-1).embeds[0].description, /すでに参加しています/);
+  await module.exports.handle({ ...joined, customId: 'entry_power_100', message: list, showModal: async value => { modal = value; } });
+  assert.equal(modal.id, 'entry_power_save_100');
+  assert.equal(modal.labels.length, 1);
+  assert.equal(modal.labels[0].input.value, '125000');
+  const powerSubmit = {
+    customId: 'entry_power_save_100', fields: { getTextInputValue: () => '103M' }, message: list
+  };
+  await module.exports.handle({ ...joined, ...powerSubmit });
+  assert.equal(data.participants[0].power, 103000000);
+  assert.equal(data.participants[0].job, '騎士');
+  assert.equal(data.participants[0].name, 'C');
+  assert.equal(config.entryProfiles['3'].power, 103000000);
+  await module.exports.handle({ ...interaction, ...powerSubmit });
+  assert.equal(config.entryProfiles.member.power, 103000000);
+  assert.equal(data.participants.length, 1);
+  await module.exports.handle({ ...interaction, customId: 'entry_join', showModal: async value => { modal = value; } });
+  assert.equal(modal.id, 'entry_register_100');
+  assert.equal(modal.labels[1].input.value, '103M');
+  assert.equal(modal.labels[2].select.options.length, 4);
+  await module.exports.handle({ ...joined, customId: 'entry_register_100', fields: empty });
+  assert.match(replies.at(-1).embeds[0].description, /すでに参加しています/);
+  assert.equal(data.participants[0].power, 103000000);
+  await module.exports.handle({ ...joined, ...powerSubmit, guildId: 'other' });
+  assert.match(replies.at(-1).embeds[0].description, /このサーバーでは使用できません/);
 });
 
 test('Monday JST weekly reset preserves profiles and reposts once with an everyone mention', async () => {

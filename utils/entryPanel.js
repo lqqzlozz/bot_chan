@@ -38,10 +38,12 @@ const button = (id, label, style) => new ButtonBuilder().setCustomId(id).setLabe
 function panel(data) {
   const actions = new ActionRowBuilder().addComponents(
     button('entry_join', '参加する', ButtonStyle.Primary),
-    button('entry_leave', '辞退する', ButtonStyle.Danger)
+    button('entry_leave', '辞退する', ButtonStyle.Danger),
+    button('entry_power', '戦力を入力し直す', ButtonStyle.Secondary)
   );
   const roster = new ActionRowBuilder().addComponents(
-    button('entry_roster', '参加者情報一覧', ButtonStyle.Secondary)
+    button('entry_roster', '参加者情報一覧', ButtonStyle.Secondary),
+    button('entry_teams', 'チームを振り分ける', ButtonStyle.Success)
   );
   const embed = new EmbedBuilder().setColor('#5865F2').setDescription(data.text);
   const participants = data.participants;
@@ -91,6 +93,7 @@ function profiles(guildId) {
   for (const entry of Object.values(config.entry)) {
     for (const player of entry.participants || []) {
       const profile = saved[player.id] ??= {};
+      delete profile.awaitingRegistration;
       if (player.power) profile.power ??= player.power;
       if (jobs.includes(player.job)) profile.job ??= player.job;
     }
@@ -130,34 +133,47 @@ function registrationForm(messageId, participant, proxy = false) {
     );
 }
 
+function powerForm(messageId, power) {
+  const input = new TextInputBuilder().setCustomId('power').setStyle(TextInputStyle.Short)
+    .setPlaceholder('例：1B、103M、75.6M').setRequired(true).setMaxLength(24);
+  if (power) input.setValue(String(power));
+  return new ModalBuilder().setCustomId('entry_power_save_'+messageId)
+    .setTitle('戦力を入力し直す')
+    .addLabelComponents(new LabelBuilder().setLabel('戦力').setTextInputComponent(input));
+}
+
 const notice = description => ({ embeds: [{ description, color: 0x5865F2 }], ephemeral: true });
 const followError = (interaction, content) => interaction.followUp(notice(content));
+const alreadyJoined = 'すでに参加しています。戦力は「戦力を入力し直す」から変更できます。';
 
 function roster(data, owner, configuring = false) {
   const title = `参加者情報一覧（${data.participants.length}人）`;
   const body = data.participants.map(p => '- '+playerLabel(p)).join('\n') || 'まだ参加者はいません。';
   const payload = report(title, body, 'entry-roster.md');
-  if (!owner) return payload;
   const id = data.msg;
   if (configuring) {
     const size = selectRow('entry_size_'+id, 'チーム人数を指定', teamSizes.map(value => ({ label: value+'人', value })), data.teamSize || '2');
     const strategy = selectRow('entry_strategy_'+id, '振り分け基準を指定',
       Object.entries(strategies).map(([value,label]) => ({ label, value })), data.teamStrategy);
     payload.components = [size, strategy, new ActionRowBuilder().addComponents(
-      button('entry_back_'+id, '参加者の編集に戻る', ButtonStyle.Secondary))];
+      button('entry_back_'+id, '参加者情報一覧に戻る', ButtonStyle.Secondary))];
   } else {
-    const reset = { label:'戦力・職業をリセットする', value:'reset' };
-    const options = data.participants.map(p => ({ label:p.name.slice(0,100), value:p.id }));
-    const first = data.participants.length <= 49 ? [reset, ...options.slice(0,24)] : [reset];
-    payload.components = [selectRow('entry_edit_pick_'+id+'_0', '参加者の編集・リセット', first)];
-    if (data.participants.length > 49) {
-      payload.components.push({type:1, components:[{type:5, custom_id:'entry_edit_pick_'+id,
-        placeholder:'戦力・職業を編集する参加者を選択'}]});
-    } else if (options.length > 24) {
-      payload.components.push(selectRow('entry_edit_pick_'+id+'_24', '編集する参加者を選択（25人目以降）', options.slice(24)));
+    payload.components = [];
+    if (owner) {
+      const reset = { label:'戦力・職業をリセットする', value:'reset' };
+      const options = data.participants.map(p => ({ label:p.name.slice(0,100), value:p.id }));
+      const first = data.participants.length <= 49 ? [reset, ...options.slice(0,24)] : [reset];
+      payload.components.push(selectRow('entry_edit_pick_'+id+'_0', '参加者の編集・リセット', first));
+      if (data.participants.length > 49) {
+        payload.components.push({type:1, components:[{type:5, custom_id:'entry_edit_pick_'+id,
+          placeholder:'戦力・職業を編集する参加者を選択'}]});
+      } else if (options.length > 24) {
+        payload.components.push(selectRow('entry_edit_pick_'+id+'_24', '編集する参加者を選択（25人目以降）', options.slice(24)));
+      }
     }
     payload.components.push(new ActionRowBuilder().addComponents(
-      button('entry_prepare_'+id, 'この戦力でチームを振り分ける', ButtonStyle.Success)));
+      button('entry_power_'+id, '戦力を入力し直す', ButtonStyle.Secondary),
+      button('entry_prepare_'+id, 'チームを振り分ける', ButtonStyle.Success)));
   }
   return payload;
 }
@@ -208,9 +224,11 @@ async function handle(interaction) {
   const editPicker = /^entry_edit_pick_(\d+)(?:_\d+)?$/.exec(id);
   const control = /^entry_(prepare|back|size|strategy|reset|delete)_(\d+)$/.exec(id);
   const reset = /^entry_reset_confirm_(\d+)_(\d+)$/.exec(id);
+  const powerAction = /^entry_power(?:_(save_)?(\d+))?$/.exec(id);
   if ((proxyEdit || editPicker) && !isOwner(interaction)) return privateReply('募集主だけが代理編集できます。');
   const registration = proxyEdit || /^entry_register_(\d+)$/.exec(id);
-  const messageId = registration?.[1] || weeklyJoin?.[1] || editPicker?.[1] || reset?.[1] || control?.[2] || interaction.message?.id;
+  const messageId = registration?.[1] || weeklyJoin?.[1] || editPicker?.[1] || reset?.[1] || control?.[2] ||
+    powerAction?.[2] || interaction.message?.id;
   const data = getEntry(interaction, messageId);
   if (control?.[1] === 'delete') {
     if (!isOwner(interaction)) return privateReply('募集主だけがチーム発表を削除できます。');
@@ -234,26 +252,71 @@ async function handle(interaction) {
     if (!participant) return privateReply('募集に参加している人を選んでください。');
     return interaction.showModal(registrationForm(messageId, participant, true));
   }
+  if (powerAction) {
+    const userId = interaction.user.id;
+    if (!powerAction[1]) {
+      const participant = data.participants.find(p => p.id === userId);
+      const saved = profiles(interaction.guildId)[userId];
+      return interaction.showModal(powerForm(messageId, participant?.power ?? saved?.power));
+    }
+    const power = parsePower(interaction.fields.getTextInputValue('power'));
+    if (!power) return privateReply('戦力は1B、103M、75.6Mなどの形式で入力してください。');
+    await interaction.deferReply({ ephemeral: true });
+    return serialize(interaction.channelId, async () => {
+      const reply = content => interaction.editReply({ embeds: notice(content).embeds });
+      const current = getEntry(interaction, messageId);
+      if (!current) return reply('この募集は終了しました。');
+      const savedProfiles = profiles(interaction.guildId);
+      const existing = savedProfiles[userId];
+      const saved = savedProfiles[userId] ??= { awaitingRegistration: true };
+      const participant = current.participants.find(p => p.id === userId);
+      const previous = [[saved, saved.power]];
+      if (participant) previous.push([participant, participant.power]);
+      for (const [target] of previous) target.power = power;
+      if (!await st.save(interaction.guild)) {
+        for (const [target, oldPower] of previous) {
+          if (oldPower === undefined) delete target.power;
+          else target.power = oldPower;
+        }
+        if (!existing && savedProfiles[userId] === saved && saved.awaitingRegistration && !saved.power) delete savedProfiles[userId];
+        return reply('戦力を保存できませんでした。もう一度お試しください。');
+      }
+      if (participant) {
+        try {
+          const message = await interaction.channel.messages.fetch(messageId);
+          await message.edit(panel(current));
+        } catch (error) {
+          console.error('参加募集の表示更新に失敗:', error);
+          return reply(`戦力を${powerLabel(power)}に更新しました。募集メッセージの表示を更新できませんでした。`);
+        }
+      }
+      return reply(`戦力を${powerLabel(power)}に更新しました。`);
+    });
+  }
   const participant = id === 'entry_join' && data.participants.find(p => p.id === interaction.user.id);
-  const savedProfile = id === 'entry_join' && profiles(interaction.guildId)[interaction.user.id];
-  const quickJoin = weeklyJoin || (id === 'entry_join' && !participant && savedProfile);
-  if (id === 'entry_join' && !quickJoin) {
-    return interaction.showModal(registrationForm(messageId, participant || savedProfile));
+  if (participant) return privateReply(alreadyJoined);
+  const joining = id === 'entry_join' || weeklyJoin;
+  const savedProfile = joining && profiles(interaction.guildId)[interaction.user.id];
+  const quickJoin = joining && !savedProfile?.awaitingRegistration && (weeklyJoin || savedProfile);
+  if (joining && !quickJoin) {
+    return interaction.showModal(registrationForm(messageId, savedProfile));
   }
   if (id === 'entry_roster') {
     await interaction.reply({ ...roster(data, isOwner(interaction)), ephemeral: true });
-    if (interaction.message.components?.length !== 2) {
+    if (!interaction.message.components?.some(row => row.components.some(component => component.customId === 'entry_power'))) {
       await serialize(interaction.channelId, async () => {
         if (getEntry(interaction, messageId) === data) await interaction.message.edit(panel(data));
       });
     }
     return;
   }
-  if (reset || control || ['entry_reset', 'entry_size', 'entry_strategy', 'entry_split', 'entry_pair', 'entry_team4'].includes(id)) {
-    if (!isOwner(interaction)) return privateReply('募集主だけが操作できます。');
-    const action = control?.[1];
+  if (reset || control || ['entry_teams', 'entry_reset', 'entry_size', 'entry_strategy', 'entry_split', 'entry_pair', 'entry_team4'].includes(id)) {
+    const owner = isOwner(interaction);
+    const action = id === 'entry_teams' ? 'prepare' : control?.[1];
+    if ((reset || !action || action === 'reset') && !owner) return privateReply('募集主だけが操作できます。');
     if (action === 'reset') return confirmReset(interaction, messageId);
-    await interaction.deferUpdate();
+    if (id === 'entry_teams') await interaction.deferReply({ ephemeral: true });
+    else await interaction.deferUpdate();
     return serialize(interaction.channelId, async () => {
       const current = getEntry(interaction, messageId);
       if (!current) return followError(interaction, 'この募集は終了しました。');
@@ -269,13 +332,14 @@ async function handle(interaction) {
         return interaction.editReply({ ...roster(current, true), attachments: [] });
       }
       if (!action) return interaction.message.edit(panel(current));
-      if (action === 'back') return interaction.editReply({ ...roster(current, true), attachments: [] });
+      if (action === 'back') return interaction.editReply({ ...roster(current, owner), attachments: [] });
+      if (!current.participants.length) return interaction.editReply({ ...roster(current, owner), attachments: [] });
       const selected = interaction.values?.[0];
       if (action === 'size' && teamSizes.includes(selected)) current.teamSize = selected;
       if (action === 'strategy' && Object.hasOwn(strategies, selected)) current.teamStrategy = selected;
       const noPower = !current.participants.some(p => p.power);
       if (noPower) current.teamStrategy = 'random';
-      await interaction.editReply({ ...roster(current, true, true), attachments: [] });
+      await interaction.editReply({ ...roster(current, owner, true), attachments: [] });
       if ((action !== 'prepare' || noPower) && Object.hasOwn(strategies, current.teamStrategy) && current.participants.length) {
         await announceTeams(interaction, current);
       }
@@ -298,7 +362,7 @@ async function handle(interaction) {
     const index = current.participants.findIndex(p => p.id === userId);
     const saved = profiles(interaction.guildId);
     const details = quickJoin ? saved[userId] || {} : { ...(power ? { power } : {}), ...(job ? { job } : {}) };
-    if (quickJoin && index >= 0) return;
+    if ((quickJoin || (registration && !proxyEdit)) && index >= 0) return followError(interaction, alreadyJoined);
     if (proxyEdit && index < 0) return followError(interaction, 'この人は現在の参加者一覧にいません。');
     if (proxyEdit) {
       const player = current.participants[index];
@@ -317,14 +381,17 @@ async function handle(interaction) {
         if (!member.roles.cache.has(role.id)) await member.roles.add(role);
         const player = { id: userId, name: customName || member.displayName, ...details };
         if (customName) player.customName = customName;
-        if (index < 0) current.participants.push(player);
-        else current.participants[index] = player;
+        current.participants.push(player);
       } else {
         if (member.roles.cache.has(role.id)) await member.roles.remove(role);
         current.participants.splice(index, 1);
       }
     }
-    if (registration || quickJoin) Object.assign(saved[userId] ??= {}, details);
+    if (registration || quickJoin) {
+      const profile = saved[userId] ??= {};
+      delete profile.awaitingRegistration;
+      Object.assign(profile, details);
+    }
     if (!await st.save(interaction.guild)) {
       await followError(interaction, 'bot-configに保存できませんでした。Botの権限を確認してください。');
     }

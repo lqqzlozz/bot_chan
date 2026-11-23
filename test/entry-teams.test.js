@@ -259,16 +259,42 @@ test('server members can update their own power and assign teams from a recruitm
     fields: new Map([['job', { values: ['賢者'] }]])
   };
   const repliesBeforeUpdate = replies.length;
-  await module.exports.handle({
-    ...interaction, customId: modal.id, fields: jobOnly, editReply: editPublicPost
+  saveResult = new Promise(resolve => { finishSave = resolve; });
+  let showUpdated;
+  const shownOnPost = new Promise(resolve => { showUpdated = resolve; });
+  const updating = module.exports.handle({
+    ...interaction, customId: modal.id, fields: jobOnly,
+    message: { ...message, edit: async payload => { await editPublicPost(payload); showUpdated(); } },
+    editReply: async () => assert.fail('The modal must not use its interaction webhook to edit the post')
   });
+  await shownOnPost;
+  assert.match(publicEdits.at(-1).embeds[0].fields[0].value, /103M  賢者/);
+  finishSave(true);
+  await updating;
+  saveResult = undefined;
   assert.equal(data.participants[0].job, '賢者');
   assert.equal(data.participants[0].power, 103000000);
   assert.equal(config.entryProfiles['3'].job, '賢者');
   assert.equal(config.entryProfiles.member, undefined);
   assert.equal(replies.length, repliesBeforeUpdate);
   assert.equal(publicEdits.at(-1).components.length, 1);
-  assert.match(publicEdits.at(-1).embeds[0].fields[0].value, /103M  賢者/);
+  saveResult = false;
+  await module.exports.handle({
+    ...interaction, customId: modal.id,
+    fields: { ...jobOnly, fields: new Map([['job', { values: ['騎士'] }]]) }
+  });
+  saveResult = undefined;
+  assert.equal(config.entryProfiles['3'].job, '賢者');
+  assert.match(recruitment.embeds[0].fields[0].value, /103M  賢者/);
+  assert.match(replies.at(-1).embeds[0].description, /変更を保存できませんでした/);
+  let clearedFallback = false;
+  await module.exports.handle({
+    ...interaction, customId: modal.id, fields: jobOnly, message: null,
+    deferUpdate: async () => assert.fail('The modal has no source message'),
+    deleteReply: async () => { clearedFallback = true; }
+  });
+  assert.equal(clearedFallback, true);
+  assert.match(recruitment.embeds[0].fields[0].value, /103M  賢者/);
   await module.exports.handle({ ...interaction, customId: 'entry_power_save_100_99', fields: jobOnly });
   assert.match(replies.at(-1).embeds[0].description, /現在の参加者一覧にいません/);
   assert.equal(config.entryProfiles['99'], undefined);

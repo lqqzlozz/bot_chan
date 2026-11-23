@@ -338,10 +338,11 @@ async function handle(interaction) {
     const keys = Object.keys(changes);
     const updated = power && job ? '戦力・職業を更新しました。'
       : power ? `戦力を${powerLabel(power)}に更新しました。` : `職業を${job}に更新しました。`;
-    if (target) await interaction.deferUpdate();
+    const updatesOriginal = target && interaction.message?.id === messageId;
+    if (updatesOriginal) await interaction.deferUpdate();
     else await interaction.deferReply({ ephemeral: true });
     return serialize(interaction.channelId, async () => {
-      const reply = content => target ? followError(interaction, content)
+      const reply = content => updatesOriginal ? followError(interaction, content)
         : interaction.editReply({ embeds: notice(content).embeds });
       const current = getEntry(interaction, messageId);
       if (!current) return reply('この募集は終了しました。');
@@ -353,7 +354,20 @@ async function handle(interaction) {
       const targets = participant ? [saved, participant] : [saved];
       const previous = targets.map(target => ({ ...target }));
       for (const target of targets) Object.assign(target, changes);
-      if (!await st.save(interaction.guild)) {
+      const saving = st.save(interaction.guild);
+      let message;
+      let displayError;
+      if (target || participant) {
+        try {
+          message = interaction.message?.id === messageId ? interaction.message
+            : await interaction.channel.messages.fetch(messageId);
+          await message.edit(panel(current));
+        } catch (error) {
+          displayError = error;
+          console.error('戦力・職業の表示更新に失敗:', error);
+        }
+      }
+      if (!await saving) {
         for (const [index, target] of targets.entries()) {
           for (const key of keys) {
             if (Object.hasOwn(previous[index], key)) target[key] = previous[index][key];
@@ -361,17 +375,21 @@ async function handle(interaction) {
           }
         }
         if (!existing && savedProfiles[userId] === saved && saved.awaitingRegistration && !saved.power && !saved.job) delete savedProfiles[userId];
+        if (message && !displayError) {
+          try {
+            await message.edit(panel(current));
+          } catch (error) {
+            console.error('戦力・職業の表示を戻せませんでした:', error);
+            return reply('変更を保存できませんでした。募集メッセージの表示を戻せませんでした。');
+          }
+        }
         return reply('変更を保存できませんでした。もう一度お試しください。');
       }
-      if (target || participant) {
-        try {
-          if (target) return await interaction.editReply(panel(current));
-          await (await interaction.channel.messages.fetch(messageId)).edit(panel(current));
-        } catch (error) {
-          console.error('参加募集の表示更新に失敗:', error);
-          return reply(updated + '募集メッセージの表示を更新できませんでした。');
-        }
+      if (displayError) {
+        return reply(updated + '募集メッセージの表示を更新できませんでした。');
       }
+      if (updatesOriginal) return;
+      if (target) return interaction.deleteReply();
       return reply(updated);
     });
   }

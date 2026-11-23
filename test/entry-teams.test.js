@@ -75,14 +75,15 @@ test('server members can update their own power and assign teams from a recruitm
     addComponents(...components) { this.components = components; return this; }
   }
   const config = { entry: { channel: data } };
+  let saveResult;
   vm.runInNewContext(fs.readFileSync(require.resolve('../utils/entryPanel'), 'utf8'), {
-    module, Intl, Buffer, require(name) {
+    module, Intl, Buffer, setTimeout, clearTimeout, require(name) {
       if (name === 'discord.js') return {
         escapeMarkdown: text => text, ActionRowBuilder: Builder, ButtonBuilder: Builder,
         ButtonStyle: { Primary: 1, Secondary: 2, Danger: 4 }, EmbedBuilder: Builder, ModalBuilder: Builder, TextInputBuilder: Builder,
         TextInputStyle: {}, LabelBuilder: Builder, StringSelectMenuBuilder: Builder
       };
-      if (name === './store') return { get: () => config, save: async () => true };
+      if (name === './store') return { get: () => config, save: async () => saveResult ?? true };
       if (name === './perm') return { isOwner: interaction => interaction.user.id === 'owner' };
       if (name === './entryScope') return { isEnabled: guildId => guildId === 'guild' };
       if (name === './entryTeams') return { parsePower, splitTeams, strategies };
@@ -196,21 +197,42 @@ test('server members can update their own power and assign teams from a recruitm
   assert.equal(data.participants.at(-1).power, undefined);
   assert.equal(data.participants.at(-1).job, undefined);
   data.participants = [];
-  await module.exports.handle({
+  let finishSave;
+  saveResult = new Promise(resolve => { finishSave = resolve; });
+  let showJoined;
+  const joinedOnPost = new Promise(resolve => { showJoined = resolve; });
+  const joining = module.exports.handle({
     ...interaction, customId: 'entry_join', user: { id: '3' },
+    message: { ...message, edit: async payload => { recruitment = payload; showJoined(); } },
     guild: {
       members: { fetch: async () => ({ displayName: 'C', roles: { cache: { has: () => true } } }) },
       roles: { fetch: async () => ({ id: 'role' }) }
     }
   });
+  await joinedOnPost;
+  finishSave(true);
+  await joining;
+  saveResult = undefined;
   assert.equal(data.participants[0].power, 125000);
   assert.equal(data.participants[0].job, '騎士');
+  assert.match(replies.at(-1).embeds[0].description, /参加情報を登録しました/);
   const joined = { ...interaction, user: { id: '3' } };
   await module.exports.handle({ ...joined, customId: 'entry_join' });
   assert.match(replies.at(-1).embeds[0].description, /すでに参加しています/);
   const publicEdits = [];
   const editPublicPost = async payload => publicEdits.push(payload);
-  await module.exports.handle({ ...interaction, customId: 'entry_power', editReply: editPublicPost });
+  let unblock;
+  const busy = module.exports.serialize('channel', () => new Promise(resolve => { unblock = resolve; }));
+  await Promise.resolve();
+  await Promise.resolve();
+  try {
+    await module.exports.handle({ ...interaction, customId: 'entry_power', update: editPublicPost });
+    await module.exports.handle({ ...interaction, customId: 'entry_teams' });
+    assert.equal(replies.at(-1).components[1].components[0].id, 'entry_strategy_100');
+  } finally {
+    unblock();
+    await busy;
+  }
   const editPicker = publicEdits.at(-1).components[1].components[0];
   assert.equal(editPicker.id, 'entry_power_pick');
   assert.equal(editPicker.options.map(option => option.label).join(','), '自分の戦力・職業,C');

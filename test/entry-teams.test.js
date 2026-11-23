@@ -109,7 +109,7 @@ test('server members can update their own power and assign teams from a recruitm
     id: 'guild', channels: { fetch: async () => ({ isTextBased: () => true, messages: interaction.channel.messages }) }
   }, 'bot');
   assert.equal(recruitment.components.map(row => row.components.map(button => button.label).join('｜')).join('\n'),
-    '参加する｜辞退する｜戦力を入力し直す\nチームを振り分ける');
+    '参加｜辞退｜戦力変更｜チーム分け');
   assert.equal(recruitment.components[0].components[1].style, 4);
   assert.equal(data.participants.length, 3);
   const table = recruitment.embeds[0].fields[0].value;
@@ -204,16 +204,26 @@ test('server members can update their own power and assign teams from a recruitm
   assert.match(replies.at(-1).embeds[0].description, /すでに参加しています/);
   await module.exports.handle({ ...joined, customId: 'entry_power_100', message: list, showModal: async value => { modal = value; } });
   assert.equal(modal.id, 'entry_power_save_100');
-  assert.equal(modal.labels.length, 1);
+  assert.equal(modal.labels.length, 2);
   assert.equal(modal.labels[0].input.value, '125000');
+  assert.equal(modal.labels[1].select.options.find(option => option.default).value, '騎士');
   const powerSubmit = {
-    customId: 'entry_power_save_100', fields: { getTextInputValue: () => '103M' }, message: list
+    customId: 'entry_power_save_100', fields: { getTextInputValue: () => '103M', fields: new Map() }, message: list
   };
   await module.exports.handle({ ...joined, ...powerSubmit });
   assert.equal(data.participants[0].power, 103000000);
   assert.equal(data.participants[0].job, '騎士');
   assert.equal(data.participants[0].name, 'C');
   assert.equal(config.entryProfiles['3'].power, 103000000);
+  const jobOnly = {
+    getTextInputValue: () => '',
+    fields: new Map([['job', { values: ['賢者'] }]])
+  };
+  await module.exports.handle({ ...joined, ...powerSubmit, fields: jobOnly });
+  assert.equal(data.participants[0].job, '賢者');
+  assert.equal(data.participants[0].power, 103000000);
+  assert.equal(config.entryProfiles['3'].job, '賢者');
+  assert.match(recruitment.embeds[0].fields[0].value, /103M  賢者/);
   await module.exports.handle({ ...interaction, ...powerSubmit });
   assert.equal(config.entryProfiles.member.power, 103000000);
   assert.equal(data.participants.length, 1);

@@ -259,23 +259,39 @@ test('server members can update their own power and assign teams from a recruitm
   assert.match(replies.at(-1).embeds[0].description, /このサーバーでは使用できません/);
 });
 
-test('Monday JST weekly reset preserves profiles and reposts once with an everyone mention', async () => {
+test('Monday JST weekly reset saves the new post before deleting the previous recruitment', async () => {
   const data = { msg:'100', roleId:'role', participants:[{id:'123', name:'A', power:105000000, job:'闘志'}] };
   const config = { entry:{channel:data} };
-  const calls = { roles:0, sends:[], edits:0 };
+  const calls = { roles:0, sends:[], deletes:[], errors:[] };
+  let savedNew = false;
+  let failSave = true;
+  let failDelete = true;
   const channel = {
     isTextBased:()=>true,
-    messages:{fetch:async()=>({edit:async()=>{calls.edits++;}})},
+    messages:{fetch:async id => ({
+      author: { id: 'bot' },
+      delete: async () => {
+        assert.equal(id, '100');
+        assert.equal(savedNew, true);
+        calls.deletes.push(id);
+        if (failDelete) throw new Error('Temporary Discord error');
+      }
+    })},
     send:async payload=>{calls.sends.push(payload);return {id:'101'};}
   };
   const guild = {
-    id:'guild', channels:{fetch:async()=>channel}, roles:{fetch:async()=>({id:'role'})},
+    id:'guild', client:{user:{id:'bot'}}, channels:{fetch:async()=>channel}, roles:{fetch:async()=>({id:'role'})},
     members:{fetch:async()=>({roles:{cache:{has:()=>true}, remove:async()=>{calls.roles++;}}})}
   };
   const module = {exports:{}};
   vm.runInNewContext(fs.readFileSync(require.resolve('../utils/entryWeekly'),'utf8'), {
-    module, Intl, console, require(name) {
-      if (name==='./store') return {get:()=>config,save:async()=>true};
+    module, Intl, console:{error:(...messages)=>calls.errors.push(messages)}, require(name) {
+      if (name==='./store') return {get:()=>config,save:async()=>{
+        if (!config.entryWeekly.channel.done) return true;
+        if (failSave) return false;
+        savedNew = data.msg === '101';
+        return true;
+      }};
       if (name==='./entryScope') return {GUILD:'guild'};
       if (name==='node:crypto') return require(name);
       if (name==='./entryPanel') return {
@@ -289,7 +305,15 @@ test('Monday JST weekly reset preserves profiles and reposts once with an everyo
   await module.exports.tick(client,new Date('2026-11-15T22:59:59Z'));
   assert.equal(calls.roles,0);
   await module.exports.tick(client,new Date('2026-11-15T23:00:00Z'));
-  await module.exports.tick(client,new Date('2026-11-15T23:01:00Z'));
+  assert.equal(data.msg,'100');
+  assert.equal(calls.deletes.length,0);
+  failSave = false;
+  await module.exports.tick(client,new Date('2026-11-16T00:00:00Z'));
+  assert.equal(data.msg,'101');
+  assert.equal(calls.deletes.length,1);
+  failDelete = false;
+  await module.exports.tick(client,new Date('2026-11-16T00:01:00Z'));
+  await module.exports.tick(client,new Date('2026-11-16T00:02:00Z'));
   assert.equal(calls.roles,1);
   assert.equal(data.participants.length,0);
   assert.equal(config.entryProfiles['123'].power,105000000);
@@ -299,5 +323,7 @@ test('Monday JST weekly reset preserves profiles and reposts once with an everyo
   assert.equal(calls.sends[0].embeds[0].description,'大会募集');
   assert.equal(calls.sends[0].components[0].components[0].custom_id,'entry_join');
   assert.equal(data.msg,'101');
-  assert.equal(calls.edits,1);
+  assert.deepEqual(calls.deletes,['100','100']);
+  assert.equal(config.entryWeekly.channel.previousMessageId,undefined);
+  assert.equal(calls.errors.length,2);
 });

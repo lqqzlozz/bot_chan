@@ -136,16 +136,27 @@ test('server members can update their own power and assign teams from a recruitm
   assert.equal(replies.at(-1).ephemeral, true);
   assert.equal(posts.length, 0);
   await module.exports.handle({ ...interaction, customId: 'entry_teams' });
-  assert.equal(replies.at(-1).components[1].components[0].id, 'entry_strategy_100');
+  assert.equal(replies.at(-1).components[1].components[0].id, 'entry_strategy_100_2');
   const defaultRun = replies.at(-1).components[2].components[0].id;
   assert.equal(defaultRun, 'entry_run_100_2_balanced');
   assert.equal(posts.length, 0);
   const owner = { ...interaction, user: { id: 'owner' } };
-  await module.exports.handle({ ...interaction, customId: defaultRun, message: list });
+  let releaseRoster;
+  const rosterGate = new Promise(resolve => { releaseRoster = resolve; });
+  const busyRoster = module.exports.serialize('channel', () => rosterGate);
+  try {
+    await module.exports.handle({ ...interaction, customId: defaultRun, message: list });
+    assert.match(replies.at(-1).embeds[0].description, /discord.com\/channels\/guild\/channel\/102/);
+  } finally {
+    releaseRoster();
+    await busyRoster;
+  }
   assert.match(posts[0].embeds[0].description, /TEAM1\./);
   assert.match(posts[0].embeds[0].description, /のチームが完全ではありません/);
   await module.exports.handle({ ...owner, customId: 'entry_size_100', message: list, values: ['4'] });
-  await module.exports.handle({ ...owner, customId: 'entry_strategy_100', message: list, values: ['close'] });
+  const chooseFourPlayerStrategy = replies.at(-1).components[1].components[0].id;
+  await module.exports.handle({ ...interaction, customId: 'entry_size_100_balanced', message: list, values: ['2'] });
+  await module.exports.handle({ ...owner, customId: chooseFourPlayerStrategy, message: list, values: ['close'] });
   assert.equal(posts.length, 1);
   assert.equal(edits.length, 0);
   const runWithChoices = replies.at(-1).components[2].components[0].id;
@@ -158,7 +169,9 @@ test('server members can update their own power and assign teams from a recruitm
   await module.exports.handle({ ...interaction, customId: 'entry_manage_100', message: list });
   assert.match(replies.at(-1).embeds[0].description, /募集主/);
   await module.exports.handle({ ...owner, customId: 'entry_teams' });
-  assert.equal(replies.at(-1).components[2].components[1].id, 'entry_manage_100');
+  assert.equal(replies.at(-1).components[2].components.length, 1);
+  await module.exports.handle({ ...owner, customId: 'entry_power_manage' });
+  assert.equal(replies.at(-1).components[0].components[0].options[0].value, 'reset');
   await module.exports.handle({ ...owner, customId: 'entry_manage_100', message: list });
   assert.equal(replies.at(-1).components[0].components[0].options[0].value, 'reset');
   let modal;
@@ -244,7 +257,7 @@ test('server members can update their own power and assign teams from a recruitm
   try {
     await module.exports.handle({ ...interaction, customId: 'entry_power', update: editPublicPost });
     await module.exports.handle({ ...interaction, customId: 'entry_teams' });
-    assert.equal(replies.at(-1).components[1].components[0].id, 'entry_strategy_100');
+    assert.equal(replies.at(-1).components[1].components[0].id, 'entry_strategy_100_4');
   } finally {
     unblock();
     await busy;
@@ -336,6 +349,21 @@ test('server members can update their own power and assign teams from a recruitm
   assert.equal(replies.length, repliesBeforeLeave);
   assert.equal(data.participants.length, 0);
   assert.equal(recruitment.embeds[0].fields[0].value, 'まだ参加者はいません。');
+  // A second click is ordered by receipt even if Discord has not acknowledged the first.
+  let releaseAck;
+  const ackGate = new Promise(resolve => { releaseAck = resolve; });
+  const roleChanges = [];
+  const member = { displayName: 'C', roles: { cache: new Map([['role', {}]]),
+    remove: async () => roleChanges.push('remove'), add: async () => roleChanges.push('add') } };
+  const toggle = { ...joined, member, guild: { roles: { cache: new Map([['role', { id: 'role' }]]) } } };
+  await module.exports.handle({ ...toggle, customId: 'entry_join' });
+  const leaving = module.exports.handle({ ...toggle, customId: 'entry_leave', deferUpdate: () => ackGate });
+  const rejoining = module.exports.handle({ ...toggle, customId: 'entry_join' });
+  releaseAck();
+  await Promise.all([leaving, rejoining]);
+  assert.deepEqual(roleChanges, ['remove', 'add']);
+  assert.equal(data.participants[0].id, '3');
+
 });
 
 test('Monday JST weekly reset saves the new post before deleting the previous recruitment', async () => {

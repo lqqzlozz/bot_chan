@@ -12,6 +12,8 @@ const noMentions = { parse: [], repliedUser: false };
 const number = new Intl.NumberFormat('ja-JP');
 const pending = new Map();
 const teamSizes = ['2', '4'];
+const graphemes = new Intl.Segmenter('ja', { granularity: 'grapheme' });
+const wideCharacter = /[\u1100-\u115F\u2329\u232A\u2E80-\uA4CF\uAC00-\uD7A3\uF900-\uFAFF\uFE10-\uFE19\uFE30-\uFE6F\uFF01-\uFF60\uFFE0-\uFFE6\u{16FE0}-\u{18DFF}\u{1AFF0}-\u{1B2FF}\u{20000}-\u{3FFFD}\p{Emoji_Presentation}\uFE0F\u20E3]/u;
 
 function powerLabel(power) {
   if (power >= 1e9) return `${power / 1e9}B`;
@@ -41,19 +43,17 @@ function panel(data) {
     button('entry_leave', '辞退する', ButtonStyle.Danger),
     button('entry_power', '戦力を入力し直す', ButtonStyle.Secondary)
   );
-  const roster = new ActionRowBuilder().addComponents(
-    button('entry_roster', '参加者情報一覧', ButtonStyle.Secondary),
+  const teams = new ActionRowBuilder().addComponents(
     button('entry_teams', 'チームを振り分ける', ButtonStyle.Success)
   );
   const embed = new EmbedBuilder().setColor('#5865F2').setDescription(data.text);
   const participants = data.participants;
   const ready = participants.filter(registered).length;
-  const names = participants.map(playerLabel).join('、');
   embed.addFields({
     name: `現在の参加者（${participants.length}人・登録済み ${ready}人）`,
-    value: names.length > 1000 ? names.slice(0, 1000) + '…' : names || 'まだ参加者はいません。'
+    value: participantTable(participants)
   });
-  return { embeds: [embed], components: [actions, roster], allowedMentions: noMentions };
+  return { embeds: [embed], components: [actions, teams], allowedMentions: noMentions };
 }
 
 async function refresh(guild, botId) {
@@ -80,11 +80,48 @@ function registered(player) {
   return Number.isSafeInteger(player.power) && player.power > 0 && jobs.includes(player.job);
 }
 
-function playerLabel(player) {
-  const name = escapeMarkdown(player.name);
-  const power = player.power ? powerLabel(player.power) : '戦力未入力';
-  const job = jobs.includes(player.job) ? player.job : '職業未入力';
-  return player.power || jobs.includes(player.job) ? `${name}（${power}/${job}）` : name;
+function tableName(name) {
+  const maxWidth = 18;
+  const safe = name.replaceAll('`', 'ˋ').replace(/[\u0000-\u001F\u007F-\u009F\u061C\u200E\u200F\u2028-\u202E\u2066-\u2069]/gu, ' ').trim() || '-';
+  const segments = [...graphemes.segment(safe)].map(({ segment }) => ({
+    segment, width: wideCharacter.test(segment) ? 2 : 1
+  }));
+  const fullWidth = segments.reduce((total, item) => total + item.width, 0);
+  if (fullWidth <= maxWidth) return { text: safe, width: fullWidth };
+
+  let text = '';
+  let width = 0;
+  for (const item of segments) {
+    if (width + item.width > maxWidth - 1) break;
+    text += item.segment;
+    width += item.width;
+  }
+  return { text: text + '…', width: width + 1 };
+}
+
+function participantTable(participants) {
+  if (!participants.length) return 'まだ参加者はいません。';
+  const rows = participants.map(player => ({
+    name: tableName(player.name),
+    power: player.power ? powerLabel(player.power) : '-',
+    job: jobs.includes(player.job) ? player.job : '-'
+  }));
+  const nameWidth = rows.reduce((width, row) => Math.max(width, row.name.width), 4);
+  const powerWidth = rows.reduce((width, row) => Math.max(width, row.power.length), 4);
+  const header = '名前' + ' '.repeat(nameWidth - 4) + '  戦力' + ' '.repeat(powerWidth - 4) + '  職業';
+  let table = '```\n' + header;
+  for (const [index, { name, power, job }] of rows.entries()) {
+    const line = '\n' + name.text + ' '.repeat(nameWidth - name.width) + '  ' +
+      power.padStart(powerWidth) + '  ' + job;
+    const remaining = rows.length - index - 1;
+    const overflow = remaining ? '\nほか ' + remaining + ' 人' : '';
+    if (table.length + line.length + overflow.length + 4 > 1024) {
+      table += '\nほか ' + (remaining + 1) + ' 人';
+      break;
+    }
+    table += line;
+  }
+  return table + '\n```';
 }
 
 function profiles(guildId) {
@@ -146,36 +183,33 @@ const notice = description => ({ embeds: [{ description, color: 0x5865F2 }], eph
 const followError = (interaction, content) => interaction.followUp(notice(content));
 const alreadyJoined = 'すでに参加しています。戦力は「戦力を入力し直す」から変更できます。';
 
-function roster(data, owner, configuring = false) {
-  const title = `参加者情報一覧（${data.participants.length}人）`;
-  const body = data.participants.map(p => '- '+playerLabel(p)).join('\n') || 'まだ参加者はいません。';
-  const payload = report(title, body, 'entry-roster.md');
+function teamSetup(data, owner) {
   const id = data.msg;
-  if (configuring) {
-    const size = selectRow('entry_size_'+id, 'チーム人数を指定', teamSizes.map(value => ({ label: value+'人', value })), data.teamSize || '2');
-    const strategy = selectRow('entry_strategy_'+id, '振り分け基準を指定',
-      Object.entries(strategies).map(([value,label]) => ({ label, value })), data.teamStrategy);
-    payload.components = [size, strategy, new ActionRowBuilder().addComponents(
-      button('entry_back_'+id, '参加者情報一覧に戻る', ButtonStyle.Secondary))];
-  } else {
-    payload.components = [];
-    if (owner) {
-      const reset = { label:'戦力・職業をリセットする', value:'reset' };
-      const options = data.participants.map(p => ({ label:p.name.slice(0,100), value:p.id }));
-      const first = data.participants.length <= 49 ? [reset, ...options.slice(0,24)] : [reset];
-      payload.components.push(selectRow('entry_edit_pick_'+id+'_0', '参加者の編集・リセット', first));
-      if (data.participants.length > 49) {
-        payload.components.push({type:1, components:[{type:5, custom_id:'entry_edit_pick_'+id,
-          placeholder:'戦力・職業を編集する参加者を選択'}]});
-      } else if (options.length > 24) {
-        payload.components.push(selectRow('entry_edit_pick_'+id+'_24', '編集する参加者を選択（25人目以降）', options.slice(24)));
-      }
-    }
-    payload.components.push(new ActionRowBuilder().addComponents(
-      button('entry_power_'+id, '戦力を入力し直す', ButtonStyle.Secondary),
-      button('entry_prepare_'+id, 'チームを振り分ける', ButtonStyle.Success)));
+  const size = selectRow('entry_size_'+id, 'チーム人数を指定', teamSizes.map(value => ({ label: value+'人', value })), data.teamSize || '2');
+  const strategy = selectRow('entry_strategy_'+id, '振り分け基準を指定',
+    Object.entries(strategies).map(([value,label]) => ({ label, value })), data.teamStrategy);
+  const embeds = [{ title: 'チーム振り分け', color: 0x5865F2 }];
+  const components = [size, strategy];
+  if (owner) components.push(new ActionRowBuilder().addComponents(
+    button('entry_manage_'+id, '参加者を編集', ButtonStyle.Secondary)));
+  return { embeds, components };
+}
+
+function manageParticipants(data) {
+  const id = data.msg;
+  const reset = { label:'戦力・職業をリセットする', value:'reset' };
+  const options = data.participants.map(p => ({ label:p.name.slice(0,100), value:p.id }));
+  const first = data.participants.length <= 49 ? [reset, ...options.slice(0,24)] : [reset];
+  const components = [selectRow('entry_edit_pick_'+id+'_0', '参加者の編集・リセット', first)];
+  if (data.participants.length > 49) {
+    components.push({type:1, components:[{type:5, custom_id:'entry_edit_pick_'+id,
+      placeholder:'戦力・職業を編集する参加者を選択'}]});
+  } else if (options.length > 24) {
+    components.push(selectRow('entry_edit_pick_'+id+'_24', '編集する参加者を選択（25人目以降）', options.slice(24)));
   }
-  return payload;
+  components.push(new ActionRowBuilder().addComponents(
+    button('entry_back_'+id, 'チーム振り分けに戻る', ButtonStyle.Secondary)));
+  return { embeds: [{ title: '参加者の編集', color: 0x5865F2 }], components };
 }
 
 async function announceTeams(interaction, data) {
@@ -209,7 +243,7 @@ function confirmReset(interaction, messageId) {
     embeds: [{ description: 'この募集の戦力・職業をリセットしますか？ 参加者と保存済みプロフィールは残ります。', color: 0x5865F2 }],
     components: [{type:1, components:[
       {type:2, style:4, custom_id:'entry_reset_confirm_'+messageId+'_'+interaction.message.id, label:'リセットする'},
-      {type:2, style:2, custom_id:'entry_back_'+messageId, label:'戻る'}
+      {type:2, style:2, custom_id:'entry_manage_'+messageId, label:'戻る'}
     ]}],
     attachments: []
   });
@@ -222,7 +256,7 @@ async function handle(interaction) {
   const proxyEdit = /^entry_edit_(\d+)_(\d+)$/.exec(id);
   const weeklyJoin = /^entry_week_join_(\d+)_(\d{4}-\d{2}-\d{2})$/.exec(id);
   const editPicker = /^entry_edit_pick_(\d+)(?:_\d+)?$/.exec(id);
-  const control = /^entry_(prepare|back|size|strategy|reset|delete)_(\d+)$/.exec(id);
+  const control = /^entry_(prepare|back|manage|size|strategy|reset|delete)_(\d+)$/.exec(id);
   const reset = /^entry_reset_confirm_(\d+)_(\d+)$/.exec(id);
   const powerAction = /^entry_power(?:_(save_)?(\d+))?$/.exec(id);
   if ((proxyEdit || editPicker) && !isOwner(interaction)) return privateReply('募集主だけが代理編集できます。');
@@ -302,18 +336,16 @@ async function handle(interaction) {
     return interaction.showModal(registrationForm(messageId, savedProfile));
   }
   if (id === 'entry_roster') {
-    await interaction.reply({ ...roster(data, isOwner(interaction)), ephemeral: true });
-    if (!interaction.message.components?.some(row => row.components.some(component => component.customId === 'entry_power'))) {
-      await serialize(interaction.channelId, async () => {
-        if (getEntry(interaction, messageId) === data) await interaction.message.edit(panel(data));
-      });
-    }
+    await privateReply('参加者は募集投稿の「現在の参加者」で確認できます。');
+    await serialize(interaction.channelId, async () => {
+      if (getEntry(interaction, messageId) === data) await interaction.message.edit(panel(data));
+    });
     return;
   }
   if (reset || control || ['entry_teams', 'entry_reset', 'entry_size', 'entry_strategy', 'entry_split', 'entry_pair', 'entry_team4'].includes(id)) {
     const owner = isOwner(interaction);
     const action = id === 'entry_teams' ? 'prepare' : control?.[1];
-    if ((reset || !action || action === 'reset') && !owner) return privateReply('募集主だけが操作できます。');
+    if ((reset || !action || action === 'reset' || action === 'manage') && !owner) return privateReply('募集主だけが操作できます。');
     if (action === 'reset') return confirmReset(interaction, messageId);
     if (id === 'entry_teams') await interaction.deferReply({ ephemeral: true });
     else await interaction.deferUpdate();
@@ -329,17 +361,20 @@ async function handle(interaction) {
         await st.save(interaction.guild);
         const message = await interaction.channel.messages.fetch(messageId);
         await message.edit(panel(current));
-        return interaction.editReply({ ...roster(current, true), attachments: [] });
+        return interaction.editReply({ ...manageParticipants(current), attachments: [] });
       }
       if (!action) return interaction.message.edit(panel(current));
-      if (action === 'back') return interaction.editReply({ ...roster(current, owner), attachments: [] });
-      if (!current.participants.length) return interaction.editReply({ ...roster(current, owner), attachments: [] });
+      if (action === 'manage') return interaction.editReply({ ...manageParticipants(current), attachments: [] });
+      if (!current.participants.length) {
+        return interaction.editReply({ embeds: notice('まだ参加者はいません。').embeds, components: [], attachments: [] });
+      }
+      if (action === 'back') return interaction.editReply({ ...teamSetup(current, owner), attachments: [] });
       const selected = interaction.values?.[0];
       if (action === 'size' && teamSizes.includes(selected)) current.teamSize = selected;
       if (action === 'strategy' && Object.hasOwn(strategies, selected)) current.teamStrategy = selected;
       const noPower = !current.participants.some(p => p.power);
       if (noPower) current.teamStrategy = 'random';
-      await interaction.editReply({ ...roster(current, owner, true), attachments: [] });
+      await interaction.editReply({ ...teamSetup(current, owner), attachments: [] });
       if ((action !== 'prepare' || noPower) && Object.hasOwn(strategies, current.teamStrategy) && current.participants.length) {
         await announceTeams(interaction, current);
       }

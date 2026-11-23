@@ -49,8 +49,8 @@ test('server members can update their own power and assign teams from a recruitm
   const data = {
     msg: '100', roleId: 'role', text: '募集',
     participants: [
-      { id: '1', name: 'A', power: 125000, job: '闘志' },
-      { id: '2', name: 'B', power: 120000, job: '魔導' },
+      { id: '1', name: 'きつね', power: 125000, job: '闘志' },
+      { id: '2', name: 'Edouard', power: 132000000, job: '魔導' },
       { id: '3', name: 'C' }
     ]
   };
@@ -71,7 +71,7 @@ test('server members can update their own power and assign teams from a recruitm
     setValue(value) { this.value = value; return this; }
     setColor() { return this; }
     setDescription() { return this; }
-    addFields() { return this; }
+    addFields(...fields) { this.fields = fields; return this; }
     addComponents(...components) { this.components = components; return this; }
   }
   const config = { entry: { channel: data } };
@@ -109,15 +109,24 @@ test('server members can update their own power and assign teams from a recruitm
     id: 'guild', channels: { fetch: async () => ({ isTextBased: () => true, messages: interaction.channel.messages }) }
   }, 'bot');
   assert.equal(recruitment.components.map(row => row.components.map(button => button.label).join('｜')).join('\n'),
-    '参加する｜辞退する｜戦力を入力し直す\n参加者情報一覧｜チームを振り分ける');
+    '参加する｜辞退する｜戦力を入力し直す\nチームを振り分ける');
   assert.equal(recruitment.components[0].components[1].style, 4);
   assert.equal(data.participants.length, 3);
+  const table = recruitment.embeds[0].fields[0].value;
+  assert.equal(table.split('\n').slice(1, -1).join('\n'), [
+    '名前     戦力     職業',
+    'きつね   125,000  闘志',
+    'Edouard     132M  魔導',
+    'C              -  -'
+  ].join('\n'));
+  const many = Array.from({ length: 100 }, () => ({ name: 'チーム🏳️‍🌈長い名前`\nまだ続く名前', power: 132000000, job: '騎士' }));
+  const longTable = module.exports.panel({ ...data, participants: many }).embeds[0].fields[0].value;
+  assert.ok(longTable.length <= 1024);
+  assert.match(longTable, /チーム🏳️‍🌈長い名前ˋ…/);
+  assert.match(longTable, /\nほか \d+ 人\n```$/);
   await module.exports.handle({ ...interaction, customId: 'entry_roster' });
-  assert.match(replies.at(-1).embeds[0].description, /A（125,000\/闘志）/);
+  assert.match(replies.at(-1).embeds[0].description, /募集投稿/);
   assert.equal(replies.at(-1).ephemeral, true);
-  assert.match(replies.at(-1).embeds[0].description, /- C$/);
-  assert.equal(replies.at(-1).components[0].components.map(button => button.id).join(','),
-    'entry_power_100,entry_prepare_100');
   assert.equal(posts.length, 0);
   await module.exports.handle({ ...interaction, customId: 'entry_teams' });
   assert.equal(replies.at(-1).components[1].components[0].id, 'entry_strategy_100');
@@ -131,7 +140,11 @@ test('server members can update their own power and assign teams from a recruitm
   assert.equal(edits.length, 1);
   await module.exports.handle({ ...interaction, customId: 'entry_roster', message: { id: '99' } });
   assert.match(replies.at(-1).embeds[0].description, /置き換わりました/);
-  await module.exports.handle({ ...owner, customId: 'entry_roster' });
+  await module.exports.handle({ ...interaction, customId: 'entry_manage_100', message: list });
+  assert.match(replies.at(-1).embeds[0].description, /募集主/);
+  await module.exports.handle({ ...owner, customId: 'entry_teams' });
+  assert.equal(replies.at(-1).components[2].components[0].id, 'entry_manage_100');
+  await module.exports.handle({ ...owner, customId: 'entry_manage_100', message: list });
   assert.equal(replies.at(-1).components[0].components[0].options[0].value, 'reset');
   let modal;
   await module.exports.handle({ ...owner, customId: 'entry_edit_pick_100', values: ['3'], showModal: async value => { modal = value; } });

@@ -48,7 +48,10 @@ function apiError(code) {
   if (code === -3202) return new HoyoError('HoYoLabアカウントのログインが制限されています。HoYoLab側で状態を確認してください。', 'login');
   if (code === -3205) return new HoyoError('認証コードを確認してください。', 'login');
   if (code === -3206) return new HoyoError('認証コードの試行回数が多いため、時間を空けてから試してください。', 'login');
-  if (code === -3102) return new HoyoError('画像認証をやり直してください。', 'login');
+  if (code === -3102) {
+    console.warn('[HoYoLab画像認証] HoYoLabが認証結果を拒否（-3102）');
+    return new HoyoError('画像認証をやり直してください。', 'login');
+  }
   return new HoyoError(`HoYoLabへの問い合わせが完了しませんでした（コード ${Number(code)}）。`);
 }
 

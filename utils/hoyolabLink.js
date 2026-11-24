@@ -63,7 +63,10 @@ function captchaResult(session, result) {
     : ['geetest_challenge', 'geetest_validate', 'geetest_seccode'];
   const clean = {};
   for (const key of keys) {
-    if (typeof result?.[key] !== 'string' || !result[key] || result[key].length > 4096) throw new Error('画像認証をやり直してください。');
+    if (typeof result?.[key] !== 'string' || !result[key] || result[key].length > 4096) {
+      console.warn('[HoYoLab画像認証] Botで受信した認証結果の形式が不正');
+      throw new Error('画像認証をやり直してください。');
+    }
     clean[key] = result[key];
   }
   if (session.challenge.version === 4 && clean.captcha_id !== session.challenge.gt) throw new Error('画像認証が一致しません。');

@@ -38,20 +38,39 @@ test('expands a public link once, showing author, content, image and jump link w
   assert.equal(embed.image.url, 'https://example.com/photo.png');
 });
 
-test('restricted channels, private threads, age restrictions and hidden history cannot leak into public replies', async () => {
+test('posting a link shares a readable role channel immediately without buttons', async () => {
+  const f = fixture();
+  f.channel.permissionsFor = member => new PermissionsBitField(member === f.message.member ? P.ReadMessageHistory | P.ViewChannel : 0n);
+  await onMessage(f.message);
+  assert.equal(f.replies.length, 1);
+  assert.equal(f.replies[0].embeds[0].description, 'こんにちは');
+  assert.equal(f.replies[0].components, undefined);
+});
+
+test('messages unavailable to the person sharing them and age-gated content cannot be quoted', async () => {
   for (const restrict of [
-    f => { f.channel.permissionsFor = who => new PermissionsBitField(who.id === guildId ? P.ReadMessageHistory : P.ReadMessageHistory | P.ViewChannel); },
-    f => { f.channel.permissionOverwrites.cache.set('role', { id: 'role', deny: new PermissionsBitField(P.ViewChannel) }); },
-    f => { f.channel.type = ChannelType.PrivateThread; },
-    f => { f.channel.nsfw = true; },
-    f => { f.channel.permissionOverwrites.cache.set('member', { id: 'member', deny: new PermissionsBitField(P.ReadMessageHistory) }); },
-    f => { f.channel.permissionsFor = who => new PermissionsBitField(who === f.message.member ? 0n : P.ReadMessageHistory | P.ViewChannel); }
+    f => { f.channel.permissionsFor = () => new PermissionsBitField(P.ViewChannel); },
+    f => { f.channel.permissionsFor = () => new PermissionsBitField(P.ReadMessageHistory); },
+    f => { f.channel.nsfw = true; }
   ]) {
     const f = fixture(); restrict(f);
     await onMessage(f.message);
     assert.equal(f.fetched.length, 0);
     assert.equal(f.replies.length, 0);
   }
+});
+
+test('sharing from a private thread checks membership for the person posting the link', async () => {
+  const f = fixture();
+  f.message.member.id = 'poster';
+  const thread = { ...f.channel, type: ChannelType.PrivateThread, isThread: () => true, parent: f.channel,
+    members: { fetch: async () => { throw Object.assign(new Error(), { code: 10007 }); } } };
+  f.message.guild.channels.fetch = async () => thread;
+  await onMessage(f.message);
+  assert.equal(f.fetched.length, 0);
+  thread.members.fetch = async args => { assert.deepEqual(args, { member: 'poster', force: true }); return f.message.member; };
+  await onMessage(f.message);
+  assert.equal(f.replies[0].embeds[0].description, 'こんにちは');
 });
 
 test('private threads can quote themselves and read text from Components V2', async () => {

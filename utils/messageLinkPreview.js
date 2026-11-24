@@ -15,21 +15,18 @@ function messageLinks(content, guildId) {
   return found.values();
 }
 
-function canQuote(source, destination, member) {
+async function canQuote(source, destination, member) {
   if (!member || !channelTypes.has(source.type) || !channelTypes.has(destination.type)) return false;
-  if (source.type === ChannelType.PrivateThread && source.id !== destination.id) return false;
   const from = source.isThread() ? source.parent : source;
   const to = destination.isThread() ? destination.parent : destination;
-  if (!from || !to || (from.nsfw && !to.nsfw) || !from.permissionsFor(member)?.has(read)) return false;
-
-  // A new reply is visible even to readers who cannot read the channel's history.
-  const everyone = from.guild.roles.everyone;
-  const publicPermissions = from.permissionsFor(everyone);
-  const denied = bits => from.permissionOverwrites.cache.some(o => o.id !== everyone.id && o.deny.any(bits));
-  if (!publicPermissions?.has(P.ReadMessageHistory) || denied(P.ReadMessageHistory)) return false;
-  if (from.id === to.id) return true;
-  if (from.parentId && from.parentId === to.parentId && from.permissionsLocked && to.permissionsLocked) return true;
-  return publicPermissions.has(P.ViewChannel) && !denied(P.ViewChannel);
+  if (!from || !to || (from.nsfw && !to.nsfw)) return false;
+  const permissions = from.permissionsFor(member);
+  if (!permissions?.has(read)) return false;
+  if (source.type === ChannelType.PrivateThread && source.id !== destination.id && !permissions.has(P.ManageThreads)) {
+    const membership = await source.members.fetch({ member: member.id, force: true });
+    return membership.id === member.id;
+  }
+  return true;
 }
 
 function componentText(components) {
@@ -67,11 +64,11 @@ async function onMessage(message) {
     if (id === message.id) continue;
     try {
       const source = channel === message.channelId ? message.channel : await message.guild.channels.fetch(channel);
-      if (!source || !canQuote(source, message.channel, message.member)) continue;
+      if (!source || !await canQuote(source, message.channel, message.member)) continue;
       const original = await source.messages.fetch({ message: id, force: true });
       if (!original.flags.has(MessageFlags.Ephemeral)) embeds.push(preview(original));
     } catch (error) {
-      if (![10003, 10008, 50001, 50013].includes(error.code)) console.warn('メッセージリンクの取得に失敗:', error.code || error.name);
+      if (![10003, 10007, 10008, 50001, 50013].includes(error.code)) console.warn('メッセージリンクの取得に失敗:', error.code || error.name);
     }
   }
   if (embeds.length) await message.reply({ embeds, allowedMentions: { parse: [], repliedUser: false } });

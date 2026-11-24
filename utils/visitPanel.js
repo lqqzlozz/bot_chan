@@ -1,6 +1,6 @@
 const { EmbedBuilder, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle,
   StringSelectMenuBuilder, ChannelSelectMenuBuilder, ChannelType, ModalBuilder,
-  TextInputBuilder, TextInputStyle, PermissionFlagsBits, escapeMarkdown } = require('discord.js');
+  TextInputBuilder, TextInputStyle, PermissionFlagsBits, MessageFlags, escapeMarkdown } = require('discord.js');
 const { randomUUID } = require('node:crypto');
 const model = require('./visitReservations');
 const st = require('./store');
@@ -26,8 +26,16 @@ function createSession(interaction, kind, venueId = null) {
 }
 
 async function rememberReply(interaction, session) {
+  session.ephemeral = true;
   session.channelId = interaction.channelId;
   if (interaction.fetchReply) session.messageId = (await interaction.fetchReply()).id;
+}
+
+async function closePanel(interaction) {
+  await interaction.deferUpdate();
+  if (interaction.message?.flags?.has(MessageFlags.Ephemeral)) return interaction.deleteReply();
+  if (interaction.message?.delete) return interaction.message.delete();
+  return interaction.deleteReply();
 }
 
 async function saveDrafts(guild) {
@@ -235,7 +243,7 @@ async function publish(guild, venueId) {
 async function openManagement(interaction) {
   if (interaction.guildId !== model.GUILD || !isAdmin(interaction)) return interaction.reply(payload('来場予約の管理', 'この操作は社内サーバーの管理者が利用できます。'));
   const session = createSession(interaction, 'manage');
-  await interaction.reply(management(session));
+  await interaction.reply({ ...management(session), flags: MessageFlags.Ephemeral });
   await rememberReply(interaction, session);
   await saveDrafts(interaction.guild);
 }
@@ -285,7 +293,7 @@ async function handleAction(interaction) {
     }
     if (!['visit_book', 'visit_cancel'].includes(prefix)) return;
     const session = createSession(interaction, prefix === 'visit_book' ? 'booking' : 'cancel', venue.id);
-    await interaction.reply(prefix === 'visit_book' ? dateScreen(session) : cancellationScreen(session));
+    await interaction.reply({ ...(prefix === 'visit_book' ? dateScreen(session) : cancellationScreen(session)), flags: MessageFlags.Ephemeral });
     return rememberReply(interaction, session);
   }
   const session = drafts(interaction.guildId)[key] || recoverLegacy(interaction, key);
@@ -293,8 +301,7 @@ async function handleAction(interaction) {
     const owner = interaction.message?.interactionMetadata?.user?.id || interaction.message?.interaction?.user?.id;
     if (owner && owner !== interaction.user.id) return interaction.reply(payload('来場予約', '自分で開いた予約画面から操作してください。'));
     if (action === 'close' && owner === interaction.user.id) {
-      await interaction.deferUpdate();
-      return interaction.deleteReply();
+      return closePanel(interaction);
     }
     const controls = [row(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel('来場予約チャンネルを開く')
       .setURL(`https://discord.com/channels/${model.GUILD}/${model.config(interaction.guildId).channelId || model.DEFAULT_CHANNEL}`))];
@@ -306,8 +313,9 @@ async function handleAction(interaction) {
   session.expires = Date.now() + TIMEOUT;
   if (session.kind === 'manage' && !isAdmin(interaction)) return interaction.reply(payload('来場予約', 'この操作には管理者権限が必要です。'));
   if (action === 'close') {
-    await interaction.deferUpdate(); delete drafts(interaction.guildId)[key];
-    return interaction.deleteReply();
+    await closePanel(interaction);
+    delete drafts(interaction.guildId)[key];
+    return;
   }
   if (prefix === 'visit_resume') return interaction.update(resumeScreen(session));
   if (session.kind === 'manage') return handleManagement(interaction, session, action);
@@ -513,6 +521,7 @@ async function tick(client, force = false) {
   });
   let changed = false;
   for (const session of Object.values(drafts(guild.id))) {
+    if (session.ephemeral) continue;
     const expired = session.expires < Date.now();
     if ((!expired && !(force && session.kind === 'booking')) || session.closed || !session.messageId) continue;
     try {

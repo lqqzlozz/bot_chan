@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { Collection, ChannelType } = require('discord.js');
+const { Collection, ChannelType, MessageFlags } = require('discord.js');
 const st = require('../utils/store');
 const model = require('../utils/visitReservations');
 const panel = require('../utils/visitPanel');
@@ -307,6 +307,7 @@ test('name submission and close survive a process restart with the selected date
   await restarted.handle(next);
   const close = f.interaction(idFrom(next.responses[0], 'close'));
   let closed = false;
+  close.message = { flags: { has: () => true } };
   close.deleteReply = async () => { closed = true; };
   await restarted.handle(close);
   assert.equal(closed, true);
@@ -323,7 +324,7 @@ test('idle expiry edits the input post once and its owner can resume the saved t
   await panel.handle(time);
   const input = await f.channel.send(time.responses[0]);
   const draft = st.get(f.guild.id).visitDrafts[id];
-  Object.assign(draft, { messageId: input.id, time: '09:30', expires: Date.now() - 1000 });
+  Object.assign(draft, { ephemeral: false, messageId: input.id, time: '09:30', expires: Date.now() - 1000 });
   const count = f.sends.length;
   await panel.tick(f.client);
   assert.equal(f.sends.length, count);
@@ -346,6 +347,7 @@ test('existing time screens recover safely after deployment and stale actions up
   await panel.tick(f.client, true);
   const start = f.interaction('visit_book:' + venue.id);
   await panel.handle(start);
+  assert.equal(start.responses[0].flags, MessageFlags.Ephemeral);
   const id = idFrom(start.responses[0], 'time').split(':')[1];
   const time = f.interaction(`visit_session:${id}:time`);
   await panel.handle(time);
@@ -357,6 +359,12 @@ test('existing time screens recover safely after deployment and stale actions up
   await panel.handle(name);
   assert.equal(name.responses[0].toJSON().title, 'お客様名を入力');
   assert.equal(st.get(f.guild.id).visitDrafts[id].venueId, venue.id);
+  const close = f.interaction(`visit_session:${id}:close`);
+  close.message = input;
+  close.deleteReply = async () => assert.fail('Public panels must be deleted through the message');
+  await panel.handle(close);
+  assert.equal(f.messages.has(input.id), false);
+  assert.equal(st.get(f.guild.id).visitDrafts[id], undefined);
   const stale = f.interaction('visit_session:missing:name');
   stale.message = { id: 'missing', embeds: [], components: [] };
   let replies = 0, updates = 0;
@@ -397,6 +405,7 @@ test('confirm updates the image and returns the same form to dates for another g
   }
   const close = f.interaction(`visit_session:${id}:close`);
   let deleted = false;
+  close.message = { flags: { has: () => true } };
   close.deleteReply = async () => { deleted = true; };
   await panel.handle(close);
   assert.equal(deleted, true);
@@ -455,6 +464,7 @@ test('time preview has one date-time-name line and its permanent close deletes a
   const input = await f.channel.send(preview);
   const draft = st.get(f.guild.id).visitDrafts[id];
   draft.messageId = input.id;
+  draft.ephemeral = false;
   const expires = draft.expires;
   await panel.tick(f.client, true);
   const refreshed = f.edits.at(-1);
@@ -462,6 +472,7 @@ test('time preview has one date-time-name line and its permanent close deletes a
   assert.equal(draft.expires, expires);
   let deleted = false;
   const close = f.interaction(idFrom(preview, 'close'));
+  close.message = { flags: { has: () => true } };
   close.deleteReply = async () => { deleted = true; };
   await panel.handle(close);
   assert.equal(deleted, true);

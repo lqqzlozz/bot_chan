@@ -5,7 +5,7 @@ const { profileHeader } = require('./charRow');
 const { characterEmoji, statEmoji } = require('./introEmoji');
 
 const COLOR = '#1D9E75';
-const CARD_VERSION = 3;
+const CARD_VERSION = 4;
 const ODETTE_PROFILE_ICON = 11800;
 const busy = new Map();
 
@@ -15,7 +15,7 @@ function panel(roleId = null) {
     .setColor(COLOR)
     .setDescription('加入された方は、UIDのご提示をお願いします！\nご提示が済んだらすべてのチャンネルの閲覧が可能になります✨️');
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId(`intro_open_${roleId || 'none'}`).setLabel('ギルドにUIDを登録する').setStyle(ButtonStyle.Success)
+    new ButtonBuilder().setCustomId(`intro_open_${roleId || 'none'}`).setLabel('UID登録').setStyle(ButtonStyle.Success)
   );
   return { embeds: [e], components: [row] };
 }
@@ -44,10 +44,15 @@ async function bump(ch) {
 // ボタン → フォーム
 async function open(i) {
   const roleId = i.customId.slice(11);
+  const data = st.get(i.guildId);
+  const linked = data.hoyolab?.[i.user.id];
+  const previousUid = data.intro?.[i.user.id]?.uid;
+  if (linked && !linked.needsAuth && en.cleanUid(linked.uid) && (!previousUid || previousUid === linked.uid)) {
+    return register(i, roleId, linked.uid);
+  }
   const m = new ModalBuilder().setCustomId(`intro_mdl_${roleId}`).setTitle('自己紹介');
   const input = new TextInputBuilder().setCustomId('uid').setLabel('UID')
     .setStyle(TextInputStyle.Short).setMinLength(9).setMaxLength(12).setRequired(true);
-  const previousUid = st.get(i.guildId).intro?.[i.user.id]?.uid;
   if (previousUid && en.cleanUid(previousUid)) input.setValue(previousUid);
   m.addComponents(new ActionRowBuilder().addComponents(input));
   return i.showModal(m);
@@ -61,27 +66,35 @@ const oops = (i, t) => i.followUp({ content: t, ephemeral: true });
 
 // フォーム送信 → カード投稿＋ロール（成功時は本人への返事なし）
 async function submit(i) {
+  return register(i, i.customId.slice(10), en.cleanUid(i.fields.getTextInputValue('uid')));
+}
+
+function characterCount(data, userId, uid) {
+  const linked = data.hoyolab?.[userId];
+  return linked?.uid === uid && Array.isArray(linked.characters) ? linked.characters.length : null;
+}
+
+async function register(i, roleId, uid) {
   await i.deferUpdate();
-  const roleId = i.customId.slice(10);
-  const uid = en.cleanUid(i.fields.getTextInputValue('uid'));
   if (!uid) return oops(i, errMsg[400]);
 
   const { p, err } = await en.player(uid).catch(() => ({ err: 503 }));
   // UIDの打ち間違いだけはやり直してもらう
   if (!p && (err === 400 || err === 404)) return oops(i, errMsg[err]);
 
-  const card = await makeCard({ uid, p, displayName: i.member.displayName, avatarURL: i.user.displayAvatarURL(), emojis: i.client?.application?.emojis });
+  const d = st.get(i.guildId);
+  const owned = characterCount(d, i.user.id, uid);
+  const card = await makeCard({ uid, p, owned, displayName: i.member.displayName, avatarURL: i.user.displayAvatarURL(), emojis: i.client?.application?.emojis });
 
   // 前のカードがあれば差し替え
-  const d = st.get(i.guildId);
   if (!d.intro) d.intro = {};
   const old = d.intro[i.user.id];
+  const m = await i.channel.send(card);
   if (old) {
     const ch = await i.client.channels.fetch(old.ch).catch(() => null);
     if (ch) await ch.messages.delete(old.msg).catch(() => null);
   }
-  const m = await i.channel.send(card);
-  d.intro[i.user.id] = { ch: i.channelId, msg: m.id, uid, pending: !p && retryable(err), cardVersion: CARD_VERSION };
+  d.intro[i.user.id] = { owned, ch: i.channelId, msg: m.id, uid, pending: !p && retryable(err), cardVersion: CARD_VERSION };
   st.saveLater(i.guild, 3000);
 
   // A role is optional: UID registration must succeed without any role assignment.
@@ -168,10 +181,18 @@ async function showCharacter(i) {
   }
 }
 
-async function makeCard({ uid, p, displayName, avatarURL, emojis }) {
+async function makeCard({ uid, p, owned, displayName, avatarURL, emojis }) {
   const container = new ContainerBuilder().setAccentColor(0x1D9E75);
   const files = [];
   const uidBlock = '**UID**\n```\n' + uid + '\n```';
+  const max = p?.fetterCount;
+  const hasMax = Number.isInteger(max) && max >= 0;
+  let rosterLine = '';
+  if (owned != null) rosterLine = '所持キャラ ' + owned + '人';
+  if (hasMax && (owned == null || max <= owned)) {
+    rosterLine += owned == null ? '好感度MAX ' + max + '人' : '（うち好感度MAX ' + max + '人）';
+  }
+  const rosterText = rosterLine ? '\n-# ' + rosterLine : '';
   if (p) {
     await en.names();
     const icon = en.pfpIcon(p.profilePicture) || avatarURL;
@@ -197,7 +218,7 @@ async function makeCard({ uid, p, displayName, avatarURL, emojis }) {
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
       '## ' + nickname + signature + '\n' +
       uidBlock + '\n' +
-      '-# ' + statsText
+      '-# ' + statsText + rosterText
     ));
     if (showcase) {
       // A heading gives inline icons more room without adding a gallery.
@@ -207,7 +228,7 @@ async function makeCard({ uid, p, displayName, avatarURL, emojis }) {
     }
   } else {
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-      '## ' + safe(displayName).slice(0, 80) + '\n' + uidBlock + '\n-# プロフィールを取得できませんでした。後ほど再取得します。'
+      '## ' + safe(displayName).slice(0, 80) + '\n' + uidBlock + rosterText + '\n-# プロフィールを取得できませんでした。後ほど再取得します。'
     ));
   }
   container.addActionRowComponents(new ActionRowBuilder().addComponents(
@@ -231,7 +252,8 @@ async function retryPending(client) {
       for (const [userId, entry] of Object.entries(d.intro || {})) {
         if (!entry.uid || !entry.msg || !entry.ch) continue;
         if (entry.cardSkippedVersion === CARD_VERSION && !entry.pending) continue;
-        const upgrade = entry.cardVersion !== CARD_VERSION && entry.cardSkippedVersion !== CARD_VERSION;
+        const owned = characterCount(d, userId, entry.uid);
+        const upgrade = entry.cardVersion !== CARD_VERSION || (entry.owned ?? null) !== owned;
         if (!upgrade && !entry.pending) continue;
         if (entry.retryAfter && Date.now() < entry.retryAfter) continue;
         const result = await en.player(entry.uid).catch(() => ({ err: 503 }));
@@ -266,13 +288,14 @@ async function retryPending(client) {
             continue;
           }
           const member = await guild.members.fetch(userId).catch(() => null);
-          const card = await makeCard({ uid: entry.uid, ...result, displayName: member?.displayName || msg.mentions.users.first()?.username || 'ユーザー', avatarURL: member?.user.displayAvatarURL() || client.user.displayAvatarURL(), emojis: client.application?.emojis });
+          const card = await makeCard({ uid: entry.uid, ...result, owned, displayName: member?.displayName || msg.mentions.users.first()?.username || 'ユーザー', avatarURL: member?.user.displayAvatarURL() || client.user.displayAvatarURL(), emojis: client.application?.emojis });
           if (d.intro[userId] !== entry) continue;
           // Clear legacy fields when enabling Components V2 on an existing message.
           const legacy = msg.flags.has(MessageFlags.IsComponentsV2) ? {} : { content: null, embeds: [] };
           await msg.edit({ ...card, ...legacy, flags: msg.flags.bitfield | card.flags, attachments: [] });
           entry.pending = false;
           entry.cardVersion = CARD_VERSION;
+          entry.owned = owned;
           delete entry.cardSkippedVersion;
           delete entry.retryAfter;
           if (upgrade) {

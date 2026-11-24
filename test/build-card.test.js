@@ -68,7 +68,7 @@ test('UID cards display and reuse individual character emoji above the link butt
       return emoji;
     })
   };
-  const p = { nickname: 'ゲーム内の名前', level: 60, worldLevel: 9, finishAchievementNum: 985,
+  const p = { nickname: 'ゲーム内の名前', level: 60, worldLevel: 9, finishAchievementNum: 985, fetterCount: 2,
     showAvatarInfoList: [{ avatarId: 1, level: 90 }, { avatarId: 2, level: 80 }] };
   const raw = [{ avatarId: 1, equipList: [
     { weapon: {}, flat: { icon: 'UI_EquipIcon_Test' } },
@@ -83,7 +83,9 @@ test('UID cards display and reuse individual character emoji above the link butt
     member: { displayName: 'Discordの名前' }, deferUpdate: async () => {}, fields: { getTextInputValue: () => '123456789' },
     guild: { roles: { fetch: async () => null } }, channel: { send: async p => { output = p; return { id: 'msg' }; } } };
   try {
-    await intro.submit(i);
+    st.get(i.guildId).hoyolab = { [i.user.id]: { uid: '123456789', characters: [{}, {}, {}] } };
+    await intro.open({ ...i, customId: 'intro_open_role', fields: undefined });
+    assert.equal(st.get(i.guildId).intro[i.user.id].uid, '123456789');
     assert.equal(output.flags, MessageFlags.IsComponentsV2);
     assert.equal(output.content, undefined);
     assert.equal(output.embeds, undefined);
@@ -93,7 +95,7 @@ test('UID cards display and reuse individual character emoji above the link butt
     assert.match(components[1].content, /ゲーム内の名前/);
     assert.ok(components[1].content.includes('**UID**\n```\n123456789\n```'));
     assert.match(components[1].content,
-      /<:uid_stat_adventure:\d+> 冒険ランク 60　│　<:uid_stat_world:\d+> 世界ランク 9　│　<:uid_stat_achievement:\d+> アチーブメント 985/);
+      /<:uid_stat_adventure:\d+> 冒険ランク 60　│　<:uid_stat_world:\d+> 世界ランク 9\n-# <:uid_stat_achievement:\d+> アチーブメント 985\n-# 所持キャラ 3人（うち好感度MAX 2人）/);
     assert.equal(output.components.length, 1);
     assert.deepEqual(components.map(component => component.type), [12, 10, 14, 10, 14, 1]);
     assert.match(components[3].content, /^# <:uid_[a-f0-9]+:\d+> <:uid_[a-f0-9]+:\d+>$/);
@@ -112,7 +114,7 @@ test('UID cards display and reuse individual character emoji above the link butt
       isButton: () => false,
       isModalSubmit: () => false,
       isChatInputCommand: () => false,
-      isRoleSelectMenu: () => false,
+      isRoleSelectMenu: () => false, isChannelSelectMenu: () => false, isUserSelectMenu: () => false,
       isStringSelectMenu: () => true,
       deferReply: async options => assert.equal(options.flags, MessageFlags.Ephemeral),
       editReply: async options => { details = options; }
@@ -164,13 +166,13 @@ test('bulk UID refresh edits the original posts once and retries temporary failu
     waiting: entry('temporarily-unavailable', '123456782'),
     unaffected: { ...entry('unaffected'), cardVersion: 1 },
     odette: { ...entry('odette', '123456783'), cardVersion: 1 },
-    current: { ...entry('already-current'), cardVersion: 2 }
+    current: { ...entry('already-current'), cardVersion: 4 }
   };
   st.get(guildId).intro = records;
   const edits = new Map();
   const channel = { messages: { fetch: async id => {
     if (id === 'deleted') throw Object.assign(new Error('Unknown Message'), { code: 10008 });
-    assert.ok(!['unaffected', 'already-current'].includes(id));
+    assert.notEqual(id, 'already-current');
     return {
       author: { id: 'bot' },
       flags: { bitfield: id === 'old-embed' ? 0 : MessageFlags.IsComponentsV2,
@@ -188,15 +190,15 @@ test('bulk UID refresh edits the original posts once and retries temporary failu
     user: { id: 'bot', displayAvatarURL: () => 'https://example.com/avatar.png' } };
   try {
     await intro.retryPending(client);
-    assert.deepEqual([...edits.keys()], ['old-embed', 'old-components', 'odette']);
+    assert.deepEqual([...edits.keys()], ['old-embed', 'old-components', 'unaffected', 'odette']);
     assert.equal(edits.get('old-embed').content, null);
     assert.deepEqual(edits.get('old-embed').embeds, []);
     assert.equal(edits.get('old-embed').flags, MessageFlags.IsComponentsV2);
     assert.deepEqual(edits.get('old-components').attachments, []);
     assert.equal(records.legacy.msg, 'old-embed');
-    assert.equal(records.legacy.cardVersion, 2);
-    assert.equal(records.unaffected.cardVersion, 2);
-    assert.equal(records.missing.cardSkippedVersion, 2);
+    assert.equal(records.legacy.cardVersion, 4);
+    assert.equal(records.unaffected.cardVersion, 4);
+    assert.equal(records.missing.cardSkippedVersion, 4);
     assert.ok(records.waiting.retryAfter > Date.now());
     await intro.retryPending(client);
     assert.equal(player.mock.callCount(), 6);
@@ -205,7 +207,7 @@ test('bulk UID refresh edits the original posts once and retries temporary failu
     player.mock.mockImplementation(async () => ({ p }));
     await intro.retryPending(client);
     assert.ok(edits.has('temporarily-unavailable'));
-    assert.equal(records.waiting.cardVersion, 2);
+    assert.equal(records.waiting.cardVersion, 4);
   } finally { st.db.clear(); }
 });
 

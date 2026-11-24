@@ -9,6 +9,7 @@ const buildPanel = require('../utils/buildPanel');
 const inactive = require('../utils/inactive');
 const wel = require('../utils/welcome');
 const welcomePanel = require('../utils/welcomePanel');
+const messageLinkPreview = require('../utils/messageLinkPreview');
 const eyesReaction = require('../utils/eyesReaction');
 const { parseVisitorMessage } = require('../utils/imageGenerator');
 
@@ -20,6 +21,7 @@ module.exports = {
   name: 'messageCreate',
   async execute(message, client) {
     await eyesReaction.onMessage(message);
+    await messageLinkPreview.onMessage(message).catch(e => console.warn('メッセージリンクの展開に失敗:', e.code || e.name));
     welcomePanel.schedule(message,client);
     if (message.guild && !message.author.bot) inactive.record(message.guild, message.author);
     // DISBOARDのbump（botの発言なので先に見る）

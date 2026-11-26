@@ -68,7 +68,7 @@ test('UID cards display and reuse individual character emoji above the link butt
       return emoji;
     })
   };
-  const p = { nickname: 'ゲーム内の名前', level: 60, worldLevel: 9, finishAchievementNum: 985, fetterCount: 2,
+  const p = { nickname: 'ゲーム内の名前', signature: 'No Cat No Life', level: 60, worldLevel: 9, finishAchievementNum: 985, fetterCount: 2,
     showAvatarInfoList: [{ avatarId: 1, level: 90 }, { avatarId: 2, level: 80 }] };
   const raw = [{ avatarId: 1, equipList: [
     { weapon: {}, flat: { icon: 'UI_EquipIcon_Test' } },
@@ -79,7 +79,7 @@ test('UID cards display and reuse individual character emoji above the link butt
   let output;
   const i = { guildId: 'intro-test', channelId: 'c', customId: 'intro_mdl_role',
     client: { application: { emojis } },
-    user: { id: '123456789', displayAvatarURL: () => 'https://example.com/avatar.png' },
+    user: { id: '900000000000000001', displayAvatarURL: () => 'https://example.com/avatar.png' },
     member: { displayName: 'Discordの名前' }, deferUpdate: async () => {}, fields: { getTextInputValue: () => '123456789' },
     guild: { roles: { fetch: async () => null } }, channel: { send: async p => { output = p; return { id: 'msg' }; } } };
   try {
@@ -91,12 +91,13 @@ test('UID cards display and reuse individual character emoji above the link butt
     assert.equal(output.embeds, undefined);
     assert.deepEqual(output.allowedMentions.parse, []);
     assert.deepEqual(output.files.map(file => file.name), ['uid-header.png']);
-    const components = output.components[0].toJSON().components;
-    assert.match(components[1].content, /ゲーム内の名前/);
+    const components = output.components[1].toJSON().components;
+    assert.match(components[1].content, /ゲーム内の名前\nNo Cat No Life\n\n\*\*UID\*\*/);
     assert.ok(components[1].content.includes('**UID**\n```\n123456789\n```'));
     assert.match(components[1].content,
       /<:uid_stat_adventure:\d+> 冒険ランク 60　│　<:uid_stat_world:\d+> 世界ランク 9\n-# <:uid_stat_achievement:\d+> アチーブメント 985\n-# 所持キャラ 3人（うち好感度MAX 2人）/);
-    assert.equal(output.components.length, 1);
+    assert.equal(output.components.length, 2);
+    assert.equal(output.components[0].toJSON().content, `-# <@${i.user.id}> さんのUIDカード`);
     assert.deepEqual(components.map(component => component.type), [12, 10, 14, 10, 14, 1]);
     assert.match(components[3].content, /^# <:uid_[a-f0-9]+:\d+> <:uid_[a-f0-9]+:\d+>$/);
     for (const spacer of [components[2], components[4]]) {
@@ -129,7 +130,7 @@ test('UID cards display and reuse individual character emoji above the link butt
       p.showAvatarInfoList = Array.from({ length: count }, (_, n) => ({ avatarId: n + 1, level: 90 }));
       st.db.clear();
       await intro.submit(i);
-      const card = output.components[0].toJSON().components;
+      const card = output.components[1].toJSON().components;
       assert.deepEqual(card.map(component => component.type), [12, 10, 14, 10, 14, 1]);
       assert.equal(card[3].content.match(/<:uid_[a-f0-9]+:\d+>/g).length, count);
       assert.equal(emojis.create.mock.callCount(), count + 3);
@@ -140,9 +141,10 @@ test('UID cards display and reuse individual character emoji above the link butt
     player.mock.mockImplementation(async () => ({ err: 503 }));
     st.db.clear();
     await intro.submit(i);
-    assert.equal(output.components.length, 1);
+    assert.equal(output.components.length, 2);
+    assert.equal(output.components[0].toJSON().content, `-# <@${i.user.id}> さんのUIDカード`);
     assert.deepEqual(output.files, []);
-    assert.match(output.components[0].toJSON().components[0].content, /123456789/);
+    assert.match(output.components[1].toJSON().components[0].content, /123456789/);
     assert.equal(st.get(i.guildId).intro[i.user.id].pending, true);
   } finally { st.db.clear(); }
 });
@@ -161,12 +163,12 @@ test('bulk UID refresh edits the original posts once and retries temporary failu
   const entry = (msg, uid = '123456789') => ({ uid, msg, ch: 'channel', pending: false });
   const records = {
     legacy: entry('old-embed'),
-    modern: entry('old-components'),
+    modern: { ...entry('old-components'), cardVersion: 4 },
     missing: entry('deleted'),
     waiting: entry('temporarily-unavailable', '123456782'),
     unaffected: { ...entry('unaffected'), cardVersion: 1 },
     odette: { ...entry('odette', '123456783'), cardVersion: 1 },
-    current: { ...entry('already-current'), cardVersion: 4 }
+    current: { ...entry('already-current'), cardVersion: 5 }
   };
   st.get(guildId).intro = records;
   const edits = new Map();
@@ -195,10 +197,11 @@ test('bulk UID refresh edits the original posts once and retries temporary failu
     assert.deepEqual(edits.get('old-embed').embeds, []);
     assert.equal(edits.get('old-embed').flags, MessageFlags.IsComponentsV2);
     assert.deepEqual(edits.get('old-components').attachments, []);
+    assert.equal(edits.get('old-components').components[0].toJSON().content, '-# <@modern> さんのUIDカード');
     assert.equal(records.legacy.msg, 'old-embed');
-    assert.equal(records.legacy.cardVersion, 4);
-    assert.equal(records.unaffected.cardVersion, 4);
-    assert.equal(records.missing.cardSkippedVersion, 4);
+    assert.equal(records.legacy.cardVersion, 5);
+    assert.equal(records.unaffected.cardVersion, 5);
+    assert.equal(records.missing.cardSkippedVersion, 5);
     assert.ok(records.waiting.retryAfter > Date.now());
     await intro.retryPending(client);
     assert.equal(player.mock.callCount(), 6);
@@ -207,7 +210,7 @@ test('bulk UID refresh edits the original posts once and retries temporary failu
     player.mock.mockImplementation(async () => ({ p }));
     await intro.retryPending(client);
     assert.ok(edits.has('temporarily-unavailable'));
-    assert.equal(records.waiting.cardVersion, 4);
+    assert.equal(records.waiting.cardVersion, 5);
   } finally { st.db.clear(); }
 });
 

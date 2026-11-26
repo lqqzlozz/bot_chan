@@ -5,7 +5,7 @@ const { profileHeader } = require('./charRow');
 const { characterEmoji, statEmoji } = require('./introEmoji');
 
 const COLOR = '#1D9E75';
-const CARD_VERSION = 4;
+const CARD_VERSION = 5;
 const ODETTE_PROFILE_ICON = 11800;
 const busy = new Map();
 
@@ -84,7 +84,7 @@ async function register(i, roleId, uid) {
 
   const d = st.get(i.guildId);
   const owned = characterCount(d, i.user.id, uid);
-  const card = await makeCard({ uid, p, owned, displayName: i.member.displayName, avatarURL: i.user.displayAvatarURL(), emojis: i.client?.application?.emojis });
+  const card = await makeCard({ userId: i.user.id, uid, p, owned, displayName: i.member.displayName, avatarURL: i.user.displayAvatarURL(), emojis: i.client?.application?.emojis });
 
   // 前のカードがあれば差し替え
   if (!d.intro) d.intro = {};
@@ -181,7 +181,7 @@ async function showCharacter(i) {
   }
 }
 
-async function makeCard({ uid, p, owned, displayName, avatarURL, emojis }) {
+async function makeCard({ userId, uid, p, owned, displayName, avatarURL, emojis }) {
   const container = new ContainerBuilder().setAccentColor(0x1D9E75);
   const files = [];
   const uidBlock = '**UID**\n```\n' + uid + '\n```';
@@ -216,7 +216,7 @@ async function makeCard({ uid, p, owned, displayName, avatarURL, emojis }) {
     const nickname = safe(p.nickname?.trim() || displayName).slice(0, 80);
     const signature = p.signature?.trim() ? '\n' + safe(p.signature.trim()).slice(0, 250) : '';
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-      '## ' + nickname + signature + '\n' +
+      '## ' + nickname + signature + (signature ? '\n\n' : '\n') +
       uidBlock + '\n' +
       '-# ' + statsText + rosterText
     ));
@@ -235,7 +235,8 @@ async function makeCard({ uid, p, owned, displayName, avatarURL, emojis }) {
     new ButtonBuilder().setLabel('Enka').setStyle(ButtonStyle.Link).setURL('https://enka.network/u/' + uid + '/'),
     new ButtonBuilder().setLabel('Akasha').setStyle(ButtonStyle.Link).setURL('https://akasha.cv/profile/' + uid)
   ));
-  return { components: [container], files, flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
+  const owner = new TextDisplayBuilder().setContent(`-# <@${userId}> さんのUIDカード`);
+  return { components: [owner, container], files, flags: MessageFlags.IsComponentsV2, allowedMentions: { parse: [] } };
 }
 
 // Upgrade each saved card once and retry temporary failures on the existing timer.
@@ -288,7 +289,7 @@ async function retryPending(client) {
             continue;
           }
           const member = await guild.members.fetch(userId).catch(() => null);
-          const card = await makeCard({ uid: entry.uid, ...result, owned, displayName: member?.displayName || msg.mentions.users.first()?.username || 'ユーザー', avatarURL: member?.user.displayAvatarURL() || client.user.displayAvatarURL(), emojis: client.application?.emojis });
+          const card = await makeCard({ userId, uid: entry.uid, ...result, owned, displayName: member?.displayName || msg.mentions.users.first()?.username || 'ユーザー', avatarURL: member?.user.displayAvatarURL() || client.user.displayAvatarURL(), emojis: client.application?.emojis });
           if (d.intro[userId] !== entry) continue;
           // Clear legacy fields when enabling Components V2 on an existing message.
           const legacy = msg.flags.has(MessageFlags.IsComponentsV2) ? {} : { content: null, embeds: [] };

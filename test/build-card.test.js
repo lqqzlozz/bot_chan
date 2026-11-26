@@ -92,7 +92,7 @@ test('UID cards display and reuse individual character emoji above the link butt
     assert.deepEqual(output.allowedMentions.parse, []);
     assert.deepEqual(output.files.map(file => file.name), ['uid-header.png']);
     const components = output.components[1].toJSON().components;
-    assert.match(components[1].content, /ゲーム内の名前\nNo Cat No Life\n\n\*\*UID\*\*/);
+    assert.match(components[1].content, /ゲーム内の名前\n「No Cat No Life」\n\n\*\*UID\*\*/);
     assert.ok(components[1].content.includes('**UID**\n```\n123456789\n```'));
     assert.match(components[1].content,
       /<:uid_stat_adventure:\d+> 冒険ランク 60　│　<:uid_stat_world:\d+> 世界ランク 9\n-# <:uid_stat_achievement:\d+> アチーブメント 985\n-# 所持キャラ 3人（うち好感度MAX 2人）/);
@@ -163,12 +163,12 @@ test('bulk UID refresh edits the original posts once and retries temporary failu
   const entry = (msg, uid = '123456789') => ({ uid, msg, ch: 'channel', pending: false });
   const records = {
     legacy: entry('old-embed'),
-    modern: { ...entry('old-components'), cardVersion: 4 },
+    modern: { ...entry('old-components'), cardVersion: 5 },
     missing: entry('deleted'),
     waiting: entry('temporarily-unavailable', '123456782'),
     unaffected: { ...entry('unaffected'), cardVersion: 1 },
     odette: { ...entry('odette', '123456783'), cardVersion: 1 },
-    current: { ...entry('already-current'), cardVersion: 5 }
+    current: { ...entry('already-current'), cardVersion: 6 }
   };
   st.get(guildId).intro = records;
   const edits = new Map();
@@ -199,9 +199,9 @@ test('bulk UID refresh edits the original posts once and retries temporary failu
     assert.deepEqual(edits.get('old-components').attachments, []);
     assert.equal(edits.get('old-components').components[0].toJSON().content, '-# <@modern> さんのUIDカード');
     assert.equal(records.legacy.msg, 'old-embed');
-    assert.equal(records.legacy.cardVersion, 5);
-    assert.equal(records.unaffected.cardVersion, 5);
-    assert.equal(records.missing.cardSkippedVersion, 5);
+    assert.equal(records.legacy.cardVersion, 6);
+    assert.equal(records.unaffected.cardVersion, 6);
+    assert.equal(records.missing.cardSkippedVersion, 6);
     assert.ok(records.waiting.retryAfter > Date.now());
     await intro.retryPending(client);
     assert.equal(player.mock.callCount(), 6);
@@ -210,7 +210,7 @@ test('bulk UID refresh edits the original posts once and retries temporary failu
     player.mock.mockImplementation(async () => ({ p }));
     await intro.retryPending(client);
     assert.ok(edits.has('temporarily-unavailable'));
-    assert.equal(records.waiting.cardVersion, 5);
+    assert.equal(records.waiting.cardVersion, 6);
   } finally { st.db.clear(); }
 });
 

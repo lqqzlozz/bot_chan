@@ -5,7 +5,7 @@ const { profileHeader } = require('./charRow');
 const { characterEmoji, statEmoji } = require('./introEmoji');
 
 const COLOR = '#1D9E75';
-const CARD_VERSION = 5;
+const CARD_VERSION = 6;
 const ODETTE_PROFILE_ICON = 11800;
 const busy = new Map();
 
@@ -214,9 +214,10 @@ async function makeCard({ userId, uid, p, owned, displayName, avatarURL, emojis 
       );
     }
     const nickname = safe(p.nickname?.trim() || displayName).slice(0, 80);
-    const signature = p.signature?.trim() ? '\n' + safe(p.signature.trim()).slice(0, 250) : '';
+    const signature = safe(p.signature?.trim()).slice(0, 250);
+    const quoted = signature.startsWith('「') && signature.endsWith('」') ? signature : '「' + signature + '」';
     container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-      '## ' + nickname + signature + (signature ? '\n\n' : '\n') +
+      '## ' + nickname + (signature ? '\n' + quoted + '\n\n' : '\n') +
       uidBlock + '\n' +
       '-# ' + statsText + rosterText
     ));

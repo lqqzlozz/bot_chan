@@ -5,11 +5,11 @@
   "apiVersion": "5.6",
   "period": "2026-11-15T20:00:00.000Z ～ 2026-12-15T19:59:59.000Z",
   "scheduleId": 125,
-  "updatedAt": "2026-11-26T10:00:00.381Z",
-  "fetchedAt": "2026-11-26T10:53:04.477Z",
+  "updatedAt": "2026-11-27T10:00:00.397Z",
+  "fetchedAt": "2026-11-27T10:50:55.072Z",
   "sampleSize": null,
   "sample": {
-    "origin": 1253,
+    "origin": 1262,
     "reference": 2500
   },
   "methodology": "AZA.GG投稿サンプル。所持率=own_rate、使用率=use_by_own_rate（所持者中）、採用率=use_rate（全サンプル中）。全プレイヤーの代表値ではありません。",
@@ -19,23 +19,23 @@
       "avatarId": 10000041,
       "name": "モナ",
       "rarity": 5,
-      "rate": 98.5
+      "rate": 98.6
     },
     {
       "avatarId": 10000109,
       "name": "夢見月瑞希",
       "rarity": 5,
-      "rate": 98.3
-    },
-    {
-      "avatarId": 10000042,
-      "name": "刻晴",
-      "rarity": 5,
-      "rate": 98.1
+      "rate": 98.4
     },
     {
       "avatarId": 10000035,
       "name": "七七",
+      "rarity": 5,
+      "rate": 97.9
+    },
+    {
+      "avatarId": 10000042,
+      "name": "刻晴",
       "rarity": 5,
       "rate": 97.9
     },
@@ -55,43 +55,37 @@
       "avatarId": 10000079,
       "name": "ディシア",
       "rarity": 5,
-      "rate": 97.7
+      "rate": 97.5
     },
     {
       "avatarId": 10000125,
       "name": "コロンビーナ",
       "rarity": 5,
-      "rate": 96.4
+      "rate": 96.5
     },
     {
       "avatarId": 10000069,
       "name": "ティナリ",
       "rarity": 5,
-      "rate": 96.2
+      "rate": 96.3
     },
     {
       "avatarId": 10000016,
       "name": "ディルック",
       "rarity": 5,
-      "rate": 95.2
+      "rate": 95.3
     },
     {
       "avatarId": 10000150,
       "name": "オデット",
       "rarity": 5,
-      "rate": 93.1
+      "rate": 92.6
     },
     {
       "avatarId": 10000073,
       "name": "ナヒーダ",
       "rarity": 5,
-      "rate": 91.6
-    },
-    {
-      "avatarId": 10000047,
-      "name": "楓原万葉",
-      "rarity": 5,
-      "rate": 87.4
+      "rate": 91.8
     },
     {
       "avatarId": 10000103,
@@ -100,52 +94,58 @@
       "rate": 87.4
     },
     {
+      "avatarId": 10000047,
+      "name": "楓原万葉",
+      "rarity": 5,
+      "rate": 87
+    },
+    {
       "avatarId": 10000112,
       "name": "エスコフィエ",
       "rarity": 5,
-      "rate": 84.2
+      "rate": 84.3
     },
     {
       "avatarId": 10000060,
       "name": "夜蘭",
       "rarity": 5,
-      "rate": 82.1
+      "rate": 82.3
     },
     {
       "avatarId": 10000107,
       "name": "シトラリ",
       "rarity": 5,
-      "rate": 82.1
+      "rate": 82.3
     },
     {
       "avatarId": 10000052,
       "name": "雷電将軍",
       "rarity": 5,
-      "rate": 81.9
+      "rate": 82.1
     },
     {
       "avatarId": 10000106,
       "name": "マーヴィカ",
       "rarity": 5,
-      "rate": 81.5
+      "rate": 81.6
     },
     {
       "avatarId": 10000111,
       "name": "ヴァレサ",
       "rarity": 5,
-      "rate": 81.1
+      "rate": 81.2
     },
     {
       "avatarId": 10000114,
       "name": "スカーク",
       "rarity": 5,
-      "rate": 81.1
+      "rate": 81.2
     },
     {
       "avatarId": 10000030,
       "name": "鍾離",
       "rarity": 5,
-      "rate": 80.7
+      "rate": 80.6
     },
     {
       "avatarId": 10000140,
@@ -169,97 +169,97 @@
       "avatarId": 10000119,
       "name": "ラウマ",
       "rarity": 5,
-      "rate": 75.8
+      "rate": 76.1
     },
     {
       "avatarId": 10000007,
       "name": "旅人",
       "rarity": 5,
-      "rate": 75.4
+      "rate": 75.1
     },
     {
       "avatarId": 10000087,
       "name": "ヌヴィレット",
       "rarity": 5,
-      "rate": 72.7
+      "rate": 73
     },
     {
       "avatarId": 10000131,
       "name": "ニコ",
       "rarity": 5,
-      "rate": 69.7
-    },
-    {
-      "avatarId": 10000130,
-      "name": "リンネア",
-      "rarity": 5,
-      "rate": 68.9
+      "rate": 69.5
     },
     {
       "avatarId": 10000122,
       "name": "ネフェル",
       "rarity": 5,
-      "rate": 68.7
+      "rate": 69.1
+    },
+    {
+      "avatarId": 10000130,
+      "name": "リンネア",
+      "rarity": 5,
+      "rate": 69.1
     },
     {
       "avatarId": 10000096,
       "name": "アルレッキーノ",
       "rarity": 5,
-      "rate": 67.6
+      "rate": 67.8
     },
     {
       "avatarId": 10000058,
       "name": "八重神子",
       "rarity": 5,
-      "rate": 66
+      "rate": 66.2
     },
     {
       "avatarId": 10000070,
       "name": "ニィロウ",
       "rarity": 5,
-      "rate": 63.4
+      "rate": 63.5
     },
     {
       "avatarId": 10000123,
       "name": "ドゥリン",
       "rarity": 5,
-      "rate": 63
+      "rate": 62.9
     },
     {
       "avatarId": 10000046,
       "name": "胡桃",
       "rarity": 5,
-      "rate": 61.8
+      "rate": 62.1
     },
     {
       "avatarId": 10000091,
       "name": "ナヴィア",
       "rarity": 5,
-      "rate": 59.5
-    },
-    {
-      "avatarId": 10000098,
-      "name": "クロリンデ",
-      "rarity": 5,
-      "rate": 56.1
-    },
-    {
-      "avatarId": 10000037,
-      "name": "甘雨",
-      "rarity": 5,
-      "rate": 55
-    },
-    {
-      "avatarId": 10000093,
-      "name": "閑雲",
-      "rarity": 5,
-      "rate": 54.8
+      "rate": 59.6
     },
     {
       "avatarId": 10000126,
       "name": "兹白",
       "rarity": 5,
-      "rate": 54.6
+      "rate": 56.5
+    },
+    {
+      "avatarId": 10000098,
+      "name": "クロリンデ",
+      "rarity": 5,
+      "rate": 56.3
+    },
+    {
+      "avatarId": 10000037,
+      "name": "甘雨",
+      "rarity": 5,
+      "rate": 55.7
+    },
+    {
+      "avatarId": 10000093,
+      "name": "閑雲",
+      "rarity": 5,
+      "rate": 55.5
     },
     {
       "avatarId": 10000054,
@@ -268,64 +268,64 @@
       "rate": 54.4
     },
     {
-      "avatarId": 10000002,
-      "name": "神里綾華",
-      "rarity": 5,
-      "rate": 52.1
-    },
-    {
       "avatarId": 10000104,
       "name": "チャスカ",
       "rarity": 5,
-      "rate": 52.1
+      "rate": 52.4
+    },
+    {
+      "avatarId": 10000002,
+      "name": "神里綾華",
+      "rarity": 5,
+      "rate": 52
     },
     {
       "avatarId": 10000075,
       "name": "放浪者",
       "rarity": 5,
-      "rate": 50.8
-    },
-    {
-      "avatarId": 10000120,
-      "name": "フリンズ",
-      "rarity": 5,
-      "rate": 50.4
+      "rate": 50.9
     },
     {
       "avatarId": 10000143,
       "name": "ヴェスナ",
       "rarity": 5,
-      "rate": 50.4
+      "rate": 50.7
+    },
+    {
+      "avatarId": 10000120,
+      "name": "フリンズ",
+      "rarity": 5,
+      "rate": 50.3
     },
     {
       "avatarId": 10000022,
       "name": "ウェンティ",
       "rarity": 5,
-      "rate": 49.4
+      "rate": 49.9
     },
     {
       "avatarId": 10000063,
       "name": "申鶴",
       "rarity": 5,
-      "rate": 46.8
+      "rate": 47
     },
     {
       "avatarId": 10000102,
       "name": "ムアラニ",
       "rarity": 5,
-      "rate": 46.2
+      "rate": 46.6
     },
     {
       "avatarId": 10000082,
       "name": "白朮",
       "rarity": 5,
-      "rate": 45
+      "rate": 45.6
     },
     {
       "avatarId": 10000078,
       "name": "アルハイゼン",
       "rarity": 5,
-      "rate": 44.3
+      "rate": 44.1
     },
     {
       "avatarId": 10000049,
@@ -337,43 +337,43 @@
       "avatarId": 10000094,
       "name": "千織",
       "rarity": 5,
-      "rate": 40.8
-    },
-    {
-      "avatarId": 10000136,
-      "name": "ミティヤ",
-      "rarity": 5,
-      "rate": 38.7
+      "rate": 41
     },
     {
       "avatarId": 10000101,
       "name": "キィニチ",
       "rarity": 5,
-      "rate": 38.2
+      "rate": 38.6
+    },
+    {
+      "avatarId": 10000136,
+      "name": "ミティヤ",
+      "rarity": 5,
+      "rate": 38.4
     },
     {
       "avatarId": 10000099,
       "name": "エミリエ",
       "rarity": 5,
-      "rate": 36.3
+      "rate": 36.7
     },
     {
       "avatarId": 10000051,
       "name": "エウルア",
       "rarity": 5,
-      "rate": 33.8
+      "rate": 34.2
     },
     {
       "avatarId": 10000038,
       "name": "アルベド",
       "rarity": 5,
-      "rate": 31.9
+      "rate": 32.2
     },
     {
       "avatarId": 10000029,
       "name": "クレー",
       "rarity": 5,
-      "rate": 31.5
+      "rate": 32
     },
     {
       "avatarId": 10000066,
@@ -391,43 +391,43 @@
       "avatarId": 10000128,
       "name": "ファルカ",
       "rarity": 5,
-      "rate": 29.8
+      "rate": 29.9
     },
     {
       "avatarId": 10000026,
       "name": "魈",
       "rarity": 5,
-      "rate": 28.4
+      "rate": 28.7
     },
     {
       "avatarId": 10000071,
       "name": "セノ",
       "rarity": 5,
-      "rate": 28.4
+      "rate": 28.5
     },
     {
       "avatarId": 10000005,
       "name": "旅人",
       "rarity": 5,
-      "rate": 24.6
+      "rate": 24.9
     },
     {
       "avatarId": 10000086,
       "name": "リオセスリ",
       "rarity": 5,
-      "rate": 21.2
+      "rate": 21.4
     },
     {
       "avatarId": 10000095,
       "name": "シグウィン",
       "rarity": 5,
-      "rate": 21
+      "rate": 20.8
     },
     {
       "avatarId": 10000057,
       "name": "荒瀧一斗",
       "rarity": 5,
-      "rate": 19.5
+      "rate": 19.8
     },
     {
       "avatarId": 10000084,
@@ -439,65 +439,65 @@
       "avatarId": 10000129,
       "name": "ローエン",
       "rarity": 5,
-      "rate": 11.8
+      "rate": 11.5
     }
   ],
   "usage": [
     {
-      "avatarId": 10000126,
-      "name": "兹白",
-      "rarity": 5,
-      "rate": 92.3,
-      "appearanceRate": 50.4
-    },
-    {
       "avatarId": 10000125,
       "name": "コロンビーナ",
       "rarity": 5,
-      "rate": 90.8,
-      "appearanceRate": 87.6
+      "rate": 91.2,
+      "appearanceRate": 88
     },
     {
       "avatarId": 10000130,
       "name": "リンネア",
       "rarity": 5,
-      "rate": 89.9,
-      "appearanceRate": 62
+      "rate": 90.4,
+      "appearanceRate": 62.5
+    },
+    {
+      "avatarId": 10000126,
+      "name": "兹白",
+      "rarity": 5,
+      "rate": 89.8,
+      "appearanceRate": 50.7
     },
     {
       "avatarId": 10000150,
       "name": "オデット",
       "rarity": 5,
-      "rate": 88.9,
-      "appearanceRate": 82.8
+      "rate": 89.1,
+      "appearanceRate": 82.5
     },
     {
       "avatarId": 10000058,
       "name": "八重神子",
       "rarity": 5,
-      "rate": 71.3,
-      "appearanceRate": 47.1
+      "rate": 72,
+      "appearanceRate": 47.6
     },
     {
       "avatarId": 10000136,
       "name": "ミティヤ",
       "rarity": 5,
-      "rate": 70.7,
-      "appearanceRate": 27.3
+      "rate": 71,
+      "appearanceRate": 27.2
     },
     {
       "avatarId": 10000133,
       "name": "サンドローネ",
       "rarity": 5,
-      "rate": 60.6,
-      "appearanceRate": 46.2
+      "rate": 60.8,
+      "appearanceRate": 46.4
     },
     {
       "avatarId": 10000140,
       "name": "ヴォジャニーツァ",
       "rarity": 5,
-      "rate": 49.5,
-      "appearanceRate": 38
+      "rate": 49.1,
+      "appearanceRate": 37.7
     },
     {
       "avatarId": 10000116,
@@ -510,189 +510,189 @@
       "avatarId": 10000143,
       "name": "ヴェスナ",
       "rarity": 5,
-      "rate": 25.8,
-      "appearanceRate": 13
+      "rate": 26,
+      "appearanceRate": 13.2
     },
     {
       "avatarId": 10000091,
       "name": "ナヴィア",
       "rarity": 5,
-      "rate": 24.4,
-      "appearanceRate": 14.5
+      "rate": 24.2,
+      "appearanceRate": 14.4
     },
     {
       "avatarId": 10000131,
       "name": "ニコ",
       "rarity": 5,
       "rate": 22.6,
-      "appearanceRate": 15.8
+      "appearanceRate": 15.7
     },
     {
       "avatarId": 10000103,
       "name": "シロネン",
       "rarity": 5,
-      "rate": 21.6,
-      "appearanceRate": 18.9
+      "rate": 21.2,
+      "appearanceRate": 18.6
     },
     {
       "avatarId": 10000120,
       "name": "フリンズ",
       "rarity": 5,
-      "rate": 21.2,
-      "appearanceRate": 10.7
+      "rate": 20.9,
+      "appearanceRate": 10.5
     },
     {
       "avatarId": 10000094,
       "name": "千織",
       "rarity": 5,
-      "rate": 16,
-      "appearanceRate": 6.5
-    },
-    {
-      "avatarId": 10000086,
-      "name": "リオセスリ",
-      "rarity": 5,
-      "rate": 14.9,
-      "appearanceRate": 3.2
+      "rate": 16.1,
+      "appearanceRate": 6.6
     },
     {
       "avatarId": 10000112,
       "name": "エスコフィエ",
       "rarity": 5,
-      "rate": 14.5,
-      "appearanceRate": 12.2
+      "rate": 14.9,
+      "appearanceRate": 12.6
+    },
+    {
+      "avatarId": 10000086,
+      "name": "リオセスリ",
+      "rarity": 5,
+      "rate": 14.4,
+      "appearanceRate": 3.1
     },
     {
       "avatarId": 10000089,
       "name": "フリーナ",
       "rarity": 5,
-      "rate": 13.1,
-      "appearanceRate": 12.8
+      "rate": 13.3,
+      "appearanceRate": 13
     },
     {
       "avatarId": 10000035,
       "name": "七七",
       "rarity": 5,
       "rate": 11.8,
-      "appearanceRate": 11.6
-    },
-    {
-      "avatarId": 10000005,
-      "name": "旅人",
-      "rarity": 5,
-      "rate": 10.3,
-      "appearanceRate": 2.5
+      "appearanceRate": 11.5
     },
     {
       "avatarId": 10000122,
       "name": "ネフェル",
       "rarity": 5,
       "rate": 10.1,
-      "appearanceRate": 6.9
+      "appearanceRate": 7
+    },
+    {
+      "avatarId": 10000005,
+      "name": "旅人",
+      "rarity": 5,
+      "rate": 9.9,
+      "appearanceRate": 2.5
     },
     {
       "avatarId": 10000071,
       "name": "セノ",
       "rarity": 5,
-      "rate": 9.6,
+      "rate": 9.4,
       "appearanceRate": 2.7
-    },
-    {
-      "avatarId": 10000106,
-      "name": "マーヴィカ",
-      "rarity": 5,
-      "rate": 9.5,
-      "appearanceRate": 7.8
     },
     {
       "avatarId": 10000119,
       "name": "ラウマ",
       "rarity": 5,
+      "rate": 9.2,
+      "appearanceRate": 7
+    },
+    {
+      "avatarId": 10000106,
+      "name": "マーヴィカ",
+      "rarity": 5,
       "rate": 9.1,
-      "appearanceRate": 6.9
+      "appearanceRate": 7.4
     },
     {
       "avatarId": 10000123,
       "name": "ドゥリン",
       "rarity": 5,
-      "rate": 8.7,
-      "appearanceRate": 5.5
+      "rate": 8.5,
+      "appearanceRate": 5.4
     },
     {
       "avatarId": 10000128,
       "name": "ファルカ",
       "rarity": 5,
-      "rate": 8.5,
+      "rate": 8.3,
       "appearanceRate": 2.5
-    },
-    {
-      "avatarId": 10000107,
-      "name": "シトラリ",
-      "rarity": 5,
-      "rate": 7.7,
-      "appearanceRate": 6.3
     },
     {
       "avatarId": 10000007,
       "name": "旅人",
       "rarity": 5,
-      "rate": 7.2,
-      "appearanceRate": 5.5
+      "rate": 7.4,
+      "appearanceRate": 5.6
+    },
+    {
+      "avatarId": 10000107,
+      "name": "シトラリ",
+      "rarity": 5,
+      "rate": 7.3,
+      "appearanceRate": 6
     },
     {
       "avatarId": 10000030,
       "name": "鍾離",
       "rarity": 5,
-      "rate": 5.5,
-      "appearanceRate": 4.4
+      "rate": 5.4,
+      "appearanceRate": 4.3
     },
     {
       "avatarId": 10000111,
       "name": "ヴァレサ",
       "rarity": 5,
-      "rate": 4.7,
-      "appearanceRate": 3.8
+      "rate": 4.6,
+      "appearanceRate": 3.7
     },
     {
       "avatarId": 10000057,
       "name": "荒瀧一斗",
       "rarity": 5,
-      "rate": 4.3,
+      "rate": 4.2,
       "appearanceRate": 0.8
     },
     {
       "avatarId": 10000070,
       "name": "ニィロウ",
       "rarity": 5,
-      "rate": 4.3,
+      "rate": 4.2,
       "appearanceRate": 2.7
     },
     {
       "avatarId": 10000114,
       "name": "スカーク",
       "rarity": 5,
-      "rate": 3.6,
-      "appearanceRate": 2.9
+      "rate": 3.8,
+      "appearanceRate": 3.1
     },
     {
       "avatarId": 10000073,
       "name": "ナヒーダ",
       "rarity": 5,
-      "rate": 3.2,
-      "appearanceRate": 2.9
+      "rate": 3.4,
+      "appearanceRate": 3.1
     },
     {
       "avatarId": 10000109,
       "name": "夢見月瑞希",
       "rarity": 5,
-      "rate": 3.2,
-      "appearanceRate": 3.2
+      "rate": 3.1,
+      "appearanceRate": 3.1
     },
     {
       "avatarId": 10000052,
       "name": "雷電将軍",
       "rarity": 5,
-      "rate": 3.1,
+      "rate": 3,
       "appearanceRate": 2.5
     },
     {
@@ -703,18 +703,18 @@
       "appearanceRate": 0.6
     },
     {
-      "avatarId": 10000096,
-      "name": "アルレッキーノ",
-      "rarity": 5,
-      "rate": 2.8,
-      "appearanceRate": 1.9
-    },
-    {
       "avatarId": 10000104,
       "name": "チャスカ",
       "rarity": 5,
       "rate": 2.8,
-      "appearanceRate": 1.5
+      "appearanceRate": 1.4
+    },
+    {
+      "avatarId": 10000096,
+      "name": "アルレッキーノ",
+      "rarity": 5,
+      "rate": 2.7,
+      "appearanceRate": 1.9
     },
     {
       "avatarId": 10000038,
@@ -728,13 +728,13 @@
       "name": "クロリンデ",
       "rarity": 5,
       "rate": 2.6,
-      "appearanceRate": 1.5
+      "appearanceRate": 1.4
     },
     {
       "avatarId": 10000029,
       "name": "クレー",
       "rarity": 5,
-      "rate": 2,
+      "rate": 1.9,
       "appearanceRate": 0.6
     },
     {
@@ -742,7 +742,7 @@
       "name": "珊瑚宮心海",
       "rarity": 5,
       "rate": 1.9,
-      "appearanceRate": 1.1
+      "appearanceRate": 1
     },
     {
       "avatarId": 10000051,
@@ -769,7 +769,7 @@
       "avatarId": 10000087,
       "name": "ヌヴィレット",
       "rarity": 5,
-      "rate": 0.9,
+      "rate": 0.8,
       "appearanceRate": 0.6
     },
     {
@@ -949,11 +949,11 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 71.4
+          "rate": 71.3
         },
         {
           "level": 1,
-          "rate": 7
+          "rate": 6.9
         },
         {
           "level": 2,
@@ -977,7 +977,7 @@
           "sets": {
             "15042": 4
           },
-          "rate": 53.8
+          "rate": 53.9
         },
         {
           "sets": {
@@ -989,21 +989,21 @@
           "sets": {
             "15041": 4
           },
-          "rate": 4
+          "rate": 3.9
         }
       ],
       "weapons": [
         {
           "id": 14522,
-          "rate": 40.8
+          "rate": 40.7
         },
         {
           "id": 14406,
-          "rate": 27.1
+          "rate": 27.5
         },
         {
           "id": 14401,
-          "rate": 20
+          "rate": 19.8
         }
       ]
     },
@@ -1014,7 +1014,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 76.5
+          "rate": 76.3
         },
         {
           "level": 1,
@@ -1022,7 +1022,7 @@
         },
         {
           "level": 2,
-          "rate": 13.3
+          "rate": 13.5
         },
         {
           "level": 3,
@@ -1038,7 +1038,7 @@
         },
         {
           "level": 6,
-          "rate": 1.8
+          "rate": 1.9
         }
       ],
       "artifacts": [
@@ -1052,7 +1052,7 @@
           "sets": {
             "15046": 4
           },
-          "rate": 4.7
+          "rate": 4.9
         },
         {
           "sets": {
@@ -1068,11 +1068,11 @@
         },
         {
           "id": 11438,
-          "rate": 14.7
+          "rate": 14.6
         },
         {
           "id": 11521,
-          "rate": 13.7
+          "rate": 13.6
         }
       ]
     },
@@ -1083,15 +1083,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 83
+          "rate": 82.7
         },
         {
           "level": 1,
-          "rate": 6.3
+          "rate": 6.2
         },
         {
           "level": 2,
-          "rate": 8.5
+          "rate": 8.9
         },
         {
           "level": 3,
@@ -1111,13 +1111,13 @@
           "sets": {
             "15043": 4
           },
-          "rate": 79.1
+          "rate": 79.7
         },
         {
           "sets": {
             "15021": 4
           },
-          "rate": 12.5
+          "rate": 12
         },
         {
           "sets": {
@@ -1133,7 +1133,7 @@
         },
         {
           "id": 15516,
-          "rate": 24.8
+          "rate": 25.2
         },
         {
           "id": 15501,
@@ -1148,15 +1148,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 74.2
+          "rate": 74.4
         },
         {
           "level": 1,
-          "rate": 13.3
+          "rate": 13.1
         },
         {
           "level": 2,
-          "rate": 8.8
+          "rate": 8.9
         },
         {
           "level": 3,
@@ -1168,7 +1168,7 @@
         },
         {
           "level": 6,
-          "rate": 1.8
+          "rate": 1.7
         }
       ],
       "artifacts": [
@@ -1176,34 +1176,34 @@
           "sets": {
             "15041": 4
           },
-          "rate": 98.6
+          "rate": 98.4
+        },
+        {
+          "sets": {
+            "15041": 2
+          },
+          "rate": 0.8
         },
         {
           "sets": {
             "15003": 2,
             "15041": 2
           },
-          "rate": 0.6
-        },
-        {
-          "sets": {
-            "15041": 2
-          },
-          "rate": 0.6
+          "rate": 0.5
         }
       ],
       "weapons": [
         {
           "id": 11519,
-          "rate": 30.5
+          "rate": 30.3
         },
         {
           "id": 11302,
-          "rate": 27.9
+          "rate": 28.3
         },
         {
           "id": 11431,
-          "rate": 18.9
+          "rate": 19.1
         }
       ]
     },
@@ -1214,7 +1214,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 10
+          "rate": 9.9
         },
         {
           "level": 1,
@@ -1222,7 +1222,7 @@
         },
         {
           "level": 2,
-          "rate": 11.7
+          "rate": 12
         },
         {
           "level": 3,
@@ -1234,7 +1234,7 @@
         },
         {
           "level": 5,
-          "rate": 0.7
+          "rate": 0.6
         },
         {
           "level": 6,
@@ -1246,13 +1246,13 @@
           "sets": {
             "15046": 4
           },
-          "rate": 62.6
+          "rate": 62.3
         },
         {
           "sets": {
             "15032": 4
           },
-          "rate": 13.6
+          "rate": 13.7
         },
         {
           "sets": {
@@ -1264,15 +1264,15 @@
       "weapons": [
         {
           "id": 14509,
-          "rate": 37.4
+          "rate": 37.2
         },
         {
           "id": 14402,
-          "rate": 28.9
+          "rate": 28.8
         },
         {
           "id": 14436,
-          "rate": 7
+          "rate": 6.8
         }
       ]
     },
@@ -1283,7 +1283,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 12.9
+          "rate": 12.8
         },
         {
           "level": 1,
@@ -1291,23 +1291,23 @@
         },
         {
           "level": 2,
-          "rate": 10.4
+          "rate": 9.8
         },
         {
           "level": 3,
-          "rate": 11.7
+          "rate": 11.4
         },
         {
           "level": 4,
-          "rate": 9
+          "rate": 9.2
         },
         {
           "level": 5,
-          "rate": 5.7
+          "rate": 5.6
         },
         {
           "level": 6,
-          "rate": 40.5
+          "rate": 41.3
         }
       ],
       "artifacts": [
@@ -1334,15 +1334,15 @@
       "weapons": [
         {
           "id": 13401,
-          "rate": 56.9
+          "rate": 56.5
         },
         {
           "id": 13407,
-          "rate": 18
+          "rate": 18.4
         },
         {
           "id": 13101,
-          "rate": 14.9
+          "rate": 15
         }
       ]
     },
@@ -1353,11 +1353,11 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 86.5
+          "rate": 86.3
         },
         {
           "level": 1,
-          "rate": 5.9
+          "rate": 6
         },
         {
           "level": 2,
@@ -1365,11 +1365,11 @@
         },
         {
           "level": 3,
-          "rate": 1
+          "rate": 1.1
         },
         {
           "level": 6,
-          "rate": 2.2
+          "rate": 2.3
         }
       ],
       "artifacts": [
@@ -1383,7 +1383,7 @@
       "weapons": [
         {
           "id": 12516,
-          "rate": 45.3
+          "rate": 45.7
         },
         {
           "id": 12502,
@@ -1402,15 +1402,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 82.4
+          "rate": 82.2
         },
         {
           "level": 1,
-          "rate": 7.3
+          "rate": 7.2
         },
         {
           "level": 2,
-          "rate": 8.1
+          "rate": 8.5
         },
         {
           "level": 3,
@@ -1426,34 +1426,34 @@
           "sets": {
             "15017": 4
           },
-          "rate": 91.6
+          "rate": 91.3
         },
         {
           "sets": {
             "15017": 2,
             "15030": 2
           },
-          "rate": 5.6
+          "rate": 6
         },
         {
           "sets": {
             "15017": 2
           },
-          "rate": 0.6
+          "rate": 0.5
         }
       ],
       "weapons": [
         {
           "id": 14302,
-          "rate": 48.6
+          "rate": 48.9
         },
         {
           "id": 14524,
-          "rate": 42.2
+          "rate": 42.1
         },
         {
           "id": 14406,
-          "rate": 5.1
+          "rate": 5
         }
       ]
     },
@@ -1464,7 +1464,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 64
+          "rate": 62.8
         },
         {
           "level": 1,
@@ -1472,7 +1472,7 @@
         },
         {
           "level": 2,
-          "rate": 18
+          "rate": 19.3
         },
         {
           "level": 3,
@@ -1480,7 +1480,7 @@
         },
         {
           "level": 6,
-          "rate": 4.9
+          "rate": 4.7
         }
       ],
       "artifacts": [
@@ -1488,35 +1488,35 @@
           "sets": {
             "15046": 4
           },
-          "rate": 28.9
+          "rate": 27.3
         },
         {
           "sets": {
             "15003": 2,
             "15041": 2
           },
-          "rate": 18.1
+          "rate": 17
         },
         {
           "sets": {
             "15003": 2,
             "15026": 2
           },
-          "rate": 14.5
+          "rate": 14.8
         }
       ],
       "weapons": [
         {
           "id": 14525,
-          "rate": 33.7
+          "rate": 34.7
         },
         {
           "id": 14437,
-          "rate": 14.2
+          "rate": 13.9
         },
         {
           "id": 14434,
-          "rate": 8.2
+          "rate": 8
         }
       ]
     },
@@ -1527,15 +1527,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 92.5
+          "rate": 92.2
         },
         {
           "level": 1,
-          "rate": 5.8
+          "rate": 6
         },
         {
           "level": 2,
-          "rate": 1.3
+          "rate": 1.5
         },
         {
           "level": 6,
@@ -1547,33 +1547,33 @@
           "sets": {
             "15043": 4
           },
-          "rate": 51.7
+          "rate": 52.3
         },
         {
           "sets": {
             "15042": 4
           },
-          "rate": 27.9
+          "rate": 27.8
         },
         {
           "sets": {
             "15026": 4
           },
-          "rate": 8.5
+          "rate": 8
         }
       ],
       "weapons": [
         {
           "id": 13515,
-          "rate": 40.9
+          "rate": 41.1
         },
         {
           "id": 13433,
-          "rate": 13.1
+          "rate": 13.3
         },
         {
           "id": 13424,
-          "rate": 11.7
+          "rate": 11.8
         }
       ]
     },
@@ -1588,11 +1588,11 @@
         },
         {
           "level": 1,
-          "rate": 4
+          "rate": 3.9
         },
         {
           "level": 2,
-          "rate": 19.5
+          "rate": 19.7
         },
         {
           "level": 3,
@@ -1600,7 +1600,7 @@
         },
         {
           "level": 4,
-          "rate": 1.3
+          "rate": 1.2
         },
         {
           "level": 6,
@@ -1612,7 +1612,7 @@
           "sets": {
             "15037": 4
           },
-          "rate": 76.4
+          "rate": 76
         },
         {
           "sets": {
@@ -1630,84 +1630,15 @@
       "weapons": [
         {
           "id": 11516,
-          "rate": 40.4
+          "rate": 40.2
         },
         {
           "id": 11401,
-          "rate": 38.6
+          "rate": 39
         },
         {
           "id": 11431,
           "rate": 13.7
-        }
-      ]
-    },
-    {
-      "avatarId": 10000148,
-      "name": "アリョーシャ",
-      "rarity": 4,
-      "constellations": [
-        {
-          "level": 0,
-          "rate": 7.1
-        },
-        {
-          "level": 1,
-          "rate": 11.2
-        },
-        {
-          "level": 2,
-          "rate": 16.6
-        },
-        {
-          "level": 3,
-          "rate": 15.3
-        },
-        {
-          "level": 4,
-          "rate": 11.2
-        },
-        {
-          "level": 5,
-          "rate": 9.7
-        },
-        {
-          "level": 6,
-          "rate": 28.8
-        }
-      ],
-      "artifacts": [
-        {
-          "sets": {
-            "15007": 4
-          },
-          "rate": 72.9
-        },
-        {
-          "sets": {
-            "15048": 4
-          },
-          "rate": 18.6
-        },
-        {
-          "sets": {
-            "15048": 2
-          },
-          "rate": 1.7
-        }
-      ],
-      "weapons": [
-        {
-          "id": 13407,
-          "rate": 47.9
-        },
-        {
-          "id": 13101,
-          "rate": 27.5
-        },
-        {
-          "id": 13435,
-          "rate": 12.9
         }
       ]
     },
@@ -1718,7 +1649,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 77.1
+          "rate": 76.8
         },
         {
           "level": 1,
@@ -1726,7 +1657,7 @@
         },
         {
           "level": 2,
-          "rate": 9.7
+          "rate": 10.1
         },
         {
           "level": 3,
@@ -1765,11 +1696,80 @@
         },
         {
           "id": 14501,
-          "rate": 31.8
+          "rate": 31.4
         },
         {
           "id": 14425,
-          "rate": 13
+          "rate": 13.3
+        }
+      ]
+    },
+    {
+      "avatarId": 10000148,
+      "name": "アリョーシャ",
+      "rarity": 4,
+      "constellations": [
+        {
+          "level": 0,
+          "rate": 7
+        },
+        {
+          "level": 1,
+          "rate": 11.4
+        },
+        {
+          "level": 2,
+          "rate": 16.2
+        },
+        {
+          "level": 3,
+          "rate": 15.3
+        },
+        {
+          "level": 4,
+          "rate": 11.4
+        },
+        {
+          "level": 5,
+          "rate": 9.9
+        },
+        {
+          "level": 6,
+          "rate": 28.9
+        }
+      ],
+      "artifacts": [
+        {
+          "sets": {
+            "15007": 4
+          },
+          "rate": 72.9
+        },
+        {
+          "sets": {
+            "15048": 4
+          },
+          "rate": 18.6
+        },
+        {
+          "sets": {
+            "15048": 2
+          },
+          "rate": 1.7
+        }
+      ],
+      "weapons": [
+        {
+          "id": 13407,
+          "rate": 47.2
+        },
+        {
+          "id": 13101,
+          "rate": 28.1
+        },
+        {
+          "id": 13435,
+          "rate": 12.9
         }
       ]
     },
@@ -1780,15 +1780,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 77.2
+          "rate": 77.4
         },
         {
           "level": 1,
-          "rate": 12
+          "rate": 11.8
         },
         {
           "level": 2,
-          "rate": 5.2
+          "rate": 5.3
         },
         {
           "level": 3,
@@ -1800,7 +1800,7 @@
         },
         {
           "level": 6,
-          "rate": 3.3
+          "rate": 3.2
         }
       ],
       "artifacts": [
@@ -1808,7 +1808,7 @@
           "sets": {
             "15034": 4
           },
-          "rate": 86.3
+          "rate": 86.4
         },
         {
           "sets": {
@@ -1826,15 +1826,15 @@
       "weapons": [
         {
           "id": 12512,
-          "rate": 48.9
+          "rate": 48.5
         },
         {
           "id": 12409,
-          "rate": 20.5
+          "rate": 20.7
         },
         {
-          "id": 12502,
-          "rate": 6.1
+          "id": 12426,
+          "rate": 6
         }
       ]
     },
@@ -1845,15 +1845,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 79.7
+          "rate": 79.5
         },
         {
           "level": 1,
-          "rate": 6
+          "rate": 5.9
         },
         {
           "level": 2,
-          "rate": 8.7
+          "rate": 9.2
         },
         {
           "level": 3,
@@ -1861,7 +1861,7 @@
         },
         {
           "level": 6,
-          "rate": 4.8
+          "rate": 4.7
         }
       ],
       "artifacts": [
@@ -1869,7 +1869,7 @@
           "sets": {
             "15047": 4
           },
-          "rate": 97.1
+          "rate": 97.2
         },
         {
           "sets": {
@@ -1892,11 +1892,11 @@
         },
         {
           "id": 11437,
-          "rate": 7.2
+          "rate": 7.1
         },
         {
           "id": 11438,
-          "rate": 4.8
+          "rate": 4.9
         }
       ]
     },
@@ -1911,19 +1911,19 @@
         },
         {
           "level": 1,
-          "rate": 11.7
+          "rate": 11.5
         },
         {
           "level": 2,
-          "rate": 26.6
+          "rate": 26.7
         },
         {
           "level": 3,
-          "rate": 2.7
+          "rate": 2.8
         },
         {
           "level": 4,
-          "rate": 1.7
+          "rate": 1.6
         },
         {
           "level": 5,
@@ -1939,7 +1939,7 @@
           "sets": {
             "15032": 4
           },
-          "rate": 86
+          "rate": 86.1
         },
         {
           "sets": {
@@ -1956,85 +1956,16 @@
       ],
       "weapons": [
         {
-          "id": 11513,
+          "id": 11401,
           "rate": 35.2
         },
         {
-          "id": 11401,
-          "rate": 35
+          "id": 11513,
+          "rate": 35.1
         },
         {
           "id": 11426,
           "rate": 10.7
-        }
-      ]
-    },
-    {
-      "avatarId": 10000137,
-      "name": "バレリー",
-      "rarity": 4,
-      "constellations": [
-        {
-          "level": 0,
-          "rate": 35.3
-        },
-        {
-          "level": 1,
-          "rate": 15
-        },
-        {
-          "level": 2,
-          "rate": 15.3
-        },
-        {
-          "level": 3,
-          "rate": 7.7
-        },
-        {
-          "level": 4,
-          "rate": 5.7
-        },
-        {
-          "level": 5,
-          "rate": 3.3
-        },
-        {
-          "level": 6,
-          "rate": 17.7
-        }
-      ],
-      "artifacts": [
-        {
-          "sets": {
-            "15048": 4
-          },
-          "rate": 21.7
-        },
-        {
-          "sets": {
-            "10007": 4
-          },
-          "rate": 17.4
-        },
-        {
-          "sets": {
-            "15044": 4
-          },
-          "rate": 13
-        }
-      ],
-      "weapons": [
-        {
-          "id": 11101,
-          "rate": 39
-        },
-        {
-          "id": 11501,
-          "rate": 14
-        },
-        {
-          "id": 11425,
-          "rate": 13
         }
       ]
     },
@@ -2053,7 +1984,7 @@
         },
         {
           "level": 2,
-          "rate": 2.7
+          "rate": 2.6
         },
         {
           "level": 3,
@@ -2073,7 +2004,7 @@
           "sets": {
             "15032": 4
           },
-          "rate": 75.8
+          "rate": 75.9
         },
         {
           "sets": {
@@ -2095,11 +2026,80 @@
         },
         {
           "id": 13407,
-          "rate": 20.1
+          "rate": 20.2
         },
         {
           "id": 13405,
-          "rate": 12
+          "rate": 11.9
+        }
+      ]
+    },
+    {
+      "avatarId": 10000137,
+      "name": "バレリー",
+      "rarity": 4,
+      "constellations": [
+        {
+          "level": 0,
+          "rate": 35.6
+        },
+        {
+          "level": 1,
+          "rate": 14.7
+        },
+        {
+          "level": 2,
+          "rate": 15.4
+        },
+        {
+          "level": 3,
+          "rate": 7.5
+        },
+        {
+          "level": 4,
+          "rate": 5.6
+        },
+        {
+          "level": 5,
+          "rate": 3.3
+        },
+        {
+          "level": 6,
+          "rate": 18
+        }
+      ],
+      "artifacts": [
+        {
+          "sets": {
+            "15048": 4
+          },
+          "rate": 20.8
+        },
+        {
+          "sets": {
+            "15044": 4
+          },
+          "rate": 16.7
+        },
+        {
+          "sets": {
+            "10007": 4
+          },
+          "rate": 16.7
+        }
+      ],
+      "weapons": [
+        {
+          "id": 11101,
+          "rate": 38.6
+        },
+        {
+          "id": 11501,
+          "rate": 14.1
+        },
+        {
+          "id": 11425,
+          "rate": 12.7
         }
       ]
     },
@@ -2110,19 +2110,19 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 6.5
+          "rate": 6.4
         },
         {
           "level": 1,
-          "rate": 16.6
+          "rate": 16.5
         },
         {
           "level": 2,
-          "rate": 17.2
+          "rate": 17.1
         },
         {
           "level": 3,
-          "rate": 14.4
+          "rate": 14.5
         },
         {
           "level": 4,
@@ -2130,7 +2130,7 @@
         },
         {
           "level": 5,
-          "rate": 6.3
+          "rate": 6.5
         },
         {
           "level": 6,
@@ -2142,33 +2142,33 @@
           "sets": {
             "15017": 4
           },
-          "rate": 56
+          "rate": 55.3
         },
         {
           "sets": {
             "15017": 2
           },
-          "rate": 9.3
+          "rate": 9.2
         },
         {
           "sets": {
             "15022": 4
           },
-          "rate": 6.7
+          "rate": 6.6
         }
       ],
       "weapons": [
         {
           "id": 11401,
-          "rate": 43.1
+          "rate": 43
         },
         {
           "id": 11403,
-          "rate": 8.3
+          "rate": 8.2
         },
         {
           "id": 11101,
-          "rate": 7.9
+          "rate": 8
         }
       ]
     },
@@ -2179,15 +2179,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 64.1
+          "rate": 64.3
         },
         {
           "level": 1,
-          "rate": 21.3
+          "rate": 21.1
         },
         {
           "level": 2,
-          "rate": 10.3
+          "rate": 10.2
         },
         {
           "level": 3,
@@ -2207,7 +2207,7 @@
           "sets": {
             "15041": 4
           },
-          "rate": 97.1
+          "rate": 97.3
         },
         {
           "sets": {
@@ -2219,15 +2219,15 @@
       "weapons": [
         {
           "id": 13516,
-          "rate": 51.2
+          "rate": 50.9
         },
         {
           "id": 13505,
-          "rate": 13.6
+          "rate": 13.8
         },
         {
           "id": 13433,
-          "rate": 11
+          "rate": 11.1
         }
       ]
     },
@@ -2242,23 +2242,23 @@
         },
         {
           "level": 1,
-          "rate": 2
+          "rate": 2.1
         },
         {
           "level": 2,
-          "rate": 1.6
+          "rate": 1.5
         },
         {
           "level": 3,
-          "rate": 2
+          "rate": 1.9
         },
         {
           "level": 4,
-          "rate": 2.4
+          "rate": 2.3
         },
         {
           "level": 5,
-          "rate": 2
+          "rate": 1.9
         },
         {
           "level": 6,
@@ -2270,33 +2270,33 @@
           "sets": {
             "15002": 4
           },
-          "rate": 27.3
+          "rate": 29.4
         },
         {
           "sets": {
             "15017": 4
           },
-          "rate": 27.3
+          "rate": 26.5
         },
         {
           "sets": {
             "15007": 4
           },
-          "rate": 18.2
+          "rate": 17.6
         }
       ],
       "weapons": [
         {
           "id": 15401,
-          "rate": 57.7
+          "rate": 57.5
         },
         {
           "id": 15437,
-          "rate": 11.8
+          "rate": 12
         },
         {
           "id": 15101,
-          "rate": 8.5
+          "rate": 8.7
         }
       ]
     },
@@ -2307,7 +2307,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 67.8
+          "rate": 67.9
         },
         {
           "level": 1,
@@ -2315,7 +2315,7 @@
         },
         {
           "level": 2,
-          "rate": 17
+          "rate": 16.9
         },
         {
           "level": 3,
@@ -2331,7 +2331,7 @@
         },
         {
           "level": 6,
-          "rate": 5
+          "rate": 5.1
         }
       ],
       "artifacts": [
@@ -2357,11 +2357,11 @@
       "weapons": [
         {
           "id": 12514,
-          "rate": 58.2
+          "rate": 57.9
         },
         {
           "id": 12502,
-          "rate": 12.5
+          "rate": 12.6
         },
         {
           "id": 12409,
@@ -2400,7 +2400,7 @@
         },
         {
           "level": 6,
-          "rate": 90.3
+          "rate": 90.5
         }
       ],
       "artifacts": [
@@ -2408,13 +2408,13 @@
           "sets": {
             "15002": 4
           },
-          "rate": 84.6
+          "rate": 84.8
         },
         {
           "sets": {
             "10007": 4
           },
-          "rate": 5.5
+          "rate": 5.4
         },
         {
           "sets": {
@@ -2426,15 +2426,15 @@
       "weapons": [
         {
           "id": 14403,
-          "rate": 52.6
+          "rate": 52.7
         },
         {
           "id": 14302,
-          "rate": 16.9
+          "rate": 16.8
         },
         {
           "id": 14416,
-          "rate": 9.2
+          "rate": 9
         }
       ]
     },
@@ -2445,7 +2445,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 70.4
+          "rate": 70.2
         },
         {
           "level": 1,
@@ -2453,7 +2453,7 @@
         },
         {
           "level": 2,
-          "rate": 9.7
+          "rate": 9.8
         },
         {
           "level": 3,
@@ -2469,20 +2469,20 @@
           "sets": {
             "15042": 4
           },
-          "rate": 46.6
+          "rate": 46.9
         },
         {
           "sets": {
             "15025": 4
           },
-          "rate": 37.7
+          "rate": 37.9
         },
         {
           "sets": {
             "15003": 2,
             "15041": 2
           },
-          "rate": 2.4
+          "rate": 2.2
         }
       ],
       "weapons": [
@@ -2492,7 +2492,7 @@
         },
         {
           "id": 14520,
-          "rate": 25.4
+          "rate": 25.3
         },
         {
           "id": 14433,
@@ -2507,15 +2507,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 81.7
+          "rate": 81.6
         },
         {
           "level": 1,
-          "rate": 7.3
+          "rate": 7.4
         },
         {
           "level": 2,
-          "rate": 6.5
+          "rate": 6.6
         },
         {
           "level": 3,
@@ -2531,7 +2531,7 @@
         },
         {
           "level": 6,
-          "rate": 3.5
+          "rate": 3.4
         }
       ],
       "artifacts": [
@@ -2551,15 +2551,15 @@
       "weapons": [
         {
           "id": 14521,
-          "rate": 61.1
+          "rate": 60.8
         },
         {
           "id": 14433,
-          "rate": 14.6
+          "rate": 14.8
         },
         {
           "id": 14434,
-          "rate": 9.9
+          "rate": 9.8
         }
       ]
     },
@@ -2570,7 +2570,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 52.3
+          "rate": 52.2
         },
         {
           "level": 1,
@@ -2578,19 +2578,19 @@
         },
         {
           "level": 2,
-          "rate": 6
+          "rate": 5.8
         },
         {
           "level": 4,
-          "rate": 1.1
+          "rate": 1
         },
         {
           "level": 5,
-          "rate": 1.1
+          "rate": 1
         },
         {
           "level": 6,
-          "rate": 9.5
+          "rate": 9.6
         }
       ],
       "artifacts": [
@@ -2598,13 +2598,13 @@
           "sets": {
             "15032": 4
           },
-          "rate": 61.5
+          "rate": 62
         },
         {
           "sets": {
             "15021": 4
           },
-          "rate": 33
+          "rate": 32.6
         },
         {
           "sets": {
@@ -2624,7 +2624,7 @@
         },
         {
           "id": 11415,
-          "rate": 13.3
+          "rate": 13.7
         }
       ]
     },
@@ -2635,7 +2635,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 78.7
+          "rate": 78.8
         },
         {
           "level": 1,
@@ -2655,7 +2655,7 @@
         },
         {
           "level": 6,
-          "rate": 3.4
+          "rate": 3.3
         }
       ],
       "artifacts": [
@@ -2663,13 +2663,13 @@
           "sets": {
             "15037": 4
           },
-          "rate": 83.7
+          "rate": 84
         },
         {
           "sets": {
             "10007": 4
           },
-          "rate": 8.2
+          "rate": 7.8
         },
         {
           "sets": {
@@ -2681,7 +2681,7 @@
       "weapons": [
         {
           "id": 14517,
-          "rate": 38.9
+          "rate": 39
         },
         {
           "id": 14302,
@@ -2700,7 +2700,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 3.1
+          "rate": 3
         },
         {
           "level": 1,
@@ -2708,23 +2708,23 @@
         },
         {
           "level": 2,
-          "rate": 7.3
+          "rate": 7.4
         },
         {
           "level": 3,
-          "rate": 4.6
+          "rate": 4.8
         },
         {
           "level": 4,
-          "rate": 21.4
+          "rate": 21
         },
         {
           "level": 5,
-          "rate": 19.4
+          "rate": 19.5
         },
         {
           "level": 6,
-          "rate": 44.1
+          "rate": 44
         }
       ],
       "artifacts": [
@@ -2732,19 +2732,19 @@
           "sets": {
             "15046": 4
           },
-          "rate": 35.8
+          "rate": 36.1
         },
         {
           "sets": {
             "15048": 4
           },
-          "rate": 9.5
+          "rate": 10.3
         },
         {
           "sets": {
             "15007": 4
           },
-          "rate": 7.4
+          "rate": 7.2
         }
       ],
       "weapons": [
@@ -2754,11 +2754,11 @@
         },
         {
           "id": 11401,
-          "rate": 2.9
+          "rate": 2.8
         },
         {
           "id": 11438,
-          "rate": 1.5
+          "rate": 1.7
         }
       ]
     },
@@ -2769,7 +2769,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 0.9
+          "rate": 0.8
         },
         {
           "level": 1,
@@ -2793,7 +2793,7 @@
         },
         {
           "level": 6,
-          "rate": 93.1
+          "rate": 93.2
         }
       ],
       "artifacts": [
@@ -2819,7 +2819,7 @@
       "weapons": [
         {
           "id": 15402,
-          "rate": 42.1
+          "rate": 42.5
         },
         {
           "id": 15501,
@@ -2827,7 +2827,7 @@
         },
         {
           "id": 15401,
-          "rate": 8.4
+          "rate": 8.1
         }
       ]
     },
@@ -2838,15 +2838,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 80.2
+          "rate": 80.1
         },
         {
           "level": 1,
-          "rate": 7.4
+          "rate": 7.5
         },
         {
           "level": 2,
-          "rate": 9.3
+          "rate": 9.4
         },
         {
           "level": 3,
@@ -2862,7 +2862,7 @@
           "sets": {
             "15044": 4
           },
-          "rate": 58.9
+          "rate": 59
         },
         {
           "sets": {
@@ -2880,15 +2880,15 @@
       "weapons": [
         {
           "id": 11518,
-          "rate": 36.3
+          "rate": 36.5
         },
         {
           "id": 11424,
-          "rate": 28.9
+          "rate": 28.8
         },
         {
           "id": 11434,
-          "rate": 8.6
+          "rate": 8.5
         }
       ]
     },
@@ -2899,27 +2899,27 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 5.4
+          "rate": 5.3
         },
         {
           "level": 1,
-          "rate": 6.5
+          "rate": 6.4
         },
         {
           "level": 2,
-          "rate": 7.3
+          "rate": 7.2
         },
         {
           "level": 3,
-          "rate": 6.5
+          "rate": 6.6
         },
         {
           "level": 4,
-          "rate": 5.6
+          "rate": 5.5
         },
         {
           "level": 5,
-          "rate": 6
+          "rate": 6.3
         },
         {
           "level": 6,
@@ -2931,169 +2931,33 @@
           "sets": {
             "15007": 4
           },
-          "rate": 64.1
+          "rate": 63.2
         },
         {
           "sets": {
             "15033": 4
           },
-          "rate": 15.4
+          "rate": 15.8
         },
         {
           "sets": {
             "15017": 4
           },
-          "rate": 7.7
+          "rate": 7.9
         }
       ],
       "weapons": [
         {
           "id": 13426,
-          "rate": 43.3
+          "rate": 43.4
         },
         {
           "id": 13407,
-          "rate": 19.6
+          "rate": 19.5
         },
         {
           "id": 13425,
           "rate": 12.3
-        }
-      ]
-    },
-    {
-      "avatarId": 10000030,
-      "name": "鍾離",
-      "rarity": 5,
-      "constellations": [
-        {
-          "level": 0,
-          "rate": 81.3
-        },
-        {
-          "level": 1,
-          "rate": 6.2
-        },
-        {
-          "level": 2,
-          "rate": 9.3
-        },
-        {
-          "level": 3,
-          "rate": 0.5
-        },
-        {
-          "level": 4,
-          "rate": 0.2
-        },
-        {
-          "level": 6,
-          "rate": 2.5
-        }
-      ],
-      "artifacts": [
-        {
-          "sets": {
-            "15017": 4
-          },
-          "rate": 57.6
-        },
-        {
-          "sets": {
-            "15017": 2,
-            "15030": 2
-          },
-          "rate": 7.9
-        },
-        {
-          "sets": {
-            "15014": 4
-          },
-          "rate": 5.6
-        }
-      ],
-      "weapons": [
-        {
-          "id": 13303,
-          "rate": 48.8
-        },
-        {
-          "id": 13407,
-          "rate": 25
-        },
-        {
-          "id": 13501,
-          "rate": 9.8
-        }
-      ]
-    },
-    {
-      "avatarId": 10000121,
-      "name": "アイノ",
-      "rarity": 4,
-      "constellations": [
-        {
-          "level": 0,
-          "rate": 4.6
-        },
-        {
-          "level": 1,
-          "rate": 5
-        },
-        {
-          "level": 2,
-          "rate": 6.1
-        },
-        {
-          "level": 3,
-          "rate": 8.4
-        },
-        {
-          "level": 4,
-          "rate": 6.5
-        },
-        {
-          "level": 5,
-          "rate": 7.6
-        },
-        {
-          "level": 6,
-          "rate": 61.8
-        }
-      ],
-      "artifacts": [
-        {
-          "sets": {
-            "15042": 4
-          },
-          "rate": 75
-        },
-        {
-          "sets": {
-            "10007": 4
-          },
-          "rate": 8.3
-        },
-        {
-          "sets": {
-            "15003": 2,
-            "15020": 2
-          },
-          "rate": 4.2
-        }
-      ],
-      "weapons": [
-        {
-          "id": 12432,
-          "rate": 43.6
-        },
-        {
-          "id": 12401,
-          "rate": 35.9
-        },
-        {
-          "id": 12101,
-          "rate": 9.6
         }
       ]
     },
@@ -3108,23 +2972,23 @@
         },
         {
           "level": 1,
-          "rate": 2.8
+          "rate": 2.9
         },
         {
           "level": 2,
-          "rate": 2.6
+          "rate": 2.5
         },
         {
           "level": 3,
-          "rate": 2.2
+          "rate": 2.1
         },
         {
           "level": 4,
-          "rate": 2.6
+          "rate": 2.5
         },
         {
           "level": 5,
-          "rate": 2
+          "rate": 1.9
         },
         {
           "level": 6,
@@ -3154,7 +3018,7 @@
       "weapons": [
         {
           "id": 12407,
-          "rate": 26.2
+          "rate": 25.9
         },
         {
           "id": 12101,
@@ -3162,38 +3026,34 @@
         },
         {
           "id": 12409,
-          "rate": 10.2
+          "rate": 10.3
         }
       ]
     },
     {
-      "avatarId": 10000111,
-      "name": "ヴァレサ",
+      "avatarId": 10000030,
+      "name": "鍾離",
       "rarity": 5,
       "constellations": [
         {
           "level": 0,
-          "rate": 67.5
+          "rate": 81.6
         },
         {
           "level": 1,
-          "rate": 15.9
+          "rate": 6.2
         },
         {
           "level": 2,
-          "rate": 10.7
+          "rate": 9
         },
         {
           "level": 3,
-          "rate": 2.4
+          "rate": 0.5
         },
         {
           "level": 4,
-          "rate": 0.9
-        },
-        {
-          "level": 5,
-          "rate": 0.1
+          "rate": 0.2
         },
         {
           "level": 6,
@@ -3203,104 +3063,106 @@
       "artifacts": [
         {
           "sets": {
-            "15039": 4
+            "15017": 4
           },
-          "rate": 77.5
+          "rate": 58.6
         },
         {
           "sets": {
-            "15038": 4
+            "15017": 2,
+            "15030": 2
           },
-          "rate": 18
+          "rate": 7.5
         },
         {
           "sets": {
-            "15039": 2
+            "15014": 4
           },
-          "rate": 1.6
+          "rate": 5.7
         }
       ],
       "weapons": [
         {
-          "id": 14519,
-          "rate": 32.3
+          "id": 13303,
+          "rate": 48.7
         },
         {
-          "id": 14402,
-          "rate": 28.7
+          "id": 13407,
+          "rate": 25.1
         },
         {
-          "id": 14502,
-          "rate": 22.1
+          "id": 13501,
+          "rate": 9.4
         }
       ]
     },
     {
-      "avatarId": 10000032,
-      "name": "ベネット",
+      "avatarId": 10000121,
+      "name": "アイノ",
       "rarity": 4,
       "constellations": [
         {
           "level": 0,
-          "rate": 0.3
+          "rate": 4.5
         },
         {
           "level": 1,
-          "rate": 1.5
+          "rate": 4.9
         },
         {
           "level": 2,
-          "rate": 1.5
+          "rate": 6
         },
         {
           "level": 3,
-          "rate": 2
+          "rate": 8.4
         },
         {
           "level": 4,
-          "rate": 2
+          "rate": 6.6
         },
         {
           "level": 5,
-          "rate": 9
+          "rate": 7.5
         },
         {
           "level": 6,
-          "rate": 83.5
+          "rate": 62.2
         }
       ],
       "artifacts": [
         {
           "sets": {
-            "15007": 4
+            "15042": 4
           },
-          "rate": 90.3
-        },
-        {
-          "sets": {
-            "15007": 2
-          },
-          "rate": 3.5
+          "rate": 76
         },
         {
           "sets": {
             "10007": 4
           },
-          "rate": 1.8
+          "rate": 8
+        },
+        {
+          "sets": {
+            "15003": 2,
+            "15020": 2
+          },
+          "rate": 4
         }
       ],
       "weapons": [
         {
-          "id": 11502,
-          "rate": 38.4
+          "id": 12432,
+          "rate": 43.8
         },
         {
-          "id": 11417,
-          "rate": 19.2
+          "id": 12401,
+          "rate": 36.1
         },
         {
-          "id": 11501,
-          "rate": 17.3
+          "id": 12101,
+          "rate": 9.4
         }
       ]
     },
@@ -3335,7 +3197,7 @@
         },
         {
           "level": 6,
-          "rate": 94.3
+          "rate": 94.4
         }
       ],
       "artifacts": [
@@ -3343,33 +3205,171 @@
           "sets": {
             "15007": 4
           },
-          "rate": 62.5
-        },
-        {
-          "sets": {
-            "15017": 4
-          },
-          "rate": 6.3
+          "rate": 60.6
         },
         {
           "sets": {
             "10007": 4
           },
-          "rate": 6.3
+          "rate": 9.1
+        },
+        {
+          "sets": {
+            "15017": 4
+          },
+          "rate": 6.1
         }
       ],
       "weapons": [
         {
           "id": 15403,
-          "rate": 49.8
+          "rate": 49.4
         },
         {
           "id": 15401,
-          "rate": 17.9
+          "rate": 18.1
         },
         {
           "id": 15101,
-          "rate": 10.8
+          "rate": 10.6
+        }
+      ]
+    },
+    {
+      "avatarId": 10000111,
+      "name": "ヴァレサ",
+      "rarity": 5,
+      "constellations": [
+        {
+          "level": 0,
+          "rate": 67.2
+        },
+        {
+          "level": 1,
+          "rate": 16.3
+        },
+        {
+          "level": 2,
+          "rate": 10.7
+        },
+        {
+          "level": 3,
+          "rate": 2.2
+        },
+        {
+          "level": 4,
+          "rate": 0.9
+        },
+        {
+          "level": 5,
+          "rate": 0.3
+        },
+        {
+          "level": 6,
+          "rate": 2.5
+        }
+      ],
+      "artifacts": [
+        {
+          "sets": {
+            "15039": 4
+          },
+          "rate": 77.8
+        },
+        {
+          "sets": {
+            "15038": 4
+          },
+          "rate": 17.6
+        },
+        {
+          "sets": {
+            "15039": 2
+          },
+          "rate": 1.6
+        }
+      ],
+      "weapons": [
+        {
+          "id": 14519,
+          "rate": 32.3
+        },
+        {
+          "id": 14402,
+          "rate": 28.9
+        },
+        {
+          "id": 14502,
+          "rate": 22
+        }
+      ]
+    },
+    {
+      "avatarId": 10000032,
+      "name": "ベネット",
+      "rarity": 4,
+      "constellations": [
+        {
+          "level": 0,
+          "rate": 0.3
+        },
+        {
+          "level": 1,
+          "rate": 1.5
+        },
+        {
+          "level": 2,
+          "rate": 1.5
+        },
+        {
+          "level": 3,
+          "rate": 2
+        },
+        {
+          "level": 4,
+          "rate": 2
+        },
+        {
+          "level": 5,
+          "rate": 8.9
+        },
+        {
+          "level": 6,
+          "rate": 83.8
+        }
+      ],
+      "artifacts": [
+        {
+          "sets": {
+            "15007": 4
+          },
+          "rate": 90.2
+        },
+        {
+          "sets": {
+            "15007": 2
+          },
+          "rate": 3.6
+        },
+        {
+          "sets": {
+            "10007": 4
+          },
+          "rate": 1.8
+        }
+      ],
+      "weapons": [
+        {
+          "id": 11502,
+          "rate": 38.5
+        },
+        {
+          "id": 11417,
+          "rate": 19.3
+        },
+        {
+          "id": 11501,
+          "rate": 17.4
         }
       ]
     },
@@ -3380,7 +3380,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 8.6
+          "rate": 8.7
         },
         {
           "level": 1,
@@ -3388,23 +3388,23 @@
         },
         {
           "level": 2,
-          "rate": 14.3
+          "rate": 14.1
         },
         {
           "level": 3,
-          "rate": 12.2
+          "rate": 12.8
         },
         {
           "level": 4,
-          "rate": 8.6
+          "rate": 8.5
         },
         {
           "level": 5,
-          "rate": 6.1
+          "rate": 6
         },
         {
           "level": 6,
-          "rate": 35.8
+          "rate": 35.6
         }
       ],
       "artifacts": [
@@ -3412,227 +3412,27 @@
           "sets": {
             "15037": 4
           },
-          "rate": 88.2
+          "rate": 88
         },
         {
           "sets": {
             "15007": 4
           },
-          "rate": 11.8
+          "rate": 12
         }
       ],
       "weapons": [
         {
           "id": 13407,
-          "rate": 33.8
+          "rate": 33.7
         },
         {
           "id": 13432,
-          "rate": 31
+          "rate": 30.9
         },
         {
           "id": 13101,
-          "rate": 11.8
-        }
-      ]
-    },
-    {
-      "avatarId": 10000086,
-      "name": "リオセスリ",
-      "rarity": 5,
-      "constellations": [
-        {
-          "level": 0,
-          "rate": 35.3
-        },
-        {
-          "level": 1,
-          "rate": 34.9
-        },
-        {
-          "level": 2,
-          "rate": 18.5
-        },
-        {
-          "level": 3,
-          "rate": 2.2
-        },
-        {
-          "level": 6,
-          "rate": 9.1
-        }
-      ],
-      "artifacts": [
-        {
-          "sets": {
-            "15031": 4
-          },
-          "rate": 70.2
-        },
-        {
-          "sets": {
-            "15046": 4
-          },
-          "rate": 28.2
-        },
-        {
-          "sets": {
-            "15046": 2
-          },
-          "rate": 0.8
-        }
-      ],
-      "weapons": [
-        {
-          "id": 14513,
-          "rate": 42.2
-        },
-        {
-          "id": 14402,
-          "rate": 19
-        },
-        {
-          "id": 14502,
-          "rate": 7.8
-        }
-      ]
-    },
-    {
-      "avatarId": 10000109,
-      "name": "夢見月瑞希",
-      "rarity": 5,
-      "constellations": [
-        {
-          "level": 0,
-          "rate": 12.6
-        },
-        {
-          "level": 1,
-          "rate": 22.6
-        },
-        {
-          "level": 2,
-          "rate": 38.9
-        },
-        {
-          "level": 3,
-          "rate": 15.1
-        },
-        {
-          "level": 4,
-          "rate": 6.5
-        },
-        {
-          "level": 5,
-          "rate": 1.8
-        },
-        {
-          "level": 6,
-          "rate": 2.5
-        }
-      ],
-      "artifacts": [
-        {
-          "sets": {
-            "15047": 4
-          },
-          "rate": 40.4
-        },
-        {
-          "sets": {
-            "15002": 4
-          },
-          "rate": 14.4
-        },
-        {
-          "sets": {
-            "15003": 2,
-            "15041": 2
-          },
-          "rate": 7.7
-        }
-      ],
-      "weapons": [
-        {
-          "id": 14403,
-          "rate": 22.9
-        },
-        {
-          "id": 14101,
-          "rate": 14.2
-        },
-        {
-          "id": 14402,
-          "rate": 12.9
-        }
-      ]
-    },
-    {
-      "avatarId": 10000055,
-      "name": "ゴロー",
-      "rarity": 4,
-      "constellations": [
-        {
-          "level": 0,
-          "rate": 3.3
-        },
-        {
-          "level": 1,
-          "rate": 5.5
-        },
-        {
-          "level": 2,
-          "rate": 5.5
-        },
-        {
-          "level": 3,
-          "rate": 7.6
-        },
-        {
-          "level": 4,
-          "rate": 6.9
-        },
-        {
-          "level": 5,
-          "rate": 8.2
-        },
-        {
-          "level": 6,
-          "rate": 63.1
-        }
-      ],
-      "artifacts": [
-        {
-          "sets": {
-            "15021": 4
-          },
-          "rate": 22.2
-        },
-        {
-          "sets": {
-            "10007": 4
-          },
-          "rate": 22.2
-        },
-        {
-          "sets": {
-            "15042": 4
-          },
-          "rate": 16.7
-        }
-      ],
-      "weapons": [
-        {
-          "id": 15401,
-          "rate": 43.7
-        },
-        {
-          "id": 15101,
-          "rate": 28.8
-        },
-        {
-          "id": 15403,
-          "rate": 6.9
+          "rate": 12.2
         }
       ]
     },
@@ -3643,7 +3443,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 55.1
+          "rate": 55.3
         },
         {
           "level": 1,
@@ -3651,11 +3451,11 @@
         },
         {
           "level": 2,
-          "rate": 32.2
+          "rate": 32.1
         },
         {
           "level": 3,
-          "rate": 2.2
+          "rate": 2.1
         },
         {
           "level": 4,
@@ -3663,7 +3463,7 @@
         },
         {
           "level": 6,
-          "rate": 3.8
+          "rate": 3.7
         }
       ],
       "artifacts": [
@@ -3671,7 +3471,7 @@
           "sets": {
             "15025": 4
           },
-          "rate": 82
+          "rate": 82.2
         },
         {
           "sets": {
@@ -3693,11 +3493,146 @@
         },
         {
           "id": 14403,
-          "rate": 21.3
+          "rate": 21.6
         },
         {
           "id": 14416,
-          "rate": 8.9
+          "rate": 9
+        }
+      ]
+    },
+    {
+      "avatarId": 10000086,
+      "name": "リオセスリ",
+      "rarity": 5,
+      "constellations": [
+        {
+          "level": 0,
+          "rate": 35.6
+        },
+        {
+          "level": 1,
+          "rate": 34.8
+        },
+        {
+          "level": 2,
+          "rate": 18
+        },
+        {
+          "level": 3,
+          "rate": 2.1
+        },
+        {
+          "level": 4,
+          "rate": 0.4
+        },
+        {
+          "level": 6,
+          "rate": 9
+        }
+      ],
+      "artifacts": [
+        {
+          "sets": {
+            "15031": 4
+          },
+          "rate": 69.8
+        },
+        {
+          "sets": {
+            "15046": 4
+          },
+          "rate": 28.7
+        },
+        {
+          "sets": {
+            "15046": 2
+          },
+          "rate": 0.8
+        }
+      ],
+      "weapons": [
+        {
+          "id": 14513,
+          "rate": 42.5
+        },
+        {
+          "id": 14402,
+          "rate": 18.5
+        },
+        {
+          "id": 14502,
+          "rate": 7.7
+        }
+      ]
+    },
+    {
+      "avatarId": 10000109,
+      "name": "夢見月瑞希",
+      "rarity": 5,
+      "constellations": [
+        {
+          "level": 0,
+          "rate": 12.5
+        },
+        {
+          "level": 1,
+          "rate": 22.4
+        },
+        {
+          "level": 2,
+          "rate": 39.1
+        },
+        {
+          "level": 3,
+          "rate": 15.3
+        },
+        {
+          "level": 4,
+          "rate": 6.4
+        },
+        {
+          "level": 5,
+          "rate": 1.9
+        },
+        {
+          "level": 6,
+          "rate": 2.5
+        }
+      ],
+      "artifacts": [
+        {
+          "sets": {
+            "15047": 4
+          },
+          "rate": 39.8
+        },
+        {
+          "sets": {
+            "15002": 4
+          },
+          "rate": 15.2
+        },
+        {
+          "sets": {
+            "15003": 2,
+            "15041": 2
+          },
+          "rate": 8.1
+        }
+      ],
+      "weapons": [
+        {
+          "id": 14403,
+          "rate": 23
+        },
+        {
+          "id": 14101,
+          "rate": 14.4
+        },
+        {
+          "id": 14402,
+          "rate": 12.6
         }
       ]
     },
@@ -3712,11 +3647,11 @@
         },
         {
           "level": 1,
-          "rate": 7.5
+          "rate": 7.4
         },
         {
           "level": 2,
-          "rate": 8.9
+          "rate": 9
         },
         {
           "level": 3,
@@ -3748,21 +3683,90 @@
           "sets": {
             "15040": 2
           },
-          "rate": 0.7
+          "rate": 0.6
         }
       ],
       "weapons": [
         {
           "id": 11517,
-          "rate": 62.2
+          "rate": 62.1
         },
         {
           "id": 11425,
-          "rate": 9.9
+          "rate": 9.8
         },
         {
           "id": 11509,
-          "rate": 4.4
+          "rate": 4.5
+        }
+      ]
+    },
+    {
+      "avatarId": 10000055,
+      "name": "ゴロー",
+      "rarity": 4,
+      "constellations": [
+        {
+          "level": 0,
+          "rate": 3.2
+        },
+        {
+          "level": 1,
+          "rate": 5.4
+        },
+        {
+          "level": 2,
+          "rate": 5.6
+        },
+        {
+          "level": 3,
+          "rate": 7.4
+        },
+        {
+          "level": 4,
+          "rate": 7
+        },
+        {
+          "level": 5,
+          "rate": 8
+        },
+        {
+          "level": 6,
+          "rate": 63.3
+        }
+      ],
+      "artifacts": [
+        {
+          "sets": {
+            "15021": 4
+          },
+          "rate": 22.2
+        },
+        {
+          "sets": {
+            "10007": 4
+          },
+          "rate": 22.2
+        },
+        {
+          "sets": {
+            "15042": 4
+          },
+          "rate": 16.7
+        }
+      ],
+      "weapons": [
+        {
+          "id": 15401,
+          "rate": 43.5
+        },
+        {
+          "id": 15101,
+          "rate": 28.7
+        },
+        {
+          "id": 15403,
+          "rate": 6.8
         }
       ]
     },
@@ -3773,15 +3777,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 24.6
+          "rate": 24.5
         },
         {
           "level": 1,
-          "rate": 34.4
+          "rate": 34.5
         },
         {
           "level": 2,
-          "rate": 37.1
+          "rate": 37.2
         },
         {
           "level": 3,
@@ -3798,34 +3802,34 @@
             "15017": 2,
             "15030": 2
           },
-          "rate": 62
+          "rate": 62.4
         },
         {
           "sets": {
             "10007": 4
           },
-          "rate": 6.5
+          "rate": 6.4
         },
         {
           "sets": {
             "15017": 2,
             "15026": 2
           },
-          "rate": 6.5
+          "rate": 6.4
         }
       ],
       "weapons": [
         {
           "id": 11511,
-          "rate": 60.5
+          "rate": 60.4
         },
         {
           "id": 11427,
-          "rate": 13.4
+          "rate": 13.2
         },
         {
           "id": 11433,
-          "rate": 6.1
+          "rate": 6
         }
       ]
     },
@@ -3836,19 +3840,19 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 48.5
+          "rate": 49.5
         },
         {
           "level": 1,
-          "rate": 32.8
+          "rate": 32.5
         },
         {
           "level": 2,
-          "rate": 8.1
+          "rate": 7.5
         },
         {
           "level": 3,
-          "rate": 5.6
+          "rate": 5.5
         },
         {
           "level": 4,
@@ -3864,33 +3868,33 @@
           "sets": {
             "15046": 4
           },
-          "rate": 44.4
+          "rate": 43.5
         },
         {
           "sets": {
             "15026": 4
           },
-          "rate": 30.2
+          "rate": 30.6
         },
         {
           "sets": {
             "15005": 4
           },
-          "rate": 14.3
+          "rate": 14.5
         }
       ],
       "weapons": [
         {
           "id": 13511,
-          "rate": 44.9
+          "rate": 45
         },
         {
           "id": 13505,
-          "rate": 16.2
+          "rate": 15.5
         },
         {
           "id": 13405,
-          "rate": 10.1
+          "rate": 10.5
         }
       ]
     },
@@ -3901,31 +3905,31 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 4.9
+          "rate": 4.8
         },
         {
           "level": 1,
-          "rate": 1.5
+          "rate": 1.4
         },
         {
           "level": 2,
-          "rate": 14.6
+          "rate": 14.8
         },
         {
           "level": 3,
-          "rate": 3.4
+          "rate": 3.3
         },
         {
           "level": 4,
-          "rate": 21.8
+          "rate": 21.9
         },
         {
           "level": 5,
-          "rate": 11.7
+          "rate": 12.4
         },
         {
           "level": 6,
-          "rate": 42.2
+          "rate": 41.4
         }
       ],
       "artifacts": [
@@ -3951,11 +3955,11 @@
       "weapons": [
         {
           "id": 11521,
-          "rate": 85.9
+          "rate": 85.7
         },
         {
           "id": 11401,
-          "rate": 3.4
+          "rate": 3.3
         },
         {
           "id": 11101,
@@ -3974,27 +3978,27 @@
         },
         {
           "level": 1,
-          "rate": 4.9
+          "rate": 5.1
         },
         {
           "level": 2,
-          "rate": 5.2
+          "rate": 5.1
         },
         {
           "level": 3,
-          "rate": 3.7
+          "rate": 3.6
         },
         {
           "level": 4,
-          "rate": 4.7
+          "rate": 4.9
         },
         {
           "level": 5,
-          "rate": 5.4
+          "rate": 5.3
         },
         {
           "level": 6,
-          "rate": 71.1
+          "rate": 71.3
         }
       ],
       "artifacts": [
@@ -4021,15 +4025,15 @@
       "weapons": [
         {
           "id": 14101,
-          "rate": 34
+          "rate": 33.8
         },
         {
           "id": 14405,
           "rate": 13.4
         },
         {
-          "id": 14406,
-          "rate": 6.6
+          "id": 14409,
+          "rate": 6.7
         }
       ]
     },
@@ -4048,7 +4052,7 @@
         },
         {
           "level": 2,
-          "rate": 24.3
+          "rate": 24.2
         },
         {
           "level": 3,
@@ -4056,7 +4060,7 @@
         },
         {
           "level": 4,
-          "rate": 2.1
+          "rate": 2.2
         },
         {
           "level": 5,
@@ -4090,11 +4094,11 @@
       "weapons": [
         {
           "id": 13509,
-          "rate": 53.9
+          "rate": 53.6
         },
         {
           "id": 13415,
-          "rate": 16.8
+          "rate": 17.3
         },
         {
           "id": 13502,
@@ -4109,15 +4113,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 78.8
+          "rate": 78.6
         },
         {
           "level": 1,
-          "rate": 9
+          "rate": 8.9
         },
         {
           "level": 2,
-          "rate": 7.2
+          "rate": 7.5
         },
         {
           "level": 3,
@@ -4125,7 +4129,7 @@
         },
         {
           "level": 6,
-          "rate": 4
+          "rate": 3.9
         }
       ],
       "artifacts": [
@@ -4155,11 +4159,11 @@
         },
         {
           "id": 12409,
-          "rate": 12.6
+          "rate": 12.8
         },
         {
           "id": 12502,
-          "rate": 6.1
+          "rate": 6
         }
       ]
     },
@@ -4170,19 +4174,19 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 60.8
+          "rate": 60.9
         },
         {
           "level": 1,
-          "rate": 19.7
+          "rate": 19.8
         },
         {
           "level": 2,
-          "rate": 10.8
+          "rate": 10.7
         },
         {
           "level": 3,
-          "rate": 3.1
+          "rate": 3.2
         },
         {
           "level": 4,
@@ -4202,25 +4206,25 @@
           "sets": {
             "15035": 4
           },
-          "rate": 84.4
+          "rate": 84
         },
         {
           "sets": {
             "15001": 4
           },
-          "rate": 11.1
+          "rate": 11.3
         },
         {
           "sets": {
             "15035": 2
           },
-          "rate": 1.6
+          "rate": 1.8
         }
       ],
       "weapons": [
         {
           "id": 13512,
-          "rate": 58.2
+          "rate": 58.4
         },
         {
           "id": 13505,
@@ -4228,7 +4232,7 @@
         },
         {
           "id": 13405,
-          "rate": 8.2
+          "rate": 7.9
         }
       ]
     },
@@ -4239,15 +4243,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 18.5
+          "rate": 18.4
         },
         {
           "level": 1,
-          "rate": 16.2
+          "rate": 16.1
         },
         {
           "level": 2,
-          "rate": 19
+          "rate": 19.1
         },
         {
           "level": 3,
@@ -4255,15 +4259,15 @@
         },
         {
           "level": 4,
-          "rate": 8.7
+          "rate": 8.8
         },
         {
           "level": 5,
-          "rate": 4.9
+          "rate": 4.8
         },
         {
           "level": 6,
-          "rate": 20.3
+          "rate": 20.4
         }
       ],
       "artifacts": [
@@ -4289,15 +4293,15 @@
       "weapons": [
         {
           "id": 14101,
-          "rate": 36.5
+          "rate": 37.5
         },
         {
           "id": 14501,
-          "rate": 16.5
+          "rate": 16.1
         },
         {
           "id": 14401,
-          "rate": 10.3
+          "rate": 10.1
         }
       ]
     },
@@ -4308,15 +4312,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 56.1
+          "rate": 56.8
         },
         {
           "level": 1,
-          "rate": 17.7
+          "rate": 17.3
         },
         {
           "level": 2,
-          "rate": 16.6
+          "rate": 16.4
         },
         {
           "level": 3,
@@ -4340,7 +4344,7 @@
           "sets": {
             "15035": 4
           },
-          "rate": 88
+          "rate": 87.9
         },
         {
           "sets": {
@@ -4358,15 +4362,15 @@
       "weapons": [
         {
           "id": 11515,
-          "rate": 36.5
+          "rate": 36.1
         },
         {
           "id": 11425,
-          "rate": 15.7
+          "rate": 15.8
         },
         {
           "id": 11409,
-          "rate": 9.2
+          "rate": 9.1
         }
       ]
     },
@@ -4385,7 +4389,7 @@
         },
         {
           "level": 2,
-          "rate": 9.3
+          "rate": 9.5
         },
         {
           "level": 3,
@@ -4393,7 +4397,7 @@
         },
         {
           "level": 6,
-          "rate": 7.1
+          "rate": 7
         }
       ],
       "artifacts": [
@@ -4420,7 +4424,7 @@
       "weapons": [
         {
           "id": 15514,
-          "rate": 41.9
+          "rate": 41.5
         },
         {
           "id": 15512,
@@ -4428,7 +4432,7 @@
         },
         {
           "id": 15431,
-          "rate": 8.8
+          "rate": 8.7
         }
       ]
     },
@@ -4439,19 +4443,19 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 76.7
+          "rate": 77.1
         },
         {
           "level": 1,
-          "rate": 18.4
+          "rate": 18.1
         },
         {
           "level": 2,
-          "rate": 2
+          "rate": 1.9
         },
         {
           "level": 3,
-          "rate": 0.7
+          "rate": 0.6
         },
         {
           "level": 4,
@@ -4459,7 +4463,7 @@
         },
         {
           "level": 6,
-          "rate": 2
+          "rate": 1.9
         }
       ],
       "artifacts": [
@@ -4485,7 +4489,7 @@
       "weapons": [
         {
           "id": 14406,
-          "rate": 27.5
+          "rate": 27.1
         },
         {
           "id": 14506,
@@ -4493,7 +4497,7 @@
         },
         {
           "id": 14403,
-          "rate": 17.7
+          "rate": 17.4
         }
       ]
     },
@@ -4504,31 +4508,31 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 4.1
+          "rate": 4
         },
         {
           "level": 1,
-          "rate": 5.9
+          "rate": 5.8
         },
         {
           "level": 2,
-          "rate": 4.5
+          "rate": 4.4
         },
         {
           "level": 3,
-          "rate": 4.9
+          "rate": 4.8
         },
         {
           "level": 4,
-          "rate": 6.7
+          "rate": 6.6
         },
         {
           "level": 5,
-          "rate": 5.9
+          "rate": 5.8
         },
         {
           "level": 6,
-          "rate": 67.9
+          "rate": 68.5
         }
       ],
       "artifacts": [
@@ -4554,15 +4558,15 @@
       "weapons": [
         {
           "id": 11418,
-          "rate": 32.3
+          "rate": 31.9
         },
         {
           "id": 11407,
-          "rate": 28.6
+          "rate": 29.1
         },
         {
           "id": 11422,
-          "rate": 15.3
+          "rate": 15.5
         }
       ]
     },
@@ -4573,27 +4577,27 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 41.2
+          "rate": 41.5
         },
         {
           "level": 1,
-          "rate": 47.6
+          "rate": 47.5
         },
         {
           "level": 2,
-          "rate": 8.6
+          "rate": 8.5
         },
         {
           "level": 3,
-          "rate": 0.9
+          "rate": 0.8
         },
         {
           "level": 4,
-          "rate": 0.9
+          "rate": 0.8
         },
         {
           "level": 6,
-          "rate": 0.9
+          "rate": 0.8
         }
       ],
       "artifacts": [
@@ -4601,33 +4605,33 @@
           "sets": {
             "15021": 4
           },
-          "rate": 55.6
+          "rate": 56.3
         },
         {
           "sets": {
             "15032": 4
           },
-          "rate": 39.5
+          "rate": 40
         },
         {
           "sets": {
             "15017": 4
           },
-          "rate": 1.2
+          "rate": 1.3
         }
       ],
       "weapons": [
         {
           "id": 11415,
-          "rate": 69.1
+          "rate": 69.5
         },
         {
           "id": 11431,
-          "rate": 8.2
+          "rate": 8.1
         },
         {
           "id": 11514,
-          "rate": 5.2
+          "rate": 5.1
         }
       ]
     },
@@ -4638,15 +4642,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 59.9
+          "rate": 60.1
         },
         {
           "level": 1,
-          "rate": 13.4
+          "rate": 13.3
         },
         {
           "level": 2,
-          "rate": 13.4
+          "rate": 13.3
         },
         {
           "level": 3,
@@ -4658,7 +4662,7 @@
         },
         {
           "level": 6,
-          "rate": 10.2
+          "rate": 10.1
         }
       ],
       "artifacts": [
@@ -4666,17 +4670,11 @@
           "sets": {
             "15021": 4
           },
-          "rate": 96.9
+          "rate": 98.4
         },
         {
           "sets": {
             "15041": 4
-          },
-          "rate": 1.6
-        },
-        {
-          "sets": {
-            "15021": 2
           },
           "rate": 1.6
         }
@@ -4684,11 +4682,11 @@
       "weapons": [
         {
           "id": 12510,
-          "rate": 47.8
+          "rate": 48.1
         },
         {
           "id": 12409,
-          "rate": 19.7
+          "rate": 19.6
         },
         {
           "id": 12407,
@@ -4711,11 +4709,11 @@
         },
         {
           "level": 3,
-          "rate": 0.8
+          "rate": 0.7
         },
         {
           "level": 4,
-          "rate": 3.8
+          "rate": 3.9
         },
         {
           "level": 5,
@@ -4750,15 +4748,15 @@
       "weapons": [
         {
           "id": 13415,
-          "rate": 59.7
+          "rate": 59.3
         },
         {
           "id": 13407,
-          "rate": 11.9
+          "rate": 12.2
         },
         {
           "id": 13502,
-          "rate": 5.1
+          "rate": 5.2
         }
       ]
     },
@@ -4769,19 +4767,19 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 39
+          "rate": 38
         },
         {
           "level": 1,
-          "rate": 34.9
+          "rate": 35.5
         },
         {
           "level": 2,
-          "rate": 13.3
+          "rate": 13.5
         },
         {
           "level": 3,
-          "rate": 0.5
+          "rate": 1
         },
         {
           "level": 4,
@@ -4793,7 +4791,7 @@
         },
         {
           "level": 6,
-          "rate": 9.2
+          "rate": 9
         }
       ],
       "artifacts": [
@@ -4820,7 +4818,7 @@
       "weapons": [
         {
           "id": 14502,
-          "rate": 33.8
+          "rate": 34
         },
         {
           "id": 14402,
@@ -4828,7 +4826,7 @@
         },
         {
           "id": 14413,
-          "rate": 11.3
+          "rate": 11.5
         }
       ]
     },
@@ -4839,19 +4837,19 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 7.3
+          "rate": 7.4
         },
         {
           "level": 1,
-          "rate": 13.4
+          "rate": 13.1
         },
         {
           "level": 2,
-          "rate": 13.6
+          "rate": 14
         },
         {
           "level": 3,
-          "rate": 15.6
+          "rate": 15.4
         },
         {
           "level": 4,
@@ -4859,11 +4857,11 @@
         },
         {
           "level": 5,
-          "rate": 7.2
+          "rate": 7.3
         },
         {
           "level": 6,
-          "rate": 28.7
+          "rate": 28.5
         }
       ],
       "artifacts": [
@@ -4871,26 +4869,26 @@
           "sets": {
             "15005": 4
           },
-          "rate": 56
+          "rate": 55.1
         },
         {
           "sets": {
             "15001": 2,
             "15005": 2
           },
-          "rate": 6.6
+          "rate": 6.7
         },
         {
           "sets": {
             "15001": 4
           },
-          "rate": 5.5
+          "rate": 5.6
         }
       ],
       "weapons": [
         {
           "id": 11405,
-          "rate": 27.4
+          "rate": 27.3
         },
         {
           "id": 11101,
@@ -4898,7 +4896,7 @@
         },
         {
           "id": 11509,
-          "rate": 7.7
+          "rate": 7.6
         }
       ]
     },
@@ -4909,7 +4907,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 72.6
+          "rate": 73
         },
         {
           "level": 1,
@@ -4917,7 +4915,7 @@
         },
         {
           "level": 2,
-          "rate": 12.3
+          "rate": 11.9
         },
         {
           "level": 3,
@@ -4937,13 +4935,13 @@
           "sets": {
             "15002": 4
           },
-          "rate": 90.9
+          "rate": 91.8
         },
         {
           "sets": {
             "15002": 2
           },
-          "rate": 3.7
+          "rate": 3.8
         },
         {
           "sets": {
@@ -4955,15 +4953,15 @@
       "weapons": [
         {
           "id": 11418,
-          "rate": 32.7
+          "rate": 33.1
         },
         {
           "id": 11503,
-          "rate": 27.9
+          "rate": 27.5
         },
         {
           "id": 11407,
-          "rate": 19.4
+          "rate": 19.2
         }
       ]
     },
@@ -4974,11 +4972,11 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 48.6
+          "rate": 48.2
         },
         {
           "level": 1,
-          "rate": 38.9
+          "rate": 39.2
         },
         {
           "level": 2,
@@ -4994,7 +4992,7 @@
         },
         {
           "level": 6,
-          "rate": 3.1
+          "rate": 3.2
         }
       ],
       "artifacts": [
@@ -5002,11 +5000,17 @@
           "sets": {
             "15031": 4
           },
-          "rate": 99.1
+          "rate": 98.5
         },
         {
           "sets": {
             "15003": 4
+          },
+          "rate": 0.6
+        },
+        {
+          "sets": {
+            "15031": 2
           },
           "rate": 0.6
         }
@@ -5014,11 +5018,11 @@
       "weapons": [
         {
           "id": 14514,
-          "rate": 51.5
+          "rate": 51.3
         },
         {
           "id": 14424,
-          "rate": 23.1
+          "rate": 23.5
         },
         {
           "id": 14406,
@@ -5033,15 +5037,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 78.7
+          "rate": 78.9
         },
         {
           "level": 1,
-          "rate": 13.1
+          "rate": 13
         },
         {
           "level": 2,
-          "rate": 6.6
+          "rate": 6.5
         },
         {
           "level": 6,
@@ -5072,15 +5076,15 @@
       "weapons": [
         {
           "id": 15513,
-          "rate": 42.6
+          "rate": 42.3
         },
         {
           "id": 15303,
-          "rate": 30.3
+          "rate": 30.9
         },
         {
           "id": 15432,
-          "rate": 11.5
+          "rate": 11.4
         }
       ]
     },
@@ -5091,23 +5095,23 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 5.2
+          "rate": 5.1
         },
         {
           "level": 1,
-          "rate": 10.8
+          "rate": 10.6
         },
         {
           "level": 2,
-          "rate": 17.1
+          "rate": 17.2
         },
         {
           "level": 3,
-          "rate": 16.6
+          "rate": 16.5
         },
         {
           "level": 4,
-          "rate": 12.7
+          "rate": 12.8
         },
         {
           "level": 5,
@@ -5115,7 +5119,7 @@
         },
         {
           "level": 6,
-          "rate": 29.2
+          "rate": 29.3
         }
       ],
       "artifacts": [
@@ -5141,7 +5145,7 @@
       "weapons": [
         {
           "id": 11401,
-          "rate": 29.6
+          "rate": 29.1
         },
         {
           "id": 11502,
@@ -5149,7 +5153,7 @@
         },
         {
           "id": 11101,
-          "rate": 10.1
+          "rate": 10.3
         }
       ]
     },
@@ -5164,7 +5168,7 @@
         },
         {
           "level": 1,
-          "rate": 0.8
+          "rate": 0.7
         },
         {
           "level": 2,
@@ -5184,7 +5188,7 @@
         },
         {
           "level": 6,
-          "rate": 92.8
+          "rate": 92.9
         }
       ],
       "artifacts": [
@@ -5211,11 +5215,11 @@
       "weapons": [
         {
           "id": 11403,
-          "rate": 86
+          "rate": 86.1
         },
         {
           "id": 11401,
-          "rate": 5.1
+          "rate": 5
         },
         {
           "id": 11101,
@@ -5230,7 +5234,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 1.7
+          "rate": 1.6
         },
         {
           "level": 1,
@@ -5242,7 +5246,7 @@
         },
         {
           "level": 3,
-          "rate": 4.2
+          "rate": 4.3
         },
         {
           "level": 4,
@@ -5250,11 +5254,11 @@
         },
         {
           "level": 5,
-          "rate": 4.6
+          "rate": 4.5
         },
         {
           "level": 6,
-          "rate": 80.9
+          "rate": 81.1
         }
       ],
       "artifacts": [
@@ -5281,15 +5285,15 @@
       "weapons": [
         {
           "id": 12101,
-          "rate": 22.9
+          "rate": 23
         },
         {
           "id": 12401,
-          "rate": 19.5
+          "rate": 19.3
         },
         {
           "id": 12403,
-          "rate": 19.1
+          "rate": 18.9
         }
       ]
     },
@@ -5304,15 +5308,15 @@
         },
         {
           "level": 1,
-          "rate": 62.3
+          "rate": 62.4
         },
         {
           "level": 2,
-          "rate": 15.9
+          "rate": 15.5
         },
         {
           "level": 3,
-          "rate": 4.8
+          "rate": 4.9
         },
         {
           "level": 4,
@@ -5324,7 +5328,7 @@
         },
         {
           "level": 6,
-          "rate": 3.5
+          "rate": 3.6
         }
       ],
       "artifacts": [
@@ -5332,13 +5336,13 @@
           "sets": {
             "15006": 4
           },
-          "rate": 56.3
+          "rate": 55.5
         },
         {
           "sets": {
             "15031": 4
           },
-          "rate": 19
+          "rate": 19.8
         },
         {
           "sets": {
@@ -5354,11 +5358,11 @@
         },
         {
           "id": 13401,
-          "rate": 11.8
+          "rate": 12
         },
         {
           "id": 13424,
-          "rate": 6.3
+          "rate": 6.2
         }
       ]
     },
@@ -5369,19 +5373,19 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 60.9
+          "rate": 61.1
         },
         {
           "level": 1,
-          "rate": 18.2
+          "rate": 18.3
         },
         {
           "level": 2,
-          "rate": 6.2
+          "rate": 6.1
         },
         {
           "level": 3,
-          "rate": 4
+          "rate": 3.9
         },
         {
           "level": 4,
@@ -5389,7 +5393,7 @@
         },
         {
           "level": 6,
-          "rate": 9.8
+          "rate": 9.6
         }
       ],
       "artifacts": [
@@ -5397,34 +5401,34 @@
           "sets": {
             "15018": 4
           },
-          "rate": 84.4
+          "rate": 85.7
         },
         {
           "sets": {
             "15008": 2,
             "15018": 2
           },
-          "rate": 4.7
+          "rate": 4.8
         },
         {
           "sets": {
             "15018": 2
           },
-          "rate": 3.1
+          "rate": 3.2
         }
       ],
       "weapons": [
         {
           "id": 12503,
-          "rate": 30.7
+          "rate": 31
         },
         {
           "id": 12501,
-          "rate": 19.1
+          "rate": 18.8
         },
         {
           "id": 12411,
-          "rate": 10.7
+          "rate": 10.5
         }
       ]
     },
@@ -5439,15 +5443,15 @@
         },
         {
           "level": 1,
-          "rate": 55.2
+          "rate": 55.3
         },
         {
           "level": 2,
-          "rate": 17.3
+          "rate": 17.4
         },
         {
           "level": 3,
-          "rate": 3.6
+          "rate": 3.5
         },
         {
           "level": 4,
@@ -5455,7 +5459,7 @@
         },
         {
           "level": 6,
-          "rate": 4.8
+          "rate": 4.7
         }
       ],
       "artifacts": [
@@ -5483,15 +5487,15 @@
       "weapons": [
         {
           "id": 13507,
-          "rate": 43.9
+          "rate": 44.1
         },
         {
           "id": 13407,
-          "rate": 26.3
+          "rate": 25.9
         },
         {
           "id": 13502,
-          "rate": 13.7
+          "rate": 13.8
         }
       ]
     },
@@ -5502,7 +5506,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 76.7
+          "rate": 77.3
         },
         {
           "level": 1,
@@ -5522,7 +5526,7 @@
         },
         {
           "level": 6,
-          "rate": 3.5
+          "rate": 3.1
         }
       ],
       "artifacts": [
@@ -5530,13 +5534,13 @@
           "sets": {
             "15038": 4
           },
-          "rate": 94.1
+          "rate": 94
         },
         {
           "sets": {
             "15038": 2
           },
-          "rate": 2.9
+          "rate": 3
         },
         {
           "sets": {
@@ -5552,11 +5556,11 @@
         },
         {
           "id": 12431,
-          "rate": 30.8
+          "rate": 30.5
         },
         {
           "id": 12502,
-          "rate": 10.1
+          "rate": 10
         }
       ]
     },
@@ -5567,15 +5571,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 66
+          "rate": 66.6
         },
         {
           "level": 1,
-          "rate": 13.2
+          "rate": 12.8
         },
         {
           "level": 2,
-          "rate": 8.8
+          "rate": 8.7
         },
         {
           "level": 3,
@@ -5591,7 +5595,7 @@
         },
         {
           "level": 6,
-          "rate": 5.8
+          "rate": 5.7
         }
       ],
       "artifacts": [
@@ -5599,13 +5603,13 @@
           "sets": {
             "14001": 4
           },
-          "rate": 82.9
+          "rate": 82.8
         },
         {
           "sets": {
             "15031": 4
           },
-          "rate": 12
+          "rate": 12.1
         },
         {
           "sets": {
@@ -5618,15 +5622,15 @@
       "weapons": [
         {
           "id": 11509,
-          "rate": 43.6
+          "rate": 43.5
         },
         {
           "id": 11414,
-          "rate": 17.8
+          "rate": 17.9
         },
         {
           "id": 11425,
-          "rate": 6.6
+          "rate": 6.5
         }
       ]
     },
@@ -5637,15 +5641,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 90
+          "rate": 90.5
         },
         {
           "level": 1,
-          "rate": 3.9
+          "rate": 3.5
         },
         {
           "level": 2,
-          "rate": 3.6
+          "rate": 3.5
         },
         {
           "level": 3,
@@ -5665,7 +5669,7 @@
           "sets": {
             "15002": 4
           },
-          "rate": 55.2
+          "rate": 54.4
         },
         {
           "sets": {
@@ -5683,11 +5687,11 @@
       "weapons": [
         {
           "id": 15515,
-          "rate": 18.3
+          "rate": 18.8
         },
         {
           "id": 15501,
-          "rate": 17.8
+          "rate": 17.4
         },
         {
           "id": 15402,
@@ -5702,19 +5706,19 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 1.4
+          "rate": 1.6
         },
         {
           "level": 1,
-          "rate": 2.5
+          "rate": 2.4
         },
         {
           "level": 2,
-          "rate": 1.4
+          "rate": 1.6
         },
         {
           "level": 3,
-          "rate": 4.3
+          "rate": 4.2
         },
         {
           "level": 4,
@@ -5722,11 +5726,11 @@
         },
         {
           "level": 5,
-          "rate": 2.5
+          "rate": 2.4
         },
         {
           "level": 6,
-          "rate": 86.5
+          "rate": 86.3
         }
       ],
       "artifacts": [
@@ -5734,34 +5738,34 @@
           "sets": {
             "15020": 4
           },
-          "rate": 71.4
+          "rate": 73.3
         },
         {
           "sets": {
             "15005": 2,
             "15032": 2
           },
-          "rate": 7.1
+          "rate": 6.7
         },
         {
           "sets": {
             "15048": 4
           },
-          "rate": 7.1
+          "rate": 6.7
         }
       ],
       "weapons": [
         {
           "id": 12401,
-          "rate": 27
+          "rate": 27.1
         },
         {
           "id": 12101,
-          "rate": 16.4
+          "rate": 16.7
         },
         {
           "id": 12426,
-          "rate": 7.6
+          "rate": 7.8
         }
       ]
     },
@@ -5772,7 +5776,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 6
+          "rate": 5.9
         },
         {
           "level": 1,
@@ -5780,19 +5784,19 @@
         },
         {
           "level": 2,
-          "rate": 17.3
+          "rate": 17.4
         },
         {
           "level": 3,
-          "rate": 15.4
+          "rate": 15.2
         },
         {
           "level": 4,
-          "rate": 13.3
+          "rate": 13.6
         },
         {
           "level": 5,
-          "rate": 8.4
+          "rate": 8.3
         },
         {
           "level": 6,
@@ -5804,33 +5808,33 @@
           "sets": {
             "15007": 4
           },
-          "rate": 43.1
+          "rate": 43.6
         },
         {
           "sets": {
             "15045": 4
           },
-          "rate": 17.6
+          "rate": 17.8
         },
         {
           "sets": {
             "15020": 4
           },
-          "rate": 9.8
+          "rate": 9.9
         }
       ],
       "weapons": [
         {
           "id": 14302,
-          "rate": 37.7
+          "rate": 37.5
         },
         {
           "id": 14401,
-          "rate": 17.9
+          "rate": 18
         },
         {
           "id": 14101,
-          "rate": 10.3
+          "rate": 10.4
         }
       ]
     },
@@ -5841,19 +5845,19 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 69.5
+          "rate": 69.8
         },
         {
           "level": 1,
-          "rate": 12.6
+          "rate": 12.7
         },
         {
           "level": 2,
-          "rate": 6.9
+          "rate": 6.7
         },
         {
           "level": 3,
-          "rate": 3.1
+          "rate": 3
         },
         {
           "level": 4,
@@ -5865,7 +5869,7 @@
         },
         {
           "level": 6,
-          "rate": 6.5
+          "rate": 6.3
         }
       ],
       "artifacts": [
@@ -5873,19 +5877,19 @@
           "sets": {
             "15019": 4
           },
-          "rate": 75.4
+          "rate": 73.1
         },
         {
           "sets": {
             "15006": 4
           },
-          "rate": 9.2
+          "rate": 9
         },
         {
           "sets": {
             "15024": 4
           },
-          "rate": 6.2
+          "rate": 6
         }
       ],
       "weapons": [
@@ -5895,11 +5899,11 @@
         },
         {
           "id": 15509,
-          "rate": 40.1
+          "rate": 39.9
         },
         {
           "id": 15501,
-          "rate": 2.7
+          "rate": 2.6
         }
       ]
     },
@@ -5910,31 +5914,31 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 5.8
+          "rate": 5.9
         },
         {
           "level": 1,
-          "rate": 6.9
+          "rate": 6.8
         },
         {
           "level": 2,
-          "rate": 6.2
+          "rate": 6.1
         },
         {
           "level": 3,
-          "rate": 7.5
+          "rate": 7.4
         },
         {
           "level": 4,
-          "rate": 7.3
+          "rate": 7.2
         },
         {
           "level": 5,
-          "rate": 6.2
+          "rate": 6.1
         },
         {
           "level": 6,
-          "rate": 60
+          "rate": 60.5
         }
       ],
       "artifacts": [
@@ -5955,15 +5959,15 @@
       "weapons": [
         {
           "id": 12101,
-          "rate": 31.2
+          "rate": 31.1
         },
         {
           "id": 12403,
-          "rate": 12.5
+          "rate": 12.7
         },
         {
           "id": 12401,
-          "rate": 11.6
+          "rate": 11.4
         }
       ]
     },
@@ -5978,7 +5982,7 @@
         },
         {
           "level": 1,
-          "rate": 30.4
+          "rate": 30.7
         },
         {
           "level": 2,
@@ -5994,7 +5998,7 @@
         },
         {
           "level": 6,
-          "rate": 7.1
+          "rate": 6.9
         }
       ],
       "artifacts": [
@@ -6002,14 +6006,14 @@
           "sets": {
             "15020": 4
           },
-          "rate": 87.3
+          "rate": 87.5
         },
         {
           "sets": {
             "15016": 2,
             "15017": 2
           },
-          "rate": 3.2
+          "rate": 2.9
         },
         {
           "sets": {
@@ -6021,11 +6025,11 @@
       "weapons": [
         {
           "id": 15508,
-          "rate": 48.6
+          "rate": 48.5
         },
         {
           "id": 15401,
-          "rate": 32.2
+          "rate": 32.3
         },
         {
           "id": 15503,
@@ -6044,27 +6048,27 @@
         },
         {
           "level": 1,
-          "rate": 4
+          "rate": 3.9
         },
         {
           "level": 2,
-          "rate": 3.8
+          "rate": 4.1
         },
         {
           "level": 3,
-          "rate": 4.7
+          "rate": 4.6
         },
         {
           "level": 4,
-          "rate": 5.3
+          "rate": 5.2
         },
         {
           "level": 5,
-          "rate": 7.2
+          "rate": 7.1
         },
         {
           "level": 6,
-          "rate": 72.3
+          "rate": 72.4
         }
       ],
       "artifacts": [
@@ -6092,7 +6096,7 @@
         },
         {
           "id": 12402,
-          "rate": 8.2
+          "rate": 8.3
         }
       ]
     },
@@ -6107,19 +6111,19 @@
         },
         {
           "level": 1,
-          "rate": 26.6
+          "rate": 26.3
         },
         {
           "level": 2,
-          "rate": 9.5
+          "rate": 9.3
         },
         {
           "level": 3,
-          "rate": 4
+          "rate": 4.2
         },
         {
           "level": 4,
-          "rate": 0.9
+          "rate": 0.8
         },
         {
           "level": 5,
@@ -6127,7 +6131,7 @@
         },
         {
           "level": 6,
-          "rate": 8.6
+          "rate": 8.8
         }
       ],
       "artifacts": [
@@ -6135,13 +6139,13 @@
           "sets": {
             "15027": 4
           },
-          "rate": 75.7
+          "rate": 75.5
         },
         {
           "sets": {
             "15019": 4
           },
-          "rate": 6.5
+          "rate": 6.6
         },
         {
           "sets": {
@@ -6153,15 +6157,15 @@
       "weapons": [
         {
           "id": 14512,
-          "rate": 31.2
+          "rate": 31.4
         },
         {
           "id": 14502,
-          "rate": 23.5
+          "rate": 22.9
         },
         {
           "id": 14402,
-          "rate": 18.9
+          "rate": 19
         }
       ]
     },
@@ -6172,15 +6176,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 50.2
+          "rate": 50.4
         },
         {
           "level": 1,
-          "rate": 38.7
+          "rate": 38.8
         },
         {
           "level": 2,
-          "rate": 7.4
+          "rate": 7.2
         },
         {
           "level": 3,
@@ -6218,15 +6222,15 @@
       "weapons": [
         {
           "id": 14406,
-          "rate": 39.1
+          "rate": 38
         },
         {
           "id": 14505,
-          "rate": 25.1
+          "rate": 24.8
         },
         {
           "id": 14302,
-          "rate": 7
+          "rate": 7.6
         }
       ]
     },
@@ -6237,11 +6241,11 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 4.2
+          "rate": 4.1
         },
         {
           "level": 1,
-          "rate": 7.5
+          "rate": 7.6
         },
         {
           "level": 2,
@@ -6249,7 +6253,7 @@
         },
         {
           "level": 3,
-          "rate": 7.9
+          "rate": 7.6
         },
         {
           "level": 4,
@@ -6261,7 +6265,7 @@
         },
         {
           "level": 6,
-          "rate": 55.6
+          "rate": 56
         }
       ],
       "artifacts": [
@@ -6288,11 +6292,11 @@
       "weapons": [
         {
           "id": 12101,
-          "rate": 47.9
+          "rate": 48.4
         },
         {
           "id": 12402,
-          "rate": 10
+          "rate": 9.9
         },
         {
           "id": 12411,
@@ -6307,15 +6311,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 78.6
+          "rate": 78.3
         },
         {
           "level": 1,
-          "rate": 13.8
+          "rate": 14.3
         },
         {
           "level": 2,
-          "rate": 5.8
+          "rate": 5.7
         },
         {
           "level": 3,
@@ -6335,33 +6339,33 @@
           "sets": {
             "15036": 4
           },
-          "rate": 82.4
+          "rate": 82.7
         },
         {
           "sets": {
             "15025": 4
           },
-          "rate": 9.8
+          "rate": 9.6
         },
         {
           "sets": {
             "15036": 2
           },
-          "rate": 2
+          "rate": 1.9
         }
       ],
       "weapons": [
         {
           "id": 13513,
-          "rate": 32.6
+          "rate": 31.7
         },
         {
           "id": 13405,
-          "rate": 24.1
+          "rate": 25.7
         },
         {
           "id": 13501,
-          "rate": 9.4
+          "rate": 9.1
         }
       ]
     },
@@ -6372,31 +6376,31 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 19.7
+          "rate": 19.5
         },
         {
           "level": 1,
-          "rate": 22.4
+          "rate": 22.2
         },
         {
           "level": 2,
-          "rate": 20.7
+          "rate": 20.5
         },
         {
           "level": 3,
-          "rate": 10.6
+          "rate": 10.8
         },
         {
           "level": 4,
-          "rate": 11.2
+          "rate": 11
         },
         {
           "level": 5,
-          "rate": 3.7
+          "rate": 4.1
         },
         {
           "level": 6,
-          "rate": 11.8
+          "rate": 12
         }
       ],
       "artifacts": [
@@ -6431,7 +6435,7 @@
         },
         {
           "id": 14401,
-          "rate": 7.9
+          "rate": 7.7
         }
       ]
     },
@@ -6446,7 +6450,7 @@
         },
         {
           "level": 1,
-          "rate": 2.4
+          "rate": 2.6
         },
         {
           "level": 2,
@@ -6462,11 +6466,11 @@
         },
         {
           "level": 5,
-          "rate": 5.3
+          "rate": 5.4
         },
         {
           "level": 6,
-          "rate": 85.7
+          "rate": 85.6
         }
       ],
       "artifacts": [
@@ -6492,11 +6496,11 @@
       "weapons": [
         {
           "id": 14302,
-          "rate": 23.5
+          "rate": 23.2
         },
         {
           "id": 14101,
-          "rate": 21.4
+          "rate": 21.2
         },
         {
           "id": 14403,
@@ -6511,7 +6515,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 18
+          "rate": 17.7
         },
         {
           "level": 1,
@@ -6519,11 +6523,11 @@
         },
         {
           "level": 2,
-          "rate": 16.8
+          "rate": 16.9
         },
         {
           "level": 3,
-          "rate": 15
+          "rate": 14.9
         },
         {
           "level": 4,
@@ -6531,11 +6535,11 @@
         },
         {
           "level": 5,
-          "rate": 4.9
+          "rate": 4.8
         },
         {
           "level": 6,
-          "rate": 15.4
+          "rate": 15.7
         }
       ],
       "artifacts": [
@@ -6562,15 +6566,15 @@
       "weapons": [
         {
           "id": 11101,
-          "rate": 23.5
+          "rate": 23.9
         },
         {
           "id": 11401,
-          "rate": 8.5
+          "rate": 8.3
         },
         {
           "id": 11424,
-          "rate": 6.9
+          "rate": 7
         }
       ]
     },
@@ -6581,7 +6585,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 7.4
+          "rate": 7.2
         },
         {
           "level": 1,
@@ -6589,15 +6593,15 @@
         },
         {
           "level": 2,
-          "rate": 14.1
+          "rate": 13.9
         },
         {
           "level": 3,
-          "rate": 14.7
+          "rate": 14.5
         },
         {
           "level": 4,
-          "rate": 12.6
+          "rate": 12.8
         },
         {
           "level": 5,
@@ -6605,7 +6609,7 @@
         },
         {
           "level": 6,
-          "rate": 30.2
+          "rate": 30.5
         }
       ],
       "artifacts": [
@@ -6613,25 +6617,25 @@
           "sets": {
             "15006": 4
           },
-          "rate": 71.9
+          "rate": 71.4
         },
         {
           "sets": {
             "15001": 4
           },
-          "rate": 4.7
+          "rate": 4.8
         },
         {
           "sets": {
             "15006": 2
           },
-          "rate": 4.7
+          "rate": 4.8
         }
       ],
       "weapons": [
         {
           "id": 12502,
-          "rate": 24
+          "rate": 23.8
         },
         {
           "id": 12101,
@@ -6639,7 +6643,7 @@
         },
         {
           "id": 12406,
-          "rate": 7.2
+          "rate": 7
         }
       ]
     },
@@ -6654,11 +6658,11 @@
         },
         {
           "level": 1,
-          "rate": 3.2
+          "rate": 3.1
         },
         {
           "level": 2,
-          "rate": 3.8
+          "rate": 4
         },
         {
           "level": 3,
@@ -6674,7 +6678,7 @@
         },
         {
           "level": 6,
-          "rate": 79.5
+          "rate": 79.6
         }
       ],
       "artifacts": [
@@ -6708,7 +6712,7 @@
         },
         {
           "id": 12411,
-          "rate": 5.5
+          "rate": 5.4
         }
       ]
     },
@@ -6719,31 +6723,31 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 15
+          "rate": 14.7
         },
         {
           "level": 1,
-          "rate": 20.6
+          "rate": 20.2
         },
         {
           "level": 2,
-          "rate": 21.6
+          "rate": 21.4
         },
         {
           "level": 3,
-          "rate": 12.3
+          "rate": 12.5
         },
         {
           "level": 4,
-          "rate": 8.6
+          "rate": 8.7
         },
         {
           "level": 5,
-          "rate": 5.8
+          "rate": 5.9
         },
         {
           "level": 6,
-          "rate": 16
+          "rate": 16.6
         }
       ],
       "artifacts": [
@@ -6769,15 +6773,15 @@
       "weapons": [
         {
           "id": 15101,
-          "rate": 29.4
+          "rate": 29.9
         },
         {
           "id": 15401,
-          "rate": 8.2
+          "rate": 8.1
         },
         {
           "id": 15402,
-          "rate": 6.6
+          "rate": 6.5
         }
       ]
     },
@@ -6788,11 +6792,11 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 56.8
+          "rate": 57.1
         },
         {
           "level": 1,
-          "rate": 30.5
+          "rate": 30.2
         },
         {
           "level": 2,
@@ -6808,7 +6812,7 @@
         },
         {
           "level": 6,
-          "rate": 6.2
+          "rate": 6.1
         }
       ],
       "artifacts": [
@@ -6816,34 +6820,34 @@
           "sets": {
             "15023": 4
           },
-          "rate": 37
+          "rate": 36.8
         },
         {
           "sets": {
             "15039": 4
           },
-          "rate": 35.2
+          "rate": 35.8
         },
         {
           "sets": {
             "15001": 2,
             "15002": 2
           },
-          "rate": 6.5
+          "rate": 5.7
         }
       ],
       "weapons": [
         {
           "id": 13505,
-          "rate": 57.6
+          "rate": 58
         },
         {
           "id": 13501,
-          "rate": 9.9
+          "rate": 9.8
         },
         {
           "id": 13405,
-          "rate": 7.4
+          "rate": 6.9
         }
       ]
     },
@@ -6854,11 +6858,11 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 62.3
+          "rate": 62.8
         },
         {
           "level": 1,
-          "rate": 28.6
+          "rate": 28.2
         },
         {
           "level": 2,
@@ -6874,7 +6878,7 @@
         },
         {
           "level": 6,
-          "rate": 5.2
+          "rate": 5.1
         }
       ],
       "artifacts": [
@@ -6901,15 +6905,15 @@
       "weapons": [
         {
           "id": 15507,
-          "rate": 26.4
+          "rate": 26.1
         },
         {
           "id": 15501,
-          "rate": 16.9
+          "rate": 17.5
         },
         {
           "id": 15405,
-          "rate": 14.7
+          "rate": 15
         }
       ]
     },
@@ -6920,15 +6924,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 59.7
+          "rate": 59.2
         },
         {
           "level": 1,
-          "rate": 26.2
+          "rate": 26.5
         },
         {
           "level": 2,
-          "rate": 5.7
+          "rate": 5.6
         },
         {
           "level": 3,
@@ -6940,7 +6944,7 @@
         },
         {
           "level": 6,
-          "rate": 6.8
+          "rate": 7
         }
       ],
       "artifacts": [
@@ -6948,33 +6952,33 @@
           "sets": {
             "15003": 4
           },
-          "rate": 66.7
+          "rate": 67
         },
         {
           "sets": {
             "14001": 4
           },
-          "rate": 23.8
+          "rate": 23.3
         },
         {
           "sets": {
             "15019": 4
           },
-          "rate": 4.8
+          "rate": 4.9
         }
       ],
       "weapons": [
         {
           "id": 15502,
-          "rate": 58
+          "rate": 58.4
         },
         {
           "id": 15512,
-          "rate": 7.9
+          "rate": 8.3
         },
         {
           "id": 15414,
-          "rate": 6.5
+          "rate": 6.4
         }
       ]
     },
@@ -6985,31 +6989,31 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 5.3
+          "rate": 5.2
         },
         {
           "level": 1,
-          "rate": 5.3
+          "rate": 5.2
         },
         {
           "level": 2,
-          "rate": 5.3
+          "rate": 5.4
         },
         {
           "level": 3,
-          "rate": 6
+          "rate": 5.8
         },
         {
           "level": 4,
-          "rate": 6.4
+          "rate": 6.3
         },
         {
           "level": 5,
-          "rate": 5.5
+          "rate": 5.4
         },
         {
           "level": 6,
-          "rate": 66.2
+          "rate": 66.6
         }
       ],
       "artifacts": [
@@ -7030,15 +7034,15 @@
       "weapons": [
         {
           "id": 12101,
-          "rate": 44.9
+          "rate": 45.3
         },
         {
           "id": 12401,
-          "rate": 9.4
+          "rate": 9.2
         },
         {
           "id": 12402,
-          "rate": 4.7
+          "rate": 4.6
         }
       ]
     },
@@ -7049,15 +7053,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 2.1
+          "rate": 2.2
         },
         {
           "level": 1,
-          "rate": 1.7
+          "rate": 1.6
         },
         {
           "level": 2,
-          "rate": 2.3
+          "rate": 2.2
         },
         {
           "level": 3,
@@ -7065,15 +7069,15 @@
         },
         {
           "level": 4,
-          "rate": 3.5
+          "rate": 3.7
         },
         {
           "level": 5,
-          "rate": 3.3
+          "rate": 3.2
         },
         {
           "level": 6,
-          "rate": 83.5
+          "rate": 83.4
         }
       ],
       "artifacts": [
@@ -7104,11 +7108,11 @@
         },
         {
           "id": 13407,
-          "rate": 19.4
+          "rate": 19.1
         },
         {
           "id": 13405,
-          "rate": 8.1
+          "rate": 8.3
         }
       ]
     },
@@ -7123,27 +7127,27 @@
         },
         {
           "level": 1,
-          "rate": 3.6
+          "rate": 3.5
         },
         {
           "level": 2,
-          "rate": 3.6
+          "rate": 3.5
         },
         {
           "level": 3,
-          "rate": 2.3
+          "rate": 2.5
         },
         {
           "level": 4,
-          "rate": 6.7
+          "rate": 6.6
         },
         {
           "level": 5,
-          "rate": 4.6
+          "rate": 4.5
         },
         {
           "level": 6,
-          "rate": 76.6
+          "rate": 76.7
         }
       ],
       "artifacts": [
@@ -7170,15 +7174,15 @@
       "weapons": [
         {
           "id": 14101,
-          "rate": 34.1
+          "rate": 34.4
         },
         {
           "id": 14402,
-          "rate": 9.8
+          "rate": 9.7
         },
         {
           "id": 14426,
-          "rate": 8.6
+          "rate": 8.4
         }
       ]
     },
@@ -7189,7 +7193,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 5.1
+          "rate": 5
         },
         {
           "level": 1,
@@ -7201,15 +7205,15 @@
         },
         {
           "level": 3,
-          "rate": 4.7
+          "rate": 4.6
         },
         {
           "level": 4,
-          "rate": 6.3
+          "rate": 6.4
         },
         {
           "level": 5,
-          "rate": 5.7
+          "rate": 6
         },
         {
           "level": 6,
@@ -7239,15 +7243,15 @@
       "weapons": [
         {
           "id": 13101,
-          "rate": 28.3
+          "rate": 28.8
         },
         {
           "id": 13407,
-          "rate": 22.8
+          "rate": 22.6
         },
         {
           "id": 13303,
-          "rate": 9.5
+          "rate": 9.8
         }
       ]
     },
@@ -7258,31 +7262,31 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 4.8
+          "rate": 4.7
         },
         {
           "level": 1,
-          "rate": 3.8
+          "rate": 3.9
         },
         {
           "level": 2,
-          "rate": 6.1
+          "rate": 6
         },
         {
           "level": 3,
-          "rate": 4.8
+          "rate": 4.7
         },
         {
           "level": 4,
-          "rate": 5.9
+          "rate": 6
         },
         {
           "level": 5,
-          "rate": 5.2
+          "rate": 5.1
         },
         {
           "level": 6,
-          "rate": 69.4
+          "rate": 69.5
         }
       ],
       "artifacts": [
@@ -7309,7 +7313,7 @@
       "weapons": [
         {
           "id": 15101,
-          "rate": 23.5
+          "rate": 23.9
         },
         {
           "id": 15501,
@@ -7317,7 +7321,7 @@
         },
         {
           "id": 15411,
-          "rate": 12.2
+          "rate": 12.3
         }
       ]
     },
@@ -7328,11 +7332,11 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 4.7
+          "rate": 4.6
         },
         {
           "level": 1,
-          "rate": 8.2
+          "rate": 8
         },
         {
           "level": 2,
@@ -7340,7 +7344,7 @@
         },
         {
           "level": 3,
-          "rate": 10.8
+          "rate": 10.5
         },
         {
           "level": 4,
@@ -7348,11 +7352,11 @@
         },
         {
           "level": 5,
-          "rate": 8.8
+          "rate": 9.1
         },
         {
           "level": 6,
-          "rate": 46.5
+          "rate": 46.6
         }
       ],
       "artifacts": [
@@ -7380,11 +7384,11 @@
       "weapons": [
         {
           "id": 14101,
-          "rate": 46.9
+          "rate": 46.8
         },
         {
           "id": 14402,
-          "rate": 10.5
+          "rate": 10.8
         },
         {
           "id": 14405,
@@ -7399,7 +7403,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 7.6
+          "rate": 7.5
         },
         {
           "level": 1,
@@ -7407,15 +7411,15 @@
         },
         {
           "level": 2,
-          "rate": 12.7
+          "rate": 12.6
         },
         {
           "level": 3,
-          "rate": 12
+          "rate": 11.8
         },
         {
           "level": 4,
-          "rate": 12.7
+          "rate": 12.8
         },
         {
           "level": 5,
@@ -7423,7 +7427,7 @@
         },
         {
           "level": 6,
-          "rate": 37.3
+          "rate": 37.5
         }
       ],
       "artifacts": [
@@ -7449,15 +7453,15 @@
       "weapons": [
         {
           "id": 11101,
-          "rate": 31.2
+          "rate": 31.7
         },
         {
           "id": 11403,
-          "rate": 19.8
+          "rate": 19.7
         },
         {
           "id": 11427,
-          "rate": 7.8
+          "rate": 7.9
         }
       ]
     },
@@ -7495,15 +7499,15 @@
       "weapons": [
         {
           "id": 15101,
-          "rate": 43
+          "rate": 43.2
         },
         {
           "id": 15405,
-          "rate": 7.2
+          "rate": 7
         },
         {
           "id": 15415,
-          "rate": 6.3
+          "rate": 6.2
         }
       ]
     },
@@ -7514,31 +7518,31 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 6.2
+          "rate": 6.1
         },
         {
           "level": 1,
-          "rate": 6.8
+          "rate": 6.7
         },
         {
           "level": 2,
-          "rate": 8.5
+          "rate": 8.6
         },
         {
           "level": 3,
-          "rate": 4.5
+          "rate": 4.4
         },
         {
           "level": 4,
-          "rate": 7.1
+          "rate": 6.9
         },
         {
           "level": 5,
-          "rate": 5.8
+          "rate": 5.7
         },
         {
           "level": 6,
-          "rate": 61.1
+          "rate": 61.6
         }
       ],
       "artifacts": [
@@ -7569,7 +7573,7 @@
         },
         {
           "id": 13407,
-          "rate": 25.9
+          "rate": 25.8
         },
         {
           "id": 13402,
@@ -7584,15 +7588,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 78.9
+          "rate": 79.6
         },
         {
           "level": 1,
-          "rate": 11.3
+          "rate": 11.2
         },
         {
           "level": 2,
-          "rate": 4.1
+          "rate": 3.6
         },
         {
           "level": 3,
@@ -7612,33 +7616,33 @@
           "sets": {
             "15001": 4
           },
-          "rate": 37.8
+          "rate": 38.6
         },
         {
           "sets": {
             "15024": 4
           },
-          "rate": 33.3
+          "rate": 34.1
         },
         {
           "sets": {
             "15016": 4
           },
-          "rate": 8.9
+          "rate": 6.8
         }
       ],
       "weapons": [
         {
           "id": 11409,
-          "rate": 30.9
+          "rate": 31.1
         },
         {
           "id": 11510,
-          "rate": 25.3
+          "rate": 25
         },
         {
           "id": 11505,
-          "rate": 6.7
+          "rate": 6.6
         }
       ]
     },
@@ -7657,11 +7661,11 @@
         },
         {
           "level": 2,
-          "rate": 2.1
+          "rate": 2
         },
         {
           "level": 3,
-          "rate": 2.5
+          "rate": 2.4
         },
         {
           "level": 4,
@@ -7669,11 +7673,11 @@
         },
         {
           "level": 5,
-          "rate": 3.5
+          "rate": 3.4
         },
         {
           "level": 6,
-          "rate": 86
+          "rate": 86.2
         }
       ],
       "artifacts": [
@@ -7700,11 +7704,11 @@
       "weapons": [
         {
           "id": 15101,
-          "rate": 28.3
+          "rate": 28.4
         },
         {
           "id": 15403,
-          "rate": 19.6
+          "rate": 19.7
         },
         {
           "id": 15401,
@@ -7719,27 +7723,27 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 9.6
+          "rate": 9.7
         },
         {
           "level": 1,
-          "rate": 14.3
+          "rate": 14.2
         },
         {
           "level": 2,
-          "rate": 19.4
+          "rate": 19.1
         },
         {
           "level": 3,
-          "rate": 17.6
+          "rate": 17.7
         },
         {
           "level": 4,
-          "rate": 10.4
+          "rate": 10.6
         },
         {
           "level": 5,
-          "rate": 6.3
+          "rate": 6.4
         },
         {
           "level": 6,
@@ -7777,7 +7781,7 @@
         },
         {
           "id": 15101,
-          "rate": 10.6
+          "rate": 11.1
         }
       ]
     },
@@ -7788,7 +7792,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 2.1
+          "rate": 2
         },
         {
           "level": 1,
@@ -7796,19 +7800,19 @@
         },
         {
           "level": 2,
-          "rate": 3.8
+          "rate": 3.7
         },
         {
           "level": 3,
-          "rate": 4
+          "rate": 3.9
         },
         {
           "level": 4,
-          "rate": 4.4
+          "rate": 4.5
         },
         {
           "level": 5,
-          "rate": 4
+          "rate": 4.1
         },
         {
           "level": 6,
@@ -7839,15 +7843,15 @@
       "weapons": [
         {
           "id": 13101,
-          "rate": 44.5
+          "rate": 44.3
         },
         {
           "id": 13407,
-          "rate": 11.7
+          "rate": 11.9
         },
         {
           "id": 13303,
-          "rate": 10.2
+          "rate": 10
         }
       ]
     },
@@ -7858,27 +7862,27 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 3.4
+          "rate": 3.3
         },
         {
           "level": 1,
-          "rate": 6.1
+          "rate": 6
         },
         {
           "level": 2,
-          "rate": 6.1
+          "rate": 6.4
         },
         {
           "level": 3,
-          "rate": 9
+          "rate": 8.9
         },
         {
           "level": 4,
-          "rate": 10.1
+          "rate": 9.9
         },
         {
           "level": 5,
-          "rate": 8.2
+          "rate": 8.5
         },
         {
           "level": 6,
@@ -7908,15 +7912,15 @@
       "weapons": [
         {
           "id": 11101,
-          "rate": 23.5
+          "rate": 23.9
         },
         {
           "id": 11427,
-          "rate": 20.2
+          "rate": 19.8
         },
         {
           "id": 11401,
-          "rate": 18.1
+          "rate": 17.9
         }
       ]
     },
@@ -7927,11 +7931,11 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 3.1
+          "rate": 3
         },
         {
           "level": 1,
-          "rate": 3.7
+          "rate": 3.6
         },
         {
           "level": 2,
@@ -7939,11 +7943,11 @@
         },
         {
           "level": 3,
-          "rate": 6.4
+          "rate": 6.3
         },
         {
           "level": 4,
-          "rate": 7.8
+          "rate": 8.1
         },
         {
           "level": 5,
@@ -7977,15 +7981,15 @@
       "weapons": [
         {
           "id": 13101,
-          "rate": 27.2
+          "rate": 26.9
         },
         {
           "id": 13407,
-          "rate": 14.2
+          "rate": 13.9
         },
         {
           "id": 13303,
-          "rate": 13.2
+          "rate": 13.3
         }
       ]
     },
@@ -7996,15 +8000,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 85.4
+          "rate": 85.5
         },
         {
           "level": 1,
-          "rate": 8.3
+          "rate": 8.2
         },
         {
           "level": 2,
-          "rate": 2.9
+          "rate": 2.8
         },
         {
           "level": 6,
@@ -8016,7 +8020,7 @@
           "sets": {
             "15026": 4
           },
-          "rate": 87.5
+          "rate": 87.4
         },
         {
           "sets": {
@@ -8035,15 +8039,15 @@
       "weapons": [
         {
           "id": 11512,
-          "rate": 39
+          "rate": 38.8
         },
         {
           "id": 11424,
-          "rate": 14.6
+          "rate": 14.2
         },
         {
           "id": 11409,
-          "rate": 9.2
+          "rate": 9.1
         }
       ]
     },
@@ -8054,19 +8058,19 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 12
+          "rate": 11.8
         },
         {
           "level": 1,
-          "rate": 15.7
+          "rate": 15.8
         },
         {
           "level": 2,
-          "rate": 18.7
+          "rate": 18.8
         },
         {
           "level": 3,
-          "rate": 19.3
+          "rate": 19.2
         },
         {
           "level": 4,
@@ -8078,7 +8082,7 @@
         },
         {
           "level": 6,
-          "rate": 12.8
+          "rate": 12.6
         }
       ],
       "artifacts": [
@@ -8086,33 +8090,33 @@
           "sets": {
             "15020": 4
           },
-          "rate": 48.1
+          "rate": 46.2
         },
         {
           "sets": {
             "15030": 4
           },
-          "rate": 37
+          "rate": 38.5
         },
         {
           "sets": {
             "15001": 2,
             "15026": 2
           },
-          "rate": 3.7
+          "rate": 3.8
         }
       ],
       "weapons": [
         {
           "id": 12101,
-          "rate": 15.7
-        },
-        {
-          "id": 12403,
-          "rate": 10.4
+          "rate": 15.6
         },
         {
           "id": 12402,
+          "rate": 10.6
+        },
+        {
+          "id": 12403,
           "rate": 10.2
         }
       ]
@@ -8124,7 +8128,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 9.8
+          "rate": 9.4
         },
         {
           "level": 1,
@@ -8132,7 +8136,7 @@
         },
         {
           "level": 2,
-          "rate": 10.2
+          "rate": 10.3
         },
         {
           "level": 3,
@@ -8140,15 +8144,15 @@
         },
         {
           "level": 4,
-          "rate": 10.2
+          "rate": 10.5
         },
         {
           "level": 5,
-          "rate": 7.2
+          "rate": 7.1
         },
         {
           "level": 6,
-          "rate": 41.4
+          "rate": 41.7
         }
       ],
       "artifacts": [
@@ -8168,15 +8172,15 @@
       "weapons": [
         {
           "id": 13101,
-          "rate": 49
+          "rate": 49.4
         },
         {
           "id": 13407,
-          "rate": 18.5
+          "rate": 18.6
         },
         {
           "id": 13303,
-          "rate": 5.2
+          "rate": 5.3
         }
       ]
     },
@@ -8187,15 +8191,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 7.7
+          "rate": 8
         },
         {
           "level": 1,
-          "rate": 12
+          "rate": 11.7
         },
         {
           "level": 2,
-          "rate": 13.5
+          "rate": 13.2
         },
         {
           "level": 3,
@@ -8207,11 +8211,11 @@
         },
         {
           "level": 5,
-          "rate": 8.1
+          "rate": 8.2
         },
         {
           "level": 6,
-          "rate": 39.3
+          "rate": 39.4
         }
       ],
       "artifacts": [
@@ -8237,11 +8241,11 @@
       "weapons": [
         {
           "id": 12101,
-          "rate": 49.8
+          "rate": 50.1
         },
         {
           "id": 12418,
-          "rate": 10.7
+          "rate": 10.5
         },
         {
           "id": 12401,
@@ -8256,27 +8260,27 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 2.5
+          "rate": 2.6
         },
         {
           "level": 1,
-          "rate": 1.8
+          "rate": 2
         },
         {
           "level": 2,
-          "rate": 2.9
+          "rate": 3
         },
         {
           "level": 3,
-          "rate": 6.1
+          "rate": 6
         },
         {
           "level": 4,
-          "rate": 7.2
+          "rate": 7
         },
         {
           "level": 5,
-          "rate": 9.4
+          "rate": 9.2
         },
         {
           "level": 6,
@@ -8288,26 +8292,26 @@
           "sets": {
             "15031": 4
           },
-          "rate": 41.7
+          "rate": 46.2
         },
         {
           "sets": {
             "15002": 4
           },
-          "rate": 41.7
+          "rate": 38.5
         },
         {
           "sets": {
             "15002": 2,
             "15035": 2
           },
-          "rate": 8.3
+          "rate": 7.7
         }
       ],
       "weapons": [
         {
           "id": 11101,
-          "rate": 35
+          "rate": 35.1
         },
         {
           "id": 11403,
@@ -8315,7 +8319,7 @@
         },
         {
           "id": 11401,
-          "rate": 5.9
+          "rate": 5.8
         }
       ]
     },
@@ -8326,11 +8330,11 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 76
+          "rate": 76.2
         },
         {
           "level": 1,
-          "rate": 12.8
+          "rate": 12.7
         },
         {
           "level": 2,
@@ -8342,7 +8346,7 @@
         },
         {
           "level": 6,
-          "rate": 6.4
+          "rate": 6.3
         }
       ],
       "artifacts": [
@@ -8350,7 +8354,7 @@
           "sets": {
             "15031": 4
           },
-          "rate": 82.1
+          "rate": 84.2
         },
         {
           "sets": {
@@ -8368,15 +8372,15 @@
       "weapons": [
         {
           "id": 15512,
-          "rate": 48.8
+          "rate": 48.4
         },
         {
           "id": 15425,
-          "rate": 10.4
+          "rate": 10.3
         },
         {
           "id": 15501,
-          "rate": 8.8
+          "rate": 9.5
         }
       ]
     },
@@ -8387,11 +8391,11 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 1.9
+          "rate": 1.8
         },
         {
           "level": 1,
-          "rate": 2.3
+          "rate": 2.2
         },
         {
           "level": 2,
@@ -8399,15 +8403,15 @@
         },
         {
           "level": 3,
-          "rate": 5.6
+          "rate": 5.5
         },
         {
           "level": 4,
-          "rate": 5.6
+          "rate": 5.7
         },
         {
           "level": 5,
-          "rate": 6.6
+          "rate": 6.7
         },
         {
           "level": 6,
@@ -8439,15 +8443,15 @@
       "weapons": [
         {
           "id": 14401,
-          "rate": 30.9
+          "rate": 30.5
         },
         {
           "id": 14101,
-          "rate": 23
+          "rate": 23.4
         },
         {
           "id": 14302,
-          "rate": 9.3
+          "rate": 9.4
         }
       ]
     },
@@ -8458,7 +8462,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 4.2
+          "rate": 4.1
         },
         {
           "level": 1,
@@ -8466,19 +8470,19 @@
         },
         {
           "level": 2,
-          "rate": 6.7
+          "rate": 6.5
         },
         {
           "level": 3,
-          "rate": 5.2
+          "rate": 5.5
         },
         {
           "level": 4,
-          "rate": 8.1
+          "rate": 8
         },
         {
           "level": 5,
-          "rate": 7.3
+          "rate": 7.4
         },
         {
           "level": 6,
@@ -8512,7 +8516,7 @@
         },
         {
           "id": 12405,
-          "rate": 20.6
+          "rate": 20.7
         },
         {
           "id": 12430,
@@ -8527,15 +8531,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 60.6
+          "rate": 60.3
         },
         {
           "level": 1,
-          "rate": 17.7
+          "rate": 17.6
         },
         {
           "level": 2,
-          "rate": 19.3
+          "rate": 19.7
         },
         {
           "level": 4,
@@ -8569,15 +8573,15 @@
       "weapons": [
         {
           "id": 14515,
-          "rate": 30.6
+          "rate": 30.1
         },
         {
           "id": 14401,
-          "rate": 18.7
+          "rate": 18.2
         },
         {
           "id": 14415,
-          "rate": 17.7
+          "rate": 17.6
         }
       ]
     },
@@ -8588,23 +8592,23 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 2.1
+          "rate": 2
         },
         {
           "level": 1,
-          "rate": 1.9
+          "rate": 1.8
         },
         {
           "level": 2,
-          "rate": 3.5
+          "rate": 3.4
         },
         {
           "level": 3,
-          "rate": 4.3
+          "rate": 4.2
         },
         {
           "level": 4,
-          "rate": 4.3
+          "rate": 4.2
         },
         {
           "level": 5,
@@ -8612,7 +8616,7 @@
         },
         {
           "level": 6,
-          "rate": 78.6
+          "rate": 79
         }
       ],
       "artifacts": [
@@ -8638,11 +8642,11 @@
       "weapons": [
         {
           "id": 15101,
-          "rate": 46.7
+          "rate": 46.5
         },
         {
           "id": 15304,
-          "rate": 17.1
+          "rate": 17
         },
         {
           "id": 15426,
@@ -8657,7 +8661,7 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 4.4
+          "rate": 4.3
         },
         {
           "level": 1,
@@ -8665,15 +8669,15 @@
         },
         {
           "level": 2,
-          "rate": 6.8
+          "rate": 6.7
         },
         {
           "level": 3,
-          "rate": 7.9
+          "rate": 7.7
         },
         {
           "level": 4,
-          "rate": 5.6
+          "rate": 5.5
         },
         {
           "level": 5,
@@ -8681,7 +8685,7 @@
         },
         {
           "level": 6,
-          "rate": 64.1
+          "rate": 64.6
         }
       ],
       "artifacts": [
@@ -8712,11 +8716,11 @@
         },
         {
           "id": 13101,
-          "rate": 28
+          "rate": 28.1
         },
         {
           "id": 13407,
-          "rate": 12.9
+          "rate": 12.6
         }
       ]
     },
@@ -8727,15 +8731,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 72.5
+          "rate": 71.9
         },
         {
           "level": 1,
-          "rate": 16.8
+          "rate": 17.1
         },
         {
           "level": 2,
-          "rate": 8
+          "rate": 8.1
         },
         {
           "level": 3,
@@ -8743,7 +8747,7 @@
         },
         {
           "level": 4,
-          "rate": 0.3
+          "rate": 0.5
         },
         {
           "level": 6,
@@ -8774,15 +8778,15 @@
       "weapons": [
         {
           "id": 14516,
-          "rate": 45
+          "rate": 45.7
         },
         {
           "id": 14431,
-          "rate": 19.3
+          "rate": 19.1
         },
         {
           "id": 14402,
-          "rate": 12.8
+          "rate": 12.5
         }
       ]
     },
@@ -8793,15 +8797,15 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 4.9
+          "rate": 4.8
         },
         {
           "level": 1,
-          "rate": 6.9
+          "rate": 7.2
         },
         {
           "level": 2,
-          "rate": 13
+          "rate": 12.6
         },
         {
           "level": 3,
@@ -8813,11 +8817,11 @@
         },
         {
           "level": 5,
-          "rate": 9.3
+          "rate": 9.2
         },
         {
           "level": 6,
-          "rate": 45.9
+          "rate": 46.2
         }
       ],
       "artifacts": [
@@ -8825,34 +8829,34 @@
           "sets": {
             "15037": 4
           },
-          "rate": 68.2
+          "rate": 71.4
         },
         {
           "sets": {
             "15037": 2
           },
-          "rate": 13.6
+          "rate": 9.5
         },
         {
           "sets": {
             "15017": 2,
             "15037": 2
           },
-          "rate": 4.5
+          "rate": 4.8
         }
       ],
       "weapons": [
         {
           "id": 15401,
-          "rate": 26.8
+          "rate": 26.4
         },
         {
           "id": 15101,
-          "rate": 21.3
+          "rate": 21.6
         },
         {
           "id": 15434,
-          "rate": 16.9
+          "rate": 17
         }
       ]
     },
@@ -8867,27 +8871,27 @@
         },
         {
           "level": 1,
-          "rate": 16.1
+          "rate": 15.9
         },
         {
           "level": 2,
-          "rate": 15.7
+          "rate": 16.1
         },
         {
           "level": 3,
-          "rate": 17
+          "rate": 17.1
         },
         {
           "level": 4,
-          "rate": 13.7
+          "rate": 13.6
         },
         {
           "level": 5,
-          "rate": 8.1
+          "rate": 7.9
         },
         {
           "level": 6,
-          "rate": 18
+          "rate": 18.1
         }
       ],
       "artifacts": [
@@ -8914,7 +8918,7 @@
       "weapons": [
         {
           "id": 14101,
-          "rate": 41.2
+          "rate": 41.3
         },
         {
           "id": 14302,
@@ -8922,7 +8926,7 @@
         },
         {
           "id": 14403,
-          "rate": 7.7
+          "rate": 7.5
         }
       ]
     },
@@ -8933,23 +8937,23 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 4.6
+          "rate": 4.5
         },
         {
           "level": 1,
-          "rate": 7.4
+          "rate": 7.2
         },
         {
           "level": 2,
-          "rate": 6.3
+          "rate": 6.2
         },
         {
           "level": 3,
-          "rate": 10.1
+          "rate": 9.9
         },
         {
           "level": 4,
-          "rate": 8.2
+          "rate": 8
         },
         {
           "level": 5,
@@ -8957,7 +8961,7 @@
         },
         {
           "level": 6,
-          "rate": 55.7
+          "rate": 56.3
         }
       ],
       "artifacts": [
@@ -8984,15 +8988,15 @@
       "weapons": [
         {
           "id": 14101,
-          "rate": 51.7
+          "rate": 52
         },
         {
           "id": 14402,
-          "rate": 7.4
+          "rate": 7.2
         },
         {
           "id": 14403,
-          "rate": 4.2
+          "rate": 4.1
         }
       ]
     },
@@ -9007,7 +9011,7 @@
         },
         {
           "level": 1,
-          "rate": 14.3
+          "rate": 14.1
         },
         {
           "level": 2,
@@ -9015,11 +9019,11 @@
         },
         {
           "level": 3,
-          "rate": 12.4
+          "rate": 12.6
         },
         {
           "level": 4,
-          "rate": 10.4
+          "rate": 10.3
         },
         {
           "level": 5,
@@ -9027,7 +9031,7 @@
         },
         {
           "level": 6,
-          "rate": 28.3
+          "rate": 28.4
         }
       ],
       "artifacts": [
@@ -9053,15 +9057,15 @@
       "weapons": [
         {
           "id": 11101,
-          "rate": 42.6
+          "rate": 42.7
         },
         {
           "id": 11401,
-          "rate": 21.5
+          "rate": 21.6
         },
         {
           "id": 11403,
-          "rate": 10.4
+          "rate": 10.3
         }
       ]
     },
@@ -9099,7 +9103,7 @@
       "weapons": [
         {
           "id": 11101,
-          "rate": 70
+          "rate": 70.5
         },
         {
           "id": 11304,
@@ -9138,11 +9142,11 @@
       "weapons": [
         {
           "id": 11101,
-          "rate": 58.1
+          "rate": 58.8
         },
         {
           "id": 11428,
-          "rate": 4
+          "rate": 3.9
         },
         {
           "id": 11416,
@@ -9157,31 +9161,31 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 10.1
+          "rate": 10.4
         },
         {
           "level": 1,
-          "rate": 15.6
+          "rate": 15.3
         },
         {
           "level": 2,
-          "rate": 17.3
+          "rate": 17
         },
         {
           "level": 3,
-          "rate": 15.6
+          "rate": 15.7
         },
         {
           "level": 4,
-          "rate": 12.4
+          "rate": 12.2
         },
         {
           "level": 5,
-          "rate": 5.9
+          "rate": 5.8
         },
         {
           "level": 6,
-          "rate": 23.2
+          "rate": 23.6
         }
       ],
       "artifacts": [
@@ -9207,11 +9211,11 @@
       "weapons": [
         {
           "id": 15101,
-          "rate": 44.4
+          "rate": 44.3
         },
         {
           "id": 15401,
-          "rate": 18.9
+          "rate": 19.3
         },
         {
           "id": 15434,
@@ -9226,11 +9230,11 @@
       "constellations": [
         {
           "level": 0,
-          "rate": 91.7
+          "rate": 91.8
         },
         {
           "level": 2,
-          "rate": 4.6
+          "rate": 4.5
         },
         {
           "level": 3,
@@ -9238,7 +9242,7 @@
         },
         {
           "level": 6,
-          "rate": 2.8
+          "rate": 2.7
         }
       ],
       "artifacts": [
@@ -9259,15 +9263,15 @@
       "weapons": [
         {
           "id": 13517,
-          "rate": 39.4
+          "rate": 40
         },
         {
           "id": 13505,
-          "rate": 25.7
+          "rate": 25.5
         },
         {
           "id": 13405,
-          "rate": 19.3
+          "rate": 19.1
         }
       ]
     }
@@ -9281,7 +9285,7 @@
         10000126,
         10000125
       ],
-      "rate": 35.9
+      "rate": 36.5
     },
     {
       "half": 1,
@@ -9351,27 +9355,7 @@
         10000116,
         10000027
       ],
-      "rate": 1.5
-    },
-    {
-      "half": 1,
-      "members": [
-        10000127,
-        10000126,
-        10000125,
-        10000055
-      ],
-      "rate": 1.3
-    },
-    {
-      "half": 1,
-      "members": [
-        10000130,
-        10000126,
-        10000125,
-        10000094
-      ],
-      "rate": 1.3
+      "rate": 1.4
     },
     {
       "half": 1,
@@ -9381,7 +9365,27 @@
         10000119,
         10000073
       ],
-      "rate": 1.3
+      "rate": 1.4
+    },
+    {
+      "half": 1,
+      "members": [
+        10000127,
+        10000126,
+        10000125,
+        10000055
+      ],
+      "rate": 1.2
+    },
+    {
+      "half": 1,
+      "members": [
+        10000130,
+        10000126,
+        10000125,
+        10000094
+      ],
+      "rate": 1.2
     },
     {
       "half": 1,
@@ -9391,37 +9395,7 @@
         10000103,
         10000094
       ],
-      "rate": 1.3
-    },
-    {
-      "half": 1,
-      "members": [
-        10000130,
-        10000125,
-        10000116,
-        10000091
-      ],
-      "rate": 1.1
-    },
-    {
-      "half": 1,
-      "members": [
-        10000140,
-        10000127,
-        10000126,
-        10000125
-      ],
-      "rate": 1.1
-    },
-    {
-      "half": 1,
-      "members": [
-        10000150,
-        10000140,
-        10000133,
-        10000058
-      ],
-      "rate": 1.1
+      "rate": 1.2
     },
     {
       "half": 1,
@@ -9431,7 +9405,37 @@
         10000089,
         10000034
       ],
-      "rate": 0.8
+      "rate": 1
+    },
+    {
+      "half": 1,
+      "members": [
+        10000130,
+        10000125,
+        10000116,
+        10000091
+      ],
+      "rate": 1
+    },
+    {
+      "half": 1,
+      "members": [
+        10000140,
+        10000127,
+        10000126,
+        10000125
+      ],
+      "rate": 1
+    },
+    {
+      "half": 1,
+      "members": [
+        10000150,
+        10000140,
+        10000133,
+        10000058
+      ],
+      "rate": 1
     },
     {
       "half": 1,
@@ -9440,16 +9444,6 @@
         10000103,
         10000091,
         10000089
-      ],
-      "rate": 0.8
-    },
-    {
-      "half": 1,
-      "members": [
-        10000107,
-        10000106,
-        10000103,
-        10000032
       ],
       "rate": 0.8
     },
@@ -9470,16 +9464,6 @@
         10000126,
         10000125,
         10000030
-      ],
-      "rate": 0.8
-    },
-    {
-      "half": 1,
-      "members": [
-        10000125,
-        10000120,
-        10000116,
-        10000103
       ],
       "rate": 0.8
     },
@@ -9510,6 +9494,16 @@
         10000127,
         10000125,
         10000094
+      ],
+      "rate": 0.6
+    },
+    {
+      "half": 1,
+      "members": [
+        10000107,
+        10000106,
+        10000103,
+        10000032
       ],
       "rate": 0.6
     },
@@ -9550,6 +9544,26 @@
         10000120,
         10000116,
         10000091
+      ],
+      "rate": 0.6
+    },
+    {
+      "half": 1,
+      "members": [
+        10000130,
+        10000125,
+        10000120,
+        10000116
+      ],
+      "rate": 0.6
+    },
+    {
+      "half": 1,
+      "members": [
+        10000125,
+        10000120,
+        10000116,
+        10000103
       ],
       "rate": 0.6
     },
@@ -9637,9 +9651,9 @@
       "half": 1,
       "members": [
         10000130,
-        10000125,
-        10000120,
-        10000116
+        10000127,
+        10000126,
+        10000121
       ],
       "rate": 0.4
     },
@@ -9938,6 +9952,16 @@
       "members": [
         10000125,
         10000116,
+        10000094,
+        10000034
+      ],
+      "rate": 0.2
+    },
+    {
+      "half": 1,
+      "members": [
+        10000125,
+        10000116,
         10000111,
         10000103
       ],
@@ -10086,20 +10110,20 @@
     {
       "half": 1,
       "members": [
-        10000127,
-        10000126,
         10000125,
-        10000054
+        10000116,
+        10000091,
+        10000089
       ],
       "rate": 0.2
     },
     {
       "half": 1,
       "members": [
-        10000130,
-        10000121,
-        10000120,
-        10000116
+        10000127,
+        10000126,
+        10000125,
+        10000054
       ],
       "rate": 0.2
     },
@@ -10676,16 +10700,6 @@
     {
       "half": 1,
       "members": [
-        10000130,
-        10000127,
-        10000126,
-        10000121
-      ],
-      "rate": 0.2
-    },
-    {
-      "half": 1,
-      "members": [
         10000140,
         10000132,
         10000128,
@@ -10831,7 +10845,7 @@
         10000140,
         10000076
       ],
-      "rate": 6.7
+      "rate": 6.8
     },
     {
       "half": 2,
@@ -10841,7 +10855,7 @@
         10000058,
         10000035
       ],
-      "rate": 6.1
+      "rate": 6
     },
     {
       "half": 2,
@@ -10851,7 +10865,7 @@
         10000136,
         10000058
       ],
-      "rate": 5.9
+      "rate": 6
     },
     {
       "half": 2,
@@ -10861,7 +10875,7 @@
         10000112,
         10000058
       ],
-      "rate": 5.5
+      "rate": 5.6
     },
     {
       "half": 2,
@@ -10871,7 +10885,7 @@
         10000133,
         10000058
       ],
-      "rate": 3.6
+      "rate": 3.3
     },
     {
       "half": 2,
@@ -10911,7 +10925,7 @@
         10000131,
         10000058
       ],
-      "rate": 2.1
+      "rate": 2.3
     },
     {
       "half": 2,
@@ -10921,7 +10935,7 @@
         10000133,
         10000058
       ],
-      "rate": 1.3
+      "rate": 1.4
     },
     {
       "half": 2,
@@ -10931,7 +10945,17 @@
         10000133,
         10000031
       ],
-      "rate": 1.1
+      "rate": 1
+    },
+    {
+      "half": 2,
+      "members": [
+        10000140,
+        10000114,
+        10000112,
+        10000089
+      ],
+      "rate": 1
     },
     {
       "half": 2,
@@ -10941,17 +10965,7 @@
         10000140,
         10000007
       ],
-      "rate": 1.1
-    },
-    {
-      "half": 2,
-      "members": [
-        10000150,
-        10000148,
-        10000140,
-        10000133
-      ],
-      "rate": 1.1
+      "rate": 1
     },
     {
       "half": 2,
@@ -10961,7 +10975,7 @@
         10000140,
         10000039
       ],
-      "rate": 1.1
+      "rate": 1
     },
     {
       "half": 2,
@@ -10986,10 +11000,10 @@
     {
       "half": 2,
       "members": [
+        10000150,
+        10000148,
         10000140,
-        10000114,
-        10000112,
-        10000089
+        10000133
       ],
       "rate": 0.8
     },
@@ -11167,6 +11181,16 @@
       "half": 2,
       "members": [
         10000150,
+        10000133,
+        10000103,
+        10000058
+      ],
+      "rate": 0.4
+    },
+    {
+      "half": 2,
+      "members": [
+        10000150,
         10000148,
         10000136,
         10000007
@@ -11228,6 +11252,16 @@
       "members": [
         10000150,
         10000071,
+        10000058,
+        10000035
+      ],
+      "rate": 0.4
+    },
+    {
+      "half": 2,
+      "members": [
+        10000140,
+        10000133,
         10000058,
         10000035
       ],
@@ -11546,9 +11580,9 @@
     {
       "half": 2,
       "members": [
-        10000150,
-        10000148,
-        10000031,
+        10000143,
+        10000076,
+        10000039,
         10000007
       ],
       "rate": 0.2
@@ -11557,9 +11591,9 @@
       "half": 2,
       "members": [
         10000150,
-        10000133,
-        10000103,
-        10000058
+        10000148,
+        10000031,
+        10000007
       ],
       "rate": 0.2
     },
@@ -11757,6 +11791,16 @@
       "half": 2,
       "members": [
         10000150,
+        10000148,
+        10000058,
+        10000005
+      ],
+      "rate": 0.2
+    },
+    {
+      "half": 2,
+      "members": [
+        10000150,
         10000116,
         10000111,
         10000089
@@ -11850,16 +11894,6 @@
         10000148,
         10000133,
         10000116
-      ],
-      "rate": 0.2
-    },
-    {
-      "half": 2,
-      "members": [
-        10000140,
-        10000133,
-        10000058,
-        10000035
       ],
       "rate": 0.2
     },

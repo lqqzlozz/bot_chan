@@ -105,7 +105,9 @@ module.exports = {
       try { await require('../utils/panelTestPreview').handle(interaction); }
       catch (error) {
         console.error('パネルプレビューエラー:', error);
-        if (!interaction.deferred && !interaction.replied) await interaction.reply({content:'プレビューを表示できませんでした。',ephemeral:true}).catch(()=>null);
+        const response = {content:'設定パネルの操作を完了できませんでした。画面を開き直して現在の設定を確認してください。',flags:MessageFlags.Ephemeral};
+        if (interaction.deferred || interaction.replied) await interaction.followUp(response).catch(()=>null);
+        else await interaction.reply(response).catch(()=>null);
       }
       return;
     }

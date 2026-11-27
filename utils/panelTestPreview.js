@@ -280,7 +280,7 @@ function render(page='home',mode='pending',guildId=null,auditPage=0,graph=false)
   if(next.length)container.addActionRowComponents(row(select('sub','設定項目を選択',next)));
   container.addActionRowComponents(row(button('back_'+back(page),'← 戻る'),...(back(page)==='home'?[]:[button('back_home','最初に戻る')])));
  }
- return {components:[container],flags:MessageFlags.IsComponentsV2,allowedMentions:{parse:[]}};
+ return {content:null,embeds:[],components:[container],flags:MessageFlags.IsComponentsV2,allowedMentions:{parse:[]}};
 }
 async function handleCore(i){
  if(!(i.isButton()||i.isStringSelectMenu()||i.isChannelSelectMenu()||i.isRoleSelectMenu()||i.isModalSubmit())||!i.customId?.startsWith(ROOT))return false;

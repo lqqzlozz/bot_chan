@@ -17,6 +17,23 @@ module.exports = {
 
     // 設定を先に戻し、登録済み原神サーバーのコマンドも復元する。
     await st.loadAll(client);
+    // One-time account maintenance; preserve any subsequent re-link.
+    {
+      const guild = client.guilds.cache.get('1341988738074542111');
+      const userId = '1088369918069715024';
+      const data = guild && st.db.get(guild.id);
+      const previous = data?.hoyolab?.[userId];
+      if (!data) console.warn('unlink-Nov27: config unavailable');
+      else if (!previous) console.log('unlink-Nov27: no existing link');
+      else if (previous.fetchedAt <= Date.parse('2026-11-27T13:30:14.385Z')) {
+        try {
+          const uid = data.intro?.[userId]?.uid;
+          require('../utils/hoyolabLink').revoke(guild.id, userId);
+          await require('../utils/hoyolabStore').unlink(guild, userId);
+          console.log('unlink-Nov27: persisted', { unlinked: !data.hoyolab[userId], registeredUidPreserved: !!uid && data.intro?.[userId]?.uid === uid });
+        } catch { console.error('unlink-Nov27: save failed'); }
+      } else console.log('unlink-Nov27: newer link or missing timestamp');
+    }
     const visit = require('../utils/visitPanel');
     await visit.ensureSetup(client).catch(error => console.error('来場予約の設定パネル設置失敗:', error.message));
     await visit.tick(client, true).catch(error => console.error('来場予約表の復元失敗:', error.message));
